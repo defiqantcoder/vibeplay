@@ -84,6 +84,57 @@ class Settings(BaseSettings):
         default=60.0,
         description="Analysis window duration extracted from track middle (seconds)",
     )
+    weight_bpm: float = Field(
+        default=1.0,
+        description="Weight for BPM tempo feature in vibe vector formulation",
+    )
+    weight_loudness: float = Field(
+        default=0.5,
+        description="Weight for integrated loudness feature in vibe vector formulation",
+    )
+    weight_danceability: float = Field(
+        default=1.0,
+        description="Weight for danceability feature in vibe vector formulation",
+    )
+    weight_energy: float = Field(
+        default=1.0,
+        description="Weight for energy feature in vibe vector formulation",
+    )
+    weight_mood: float = Field(
+        default=1.0,
+        description="Weight for mood probabilities in vibe vector formulation",
+    )
+    weight_embedding: float = Field(
+        default=0.8,
+        description="Weight for PCA-reduced embedding features in vibe vector formulation",
+    )
+    bpm_harmonic_weight: float = Field(
+        default=0.8,
+        description="Proportion of circular/harmonic BPM weight vs absolute BPM weight",
+    )
+    pca_embedding_dimensions: int = Field(
+        default=16,
+        description="Number of principal components for embedding dimensionality reduction",
+    )
+    vector_cache_dir: Path | None = Field(
+        default=None,
+        description="Directory for caching computed vibe vectors (defaults to database directory)",
+    )
+    clustering_default_k: int = Field(
+        default=5,
+        description="Default number of clusters for KMeans clustering",
+    )
+    clustering_default_algorithm: str = Field(
+        default="kmeans",
+        description="Default clustering algorithm ('kmeans' or 'hdbscan')",
+    )
+
+    def get_vector_cache_path(self, db_path: Path | None = None) -> Path:
+        """Return the resolved path to the vector cache file."""
+        if self.vector_cache_dir is not None:
+            return self.vector_cache_dir / "vectors_cache.npz"
+        base_dir = (db_path or self.db_path).parent
+        return base_dir / "vectors_cache.npz"
 
 
 @lru_cache(maxsize=1)

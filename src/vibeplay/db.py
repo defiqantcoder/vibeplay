@@ -333,20 +333,20 @@ def insert_track(
     mtime: float,
     size: int,
     file_hash: str,
-    duration: float | None,
-    bitrate: int | None,
-    title: str | None,
-    artist: str | None,
-    album_artist: str | None,
-    album: str | None,
-    track_no: int | None,
-    track_total: int | None,
-    disc_no: int | None,
-    disc_total: int | None,
-    year: int | None,
-    genre: str | None,
-    has_cover: bool,
-    tags_json: str,
+    duration: float | None = None,
+    bitrate: int | None = None,
+    title: str | None = None,
+    artist: str | None = None,
+    album_artist: str | None = None,
+    album: str | None = None,
+    track_no: int | None = None,
+    track_total: int | None = None,
+    disc_no: int | None = None,
+    disc_total: int | None = None,
+    year: int | None = None,
+    genre: str | None = None,
+    has_cover: bool = False,
+    tags_json: str = "{}",
 ) -> int:
     """Insert a new track record into the database.
 
@@ -869,3 +869,73 @@ def get_total_active_tracks_count(conn: sqlite3.Connection) -> int:
     cursor.execute("SELECT COUNT(*) FROM tracks WHERE status = 'active'")
     row = cursor.fetchone()
     return int(row[0]) if row else 0
+
+
+def get_tracks_with_features(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Retrieve all tracks that have extracted audio features.
+
+    Joins the features table with v_tracks_best_value to provide metadata
+    alongside numerical audio characteristics.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        list[sqlite3.Row]: Rows containing track metadata and audio features.
+    """
+    cursor = conn.cursor()
+    query = """
+        SELECT
+            f.track_id,
+            v.path,
+            v.title,
+            v.artist,
+            v.album,
+            v.year,
+            v.genre,
+            f.analyzer_version,
+            f.bpm,
+            f.key,
+            f.scale,
+            f.loudness,
+            f.danceability,
+            f.energy,
+            f.mood_scores,
+            f.embedding
+        FROM features f
+        JOIN v_tracks_best_value v ON f.track_id = v.track_id
+        WHERE v.track_status = 'active'
+        ORDER BY f.track_id ASC
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
+
+
+def get_features_checksum(conn: sqlite3.Connection) -> str:
+    """Calculate a deterministic hash over the current features data.
+
+    Used for invalidating cached vibe vectors on disk when underlying
+    features are modified or added.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        str: Hexadecimal SHA-256 digest of features data.
+    """
+    import hashlib
+
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT track_id, analyzer_version, bpm, loudness, danceability, energy, mood_scores, length(embedding)
+        FROM features
+        ORDER BY track_id ASC
+        """
+    )
+    rows = cursor.fetchall()
+    hasher = hashlib.sha256()
+    for row in rows:
+        row_str = "|".join(str(val) if val is not None else "" for val in row)
+        hasher.update(row_str.encode("utf-8"))
+    return hasher.hexdigest()
