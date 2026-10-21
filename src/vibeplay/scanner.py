@@ -14,8 +14,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 import mutagen
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
 
 from vibeplay.db import (
     get_connection,
@@ -152,10 +150,17 @@ def _parse_int_pair(val: Any) -> tuple[int | None, int | None]:
     if isinstance(val, (list, tuple)) and len(val) > 0:
         first = val[0]
         second = val[1] if len(val) > 1 else None
-        num = int(first) if (isinstance(first, int) or (isinstance(first, str) and first.isdigit())) else None
+        num = (
+            int(first)
+            if (isinstance(first, int) or (isinstance(first, str) and first.isdigit()))
+            else None
+        )
         total = (
             int(second)
-            if (isinstance(second, int) or (isinstance(second, str) and second.isdigit()))
+            if (
+                isinstance(second, int)
+                or (isinstance(second, str) and second.isdigit())
+            )
             else None
         )
         return num, total
@@ -206,8 +211,12 @@ def _detect_cover_art(audio: Any) -> bool:
         return False
 
     # ID3 APIC frames
-    if any(str(k).startswith("APIC") for k in tags.keys()):
-        return True
+    for k in tags:
+        if type(k) is str:
+            if k.startswith("APIC"):
+                return True
+        elif str(k).startswith("APIC"):
+            return True
 
     # MP4 covr atom
     if "covr" in tags and bool(tags.get("covr")):

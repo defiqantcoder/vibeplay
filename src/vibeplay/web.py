@@ -18,5 +18,7 @@ def run_server(
         host: Host address to bind to.
         port: Port number to bind to.
     """
-    logger.info("Starting web server at http://%s:%d with database %s", host, port, db_path)
+    logger.info(
+        "Starting web server at http://%s:%d with database %s", host, port, db_path
+    )
     raise NotImplementedError("Web server will be implemented in Phase 7.")
