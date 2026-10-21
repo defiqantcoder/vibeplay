@@ -9,7 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer, decode_audio_slice, get_middle_window_offset
+from vibeplay.analysis.base import (
+    AudioFeatures,
+    BaseAnalyzer,
+    decode_audio_slice,
+    get_middle_window_offset,
+)
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
 from vibeplay.analysis.librosa_analyzer import LibrosaAnalyzer
 from vibeplay.config import get_settings
@@ -171,7 +176,9 @@ def analyze_tracks(
                 track_id, features, err_msg, elapsed = _analyze_single_track_task(*args)
                 track_name = Path(args[1]).name
                 if progress_callback:
-                    progress_callback(idx + 1, summary.total_considered, track_name, elapsed)
+                    progress_callback(
+                        idx + 1, summary.total_considered, track_name, elapsed
+                    )
 
                 if features:
                     durations.append(elapsed)
@@ -207,7 +214,12 @@ def analyze_tracks(
                     try:
                         track_id, features, err_msg, elapsed = future.result()
                         if progress_callback:
-                            progress_callback(completed_count, summary.total_considered, track_name, elapsed)
+                            progress_callback(
+                                completed_count,
+                                summary.total_considered,
+                                track_name,
+                                elapsed,
+                            )
 
                         if features:
                             durations.append(elapsed)
@@ -228,7 +240,9 @@ def analyze_tracks(
                                 )
                         else:
                             summary.failed += 1
-                            logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
+                            logger.warning(
+                                "Failed analyzing track %s: %s", args[1], err_msg
+                            )
                     except Exception as err:
                         summary.failed += 1
                         logger.warning("Task execution error for %s: %s", args[1], err)
@@ -238,8 +252,8 @@ def analyze_tracks(
         summary.avg_seconds_per_track = sum(durations) / len(durations)
         # Projected time for the library: (remaining unanalyzed tracks * avg / workers)
         summary.full_library_estimate_seconds = (
-            (summary.full_library_tracks * summary.avg_seconds_per_track) / worker_count
-        )
+            summary.full_library_tracks * summary.avg_seconds_per_track
+        ) / worker_count
 
     return summary
 
