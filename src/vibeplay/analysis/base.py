@@ -5,7 +5,6 @@ import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -92,7 +91,9 @@ class BaseAnalyzer(ABC):
         Returns:
             AudioFeatures: Extracted features.
         """
-        offset = get_middle_window_offset(duration or 0.0, window_seconds=window_seconds)
+        offset = get_middle_window_offset(
+            duration or 0.0, window_seconds=window_seconds
+        )
         audio = decode_audio_slice(
             path=path,
             offset_seconds=offset,
@@ -142,13 +143,20 @@ def decode_audio_slice(
     """
     cmd = [
         "ffmpeg",
-        "-v", "error",
-        "-ss", f"{max(0.0, offset_seconds):.3f}",
-        "-t", f"{duration_seconds:.3f}",
-        "-i", str(path),
-        "-f", "f32le",
-        "-ar", str(sample_rate),
-        "-ac", "1",
+        "-v",
+        "error",
+        "-ss",
+        f"{max(0.0, offset_seconds):.3f}",
+        "-t",
+        f"{duration_seconds:.3f}",
+        "-i",
+        str(path),
+        "-f",
+        "f32le",
+        "-ar",
+        str(sample_rate),
+        "-ac",
+        "1",
         "pipe:1",
     ]
 

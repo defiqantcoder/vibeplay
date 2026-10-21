@@ -1,9 +1,7 @@
 """Essentia-based audio analyzer extracting BPM, key, loudness, danceability, moods, and embeddings."""
 
-import json
 import logging
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -71,7 +69,13 @@ class EssentiaAnalyzer(BaseAnalyzer):
 
         moods: dict[str, float] = {}
         for mood_key in (
-            "happy", "sad", "relaxed", "aggressive", "party", "acoustic", "electronic"
+            "happy",
+            "sad",
+            "relaxed",
+            "aggressive",
+            "party",
+            "acoustic",
+            "electronic",
         ):
             mood_file = self.models_dir / ESSENTIA_MODELS[mood_key]
             if mood_file.exists():
@@ -79,7 +83,11 @@ class EssentiaAnalyzer(BaseAnalyzer):
                     classifier = es.TensorflowPredict2D(graphFilename=str(mood_file))
                     preds = classifier(raw_embeddings)
                     # Binary classification: positive class probability is at index 0 or 1
-                    prob = float(np.mean(preds[:, 0])) if preds.ndim > 1 else float(np.mean(preds))
+                    prob = (
+                        float(np.mean(preds[:, 0]))
+                        if preds.ndim > 1
+                        else float(np.mean(preds))
+                    )
                     moods[mood_key] = float(np.clip(prob, 0.0, 1.0))
                 except Exception as err:
                     logger.debug("Could not infer mood '%s': %s", mood_key, err)
@@ -105,7 +113,9 @@ class EssentiaAnalyzer(BaseAnalyzer):
         mfcc = es.MFCC(numberCoefficients=40)
 
         mfcc_frames = []
-        for frame in es.FrameGenerator(audio, frameSize=2048, hopSize=1024, startFromZero=True):
+        for frame in es.FrameGenerator(
+            audio, frameSize=2048, hopSize=1024, startFromZero=True
+        ):
             _, mfcc_coeffs = mfcc(spectrum(w(frame)))
             mfcc_frames.append(mfcc_coeffs)
 
@@ -122,12 +132,26 @@ class EssentiaAnalyzer(BaseAnalyzer):
         roll_off = es.RollOff()(audio)
 
         # Assemble fixed-length 128 float32 vector
-        summary = np.concatenate([
-            mfcc_mean[:40],
-            mfcc_std[:40],
-            np.array([bpm / 200.0, energy, danceability, (loudness + 70.0) / 70.0, flux, roll_off / 22050.0], dtype=np.float32),
-        ])
-        embedding = np.pad(summary, (0, max(0, 128 - len(summary))), mode="constant")[:128].astype(np.float32)
+        summary = np.concatenate(
+            [
+                mfcc_mean[:40],
+                mfcc_std[:40],
+                np.array(
+                    [
+                        bpm / 200.0,
+                        energy,
+                        danceability,
+                        (loudness + 70.0) / 70.0,
+                        flux,
+                        roll_off / 22050.0,
+                    ],
+                    dtype=np.float32,
+                ),
+            ]
+        )
+        embedding = np.pad(summary, (0, max(0, 128 - len(summary))), mode="constant")[
+            :128
+        ].astype(np.float32)
         # Normalize embedding vector
         norm = np.linalg.norm(embedding)
         if norm > 0:
@@ -138,13 +162,47 @@ class EssentiaAnalyzer(BaseAnalyzer):
         norm_bpm = np.clip((bpm - 60.0) / 100.0, 0.0, 1.0)
         norm_loud = np.clip((loudness + 30.0) / 30.0, 0.0, 1.0)
 
-        happy = float(np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0))
-        sad = float(np.clip(0.5 * (1.0 - is_major) + 0.3 * (1.0 - norm_bpm) + 0.2 * (1.0 - energy), 0.0, 1.0))
-        relaxed = float(np.clip(0.5 * (1.0 - energy) + 0.3 * (1.0 - norm_loud) + 0.2 * (1.0 - danceability), 0.0, 1.0))
-        aggressive = float(np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0))
-        party = float(np.clip(0.4 * danceability + 0.3 * energy + 0.3 * (1.0 - abs(norm_bpm - 0.65)), 0.0, 1.0))
-        acoustic = float(np.clip(0.5 * (1.0 - norm_loud) + 0.3 * (1.0 - energy) + 0.2 * (1.0 - danceability), 0.0, 1.0))
-        electronic = float(np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0))
+        happy = float(
+            np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0)
+        )
+        sad = float(
+            np.clip(
+                0.5 * (1.0 - is_major) + 0.3 * (1.0 - norm_bpm) + 0.2 * (1.0 - energy),
+                0.0,
+                1.0,
+            )
+        )
+        relaxed = float(
+            np.clip(
+                0.5 * (1.0 - energy)
+                + 0.3 * (1.0 - norm_loud)
+                + 0.2 * (1.0 - danceability),
+                0.0,
+                1.0,
+            )
+        )
+        aggressive = float(
+            np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0)
+        )
+        party = float(
+            np.clip(
+                0.4 * danceability + 0.3 * energy + 0.3 * (1.0 - abs(norm_bpm - 0.65)),
+                0.0,
+                1.0,
+            )
+        )
+        acoustic = float(
+            np.clip(
+                0.5 * (1.0 - norm_loud)
+                + 0.3 * (1.0 - energy)
+                + 0.2 * (1.0 - danceability),
+                0.0,
+                1.0,
+            )
+        )
+        electronic = float(
+            np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0)
+        )
 
         mood_scores = {
             "happy": round(happy, 4),
@@ -221,7 +279,9 @@ class EssentiaAnalyzer(BaseAnalyzer):
 
         # Resample to 16 kHz for Discogs-EffNet models
         try:
-            resampler = es.Resample(inputSampleRate=self._sample_rate, outputSampleRate=16000)
+            resampler = es.Resample(
+                inputSampleRate=self._sample_rate, outputSampleRate=16000
+            )
             audio_16k = resampler(audio)
             tf_embedding, tf_moods = self._extract_tf_models(audio_16k)
         except Exception as err:
