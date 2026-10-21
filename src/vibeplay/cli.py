@@ -1,12 +1,27 @@
-"""Command-line interface for vibeplay using Typer."""
+"""Command-line interface for vibeplay using Typer and Rich."""
 
 import logging
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
+from rich.table import Table
+
+from vibeplay.config import get_settings
+from vibeplay.scanner import scan_directory
 
 logger = logging.getLogger("vibeplay")
+console = Console()
 
 app = typer.Typer(
     name="vibeplay",
@@ -23,9 +38,69 @@ def scan(
             help="Path to the music directory to scan (strictly read-only)",
         ),
     ] = Path("."),
+    db: Annotated[
+        Path | None,
+        typer.Option(
+            help="Path to SQLite database (defaults to configured path)",
+        ),
+    ] = None,
 ) -> None:
     """Scan music directory recursively, index audio files, and extract tags."""
-    typer.echo("not implemented")
+    resolved_path = path.expanduser().resolve()
+    if not resolved_path.exists() or not resolved_path.is_dir():
+        console.print(f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory.")
+        raise typer.Exit(code=1)
+
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    console.print(f"[bold]Scanning library:[/bold] [cyan]{resolved_path}[/cyan]")
+    console.print(f"[bold]Target database:[/bold]  [cyan]{db_path}[/cyan]")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("Discovering audio files...", total=None)
+
+        def progress_callback(current: int, total: int, file_path: Path) -> None:
+            if progress.tasks[task_id].total != total:
+                progress.update(task_id, total=total)
+            progress.update(
+                task_id,
+                completed=current,
+                description=f"Scanning: [dim]{file_path.name[:35]}[/dim]",
+            )
+
+        summary = scan_directory(
+            library_path=resolved_path,
+            db_path=db_path,
+            progress_callback=progress_callback,
+        )
+
+    # Final summary display
+    table = Table(title=f"Scan Summary: {resolved_path.name}", show_header=True)
+    table.add_column("Category", style="bold")
+    table.add_column("Count", justify="right")
+
+    table.add_row("New", f"[green]{summary.new}[/green]")
+    table.add_row("Updated", f"[yellow]{summary.updated}[/yellow]")
+    table.add_row("Unchanged", f"[blue]{summary.unchanged}[/blue]")
+    table.add_row("Missing", f"[red]{summary.missing}[/red]")
+    table.add_row(
+        "Errors",
+        f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0",
+    )
+    table.add_section()
+    table.add_row("Total Processed", str(summary.total_processed))
+
+    console.print()
+    console.print(table)
 
 
 @app.command()

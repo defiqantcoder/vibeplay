@@ -26,10 +26,9 @@ def test_cli_help() -> None:
         assert cmd in result.stdout
 
 
-def test_cli_commands_not_implemented() -> None:
-    """Verify that stubbed CLI commands print 'not implemented'."""
-    commands_to_test = [
-        ["scan", "."],
+def test_stub_commands_not_implemented() -> None:
+    """Verify that remaining stubbed CLI commands print 'not implemented'."""
+    stub_commands = [
         ["enrich"],
         ["analyze"],
         ["clusters"],
@@ -37,7 +36,7 @@ def test_cli_commands_not_implemented() -> None:
         ["export", "1"],
         ["serve"],
     ]
-    for cmd_args in commands_to_test:
+    for cmd_args in stub_commands:
         result = runner.invoke(app, cmd_args)
         assert result.exit_code == 0, f"Command {cmd_args} failed with {result.exit_code}"
         assert "not implemented" in result.stdout
@@ -56,6 +55,7 @@ def test_db_init_schema(tmp_path: Path) -> None:
     tables = {row[0] for row in cursor.fetchall()}
 
     expected_tables = {
+        "schema_migrations",
         "tracks",
         "enrichment",
         "features",
@@ -64,4 +64,12 @@ def test_db_init_schema(tmp_path: Path) -> None:
         "llm_cache",
     }
     assert expected_tables.issubset(tables)
+
+    # Verify migration 2 columns
+    cursor.execute("PRAGMA table_info(tracks)")
+    columns = {row[1] for row in cursor.fetchall()}
+    assert "status" in columns
+    assert "has_cover" in columns
+    assert "bitrate" in columns
+
     conn.close()
