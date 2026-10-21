@@ -13,6 +13,7 @@ from vibeplay.cli import app
 from vibeplay.db import get_connection
 from vibeplay.scanner import is_audio_file, scan_directory
 
+
 runner = CliRunner()
 
 
@@ -255,3 +256,23 @@ def test_is_audio_file() -> None:
     assert is_audio_file(Path(".hidden.mp3")) is True
     assert is_audio_file(Path("/absolute/path/to/song.wav")) is True
     assert is_audio_file(Path("relative/path/to/song.wav")) is True
+
+
+def test_compute_file_hash(tmp_path: Path) -> None:
+    """Verify that file hashing computes the correct SHA-256 string and handles chunks."""
+    from vibeplay.scanner import compute_file_hash
+
+    test_file = tmp_path / "test_hash.txt"
+    test_content = b"hello world"
+    test_file.write_bytes(test_content)
+
+    expected_hash = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+
+    # Test default chunk size
+    result = compute_file_hash(test_file)
+    assert result == expected_hash
+
+    # Test small chunk size
+    result_small_chunk = compute_file_hash(test_file, chunk_size=2)
+    assert result_small_chunk == expected_hash
+
