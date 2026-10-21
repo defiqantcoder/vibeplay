@@ -50,11 +50,15 @@ def scan(
     """Scan music directory recursively, index audio files, and extract tags."""
     resolved_path = path.expanduser().resolve()
     if not resolved_path.exists() or not resolved_path.is_dir():
-        console.print(f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory.")
+        console.print(
+            f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory."
+        )
         raise typer.Exit(code=1)
 
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     console.print(f"[bold]Scanning library:[/bold] [cyan]{resolved_path}[/cyan]")
     console.print(f"[bold]Target database:[/bold]  [cyan]{db_path}[/cyan]")
@@ -130,7 +134,9 @@ def enrich(
 ) -> None:
     """Fingerprint audio tracks and query MusicBrainz for canonical metadata."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     if report:
         report_rows = get_report_data(db_path)
@@ -155,7 +161,11 @@ def enrich(
             orig = f"{row.get('original_artist') or 'Unknown'} - {row.get('original_title') or 'Unknown'}"
             canon_artist = row.get("canonical_artist")
             canon_title = row.get("canonical_title")
-            canon = f"{canon_artist} - {canon_title}" if canon_artist and canon_title else "[dim]None[/dim]"
+            canon = (
+                f"{canon_artist} - {canon_title}"
+                if canon_artist and canon_title
+                else "[dim]None[/dim]"
+            )
 
             status = row.get("enrichment_status") or "not_enriched"
             if status == "matched":
@@ -226,7 +236,9 @@ def enrich(
     table.add_row("Matched (High Confidence)", f"[green]{summary.matched}[/green]")
     table.add_row("Needs Review", f"[yellow]{summary.needs_review}[/yellow]")
     table.add_row("Unmatched", f"[blue]{summary.unmatched}[/blue]")
-    table.add_row("Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0")
+    table.add_row(
+        "Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0"
+    )
     table.add_section()
     table.add_row("Total Processed", str(summary.total))
 
@@ -279,7 +291,9 @@ def analyze(
 ) -> None:
     """Analyze audio files to extract acoustic features, rhythm, and embeddings."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     selected_backend = (
         "librosa" if fallback_librosa else (backend or settings.analyzer_backend)
@@ -287,7 +301,9 @@ def analyze(
 
     console.print(f"[bold]Target database:[/bold]   [cyan]{db_path}[/cyan]")
     console.print(f"[bold]Analysis engine:[/bold]   [cyan]{selected_backend}[/cyan]")
-    console.print(f"[bold]Workers:[/bold]           [cyan]{workers or settings.analyzer_workers}[/cyan]")
+    console.print(
+        f"[bold]Workers:[/bold]           [cyan]{workers or settings.analyzer_workers}[/cyan]"
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -300,7 +316,9 @@ def analyze(
     ) as progress:
         task_id = progress.add_task("Analyzing audio features...", total=None)
 
-        def progress_callback(current: int, total: int, track_name: str, elapsed: float) -> None:
+        def progress_callback(
+            current: int, total: int, track_name: str, elapsed: float
+        ) -> None:
             if progress.tasks[task_id].total != total:
                 progress.update(task_id, total=total)
             progress.update(
@@ -331,7 +349,10 @@ def analyze(
     table.add_column("Value", justify="right")
 
     table.add_row("Tracks Analyzed", f"[green]{summary.analyzed}[/green]")
-    table.add_row("Failures / Errors", f"[magenta]{summary.failed}[/magenta]" if summary.failed else "0")
+    table.add_row(
+        "Failures / Errors",
+        f"[magenta]{summary.failed}[/magenta]" if summary.failed else "0",
+    )
     table.add_row("Total Time Taken", format_time(summary.total_seconds))
     table.add_row("Average Speed", f"{summary.avg_seconds_per_track:.2f} s/track")
     table.add_section()
