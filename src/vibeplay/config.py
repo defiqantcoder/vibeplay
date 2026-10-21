@@ -39,6 +39,34 @@ class Settings(BaseSettings):
         default="INFO",
         description="Logging level",
     )
+    enrichment_confidence_threshold: float = Field(
+        default=0.8,
+        description="Confidence threshold below which matches are marked as 'needs review'",
+    )
+    musicbrainz_app: str = Field(
+        default="vibeplay",
+        description="Application name for MusicBrainz User-Agent",
+    )
+    musicbrainz_version: str = Field(
+        default="0.1.0",
+        description="Application version for MusicBrainz User-Agent",
+    )
+    musicbrainz_contact: str = Field(
+        default="https://github.com/defiqantcoder/vibeplay",
+        description="Contact URL for MusicBrainz User-Agent",
+    )
+    musicbrainz_rate_limit: float = Field(
+        default=1.0,
+        description="Minimum seconds between MusicBrainz requests",
+    )
+    network_max_retries: int = Field(
+        default=3,
+        description="Maximum retry attempts for network requests",
+    )
+    network_backoff_factor: float = Field(
+        default=2.0,
+        description="Backoff factor for exponential retry delays",
+    )
 
 
 @lru_cache(maxsize=1)

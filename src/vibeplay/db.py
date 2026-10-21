@@ -116,6 +116,77 @@ MIGRATIONS: list[tuple[int, str, str]] = [
         CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album);
         """,
     ),
+    (
+        3,
+        "003_enrichment_columns_cache_and_view",
+        """
+        ALTER TABLE enrichment ADD COLUMN canonical_title TEXT;
+        ALTER TABLE enrichment ADD COLUMN canonical_artist TEXT;
+        ALTER TABLE enrichment ADD COLUMN canonical_album_artist TEXT;
+        ALTER TABLE enrichment ADD COLUMN canonical_album TEXT;
+        ALTER TABLE enrichment ADD COLUMN canonical_year INTEGER;
+        ALTER TABLE enrichment ADD COLUMN canonical_track_no INTEGER;
+        ALTER TABLE enrichment ADD COLUMN canonical_track_total INTEGER;
+        ALTER TABLE enrichment ADD COLUMN canonical_disc_no INTEGER;
+        ALTER TABLE enrichment ADD COLUMN canonical_disc_total INTEGER;
+        ALTER TABLE enrichment ADD COLUMN genres TEXT;
+        ALTER TABLE enrichment ADD COLUMN tags TEXT;
+        ALTER TABLE enrichment ADD COLUMN confidence REAL DEFAULT 0.0;
+        ALTER TABLE enrichment ADD COLUMN status TEXT NOT NULL DEFAULT 'matched';
+
+        CREATE INDEX IF NOT EXISTS idx_enrichment_status ON enrichment(status);
+        CREATE INDEX IF NOT EXISTS idx_enrichment_confidence ON enrichment(confidence);
+
+        CREATE TABLE IF NOT EXISTS network_cache (
+            cache_key TEXT PRIMARY KEY,
+            endpoint TEXT NOT NULL,
+            response_json TEXT NOT NULL,
+            status_code INTEGER NOT NULL DEFAULT 200,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_network_cache_endpoint ON network_cache(endpoint);
+
+        DROP VIEW IF EXISTS v_tracks_best_value;
+        CREATE VIEW v_tracks_best_value AS
+        SELECT
+            t.id AS track_id,
+            t.path,
+            t.duration,
+            t.bitrate,
+            t.has_cover,
+            t.status AS track_status,
+            COALESCE(e.canonical_title, t.title) AS title,
+            COALESCE(e.canonical_artist, t.artist) AS artist,
+            COALESCE(e.canonical_album_artist, t.album_artist, e.canonical_artist, t.artist) AS album_artist,
+            COALESCE(e.canonical_album, t.album) AS album,
+            COALESCE(e.canonical_track_no, t.track_no) AS track_no,
+            COALESCE(e.canonical_track_total, t.track_total) AS track_total,
+            COALESCE(e.canonical_disc_no, t.disc_no) AS disc_no,
+            COALESCE(e.canonical_disc_total, t.disc_total) AS disc_total,
+            COALESCE(e.canonical_year, t.year) AS year,
+            COALESCE(e.genres, t.genre) AS genre,
+            t.title AS original_title,
+            t.artist AS original_artist,
+            t.album AS original_album,
+            t.year AS original_year,
+            t.genre AS original_genre,
+            e.canonical_title,
+            e.canonical_artist,
+            e.canonical_album,
+            e.canonical_year,
+            e.genres AS enriched_genres,
+            e.tags AS enriched_tags,
+            e.mb_recording_id,
+            e.mb_release_id,
+            e.mb_artist_id,
+            e.confidence,
+            e.status AS enrichment_status,
+            e.fetched_at AS enriched_at
+        FROM tracks t
+        LEFT JOIN enrichment e ON t.id = e.track_id;
+        """,
+    ),
 ]
 
 
@@ -457,3 +528,224 @@ def mark_tracks_missing(conn: sqlite3.Connection, track_ids: list[int]) -> int:
         track_ids,
     )
     return cursor.rowcount
+
+
+def get_cached_response(conn: sqlite3.Connection, cache_key: str) -> str | None:
+    """Retrieve cached response JSON from network_cache.
+
+    Args:
+        conn: Open SQLite connection.
+        cache_key: Unique cache key identifier.
+
+    Returns:
+        str | None: Cached JSON string or None if cache miss.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT response_json FROM network_cache WHERE cache_key = ?",
+        (cache_key,),
+    )
+    row = cursor.fetchone()
+    return row["response_json"] if row else None
+
+
+def set_cached_response(
+    conn: sqlite3.Connection,
+    cache_key: str,
+    endpoint: str,
+    response_json: str,
+    status_code: int = 200,
+) -> None:
+    """Store or update a response JSON string in network_cache.
+
+    Args:
+        conn: Open SQLite connection.
+        cache_key: Unique cache key identifier.
+        endpoint: API endpoint name or URL.
+        response_json: Serialized JSON payload.
+        status_code: HTTP status code.
+    """
+    conn.execute(
+        """
+        INSERT INTO network_cache (cache_key, endpoint, response_json, status_code)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(cache_key) DO UPDATE SET
+            response_json = excluded.response_json,
+            status_code = excluded.status_code,
+            created_at = CURRENT_TIMESTAMP
+        """,
+        (cache_key, endpoint, response_json, status_code),
+    )
+
+
+def get_unenriched_tracks(
+    conn: sqlite3.Connection,
+    force: bool = False,
+    limit: int | None = None,
+) -> list[sqlite3.Row]:
+    """Fetch active tracks requiring metadata enrichment.
+
+    Args:
+        conn: Open SQLite connection.
+        force: If True, include tracks that already have enrichment records.
+        limit: Optional maximum number of tracks to return.
+
+    Returns:
+        list[sqlite3.Row]: Track rows.
+    """
+    cursor = conn.cursor()
+    query = """
+        SELECT t.*
+        FROM tracks t
+        LEFT JOIN enrichment e ON t.id = e.track_id
+        WHERE t.status = 'active'
+    """
+    if not force:
+        query += " AND e.track_id IS NULL"
+
+    query += " ORDER BY t.id ASC"
+    if limit is not None:
+        query += f" LIMIT {int(limit)}"
+
+    cursor.execute(query)
+    return cursor.fetchall()
+
+
+def insert_or_replace_enrichment(
+    conn: sqlite3.Connection,
+    track_id: int,
+    mb_recording_id: str | None,
+    mb_release_id: str | None,
+    mb_artist_id: str | None,
+    canonical_title: str | None,
+    canonical_artist: str | None,
+    canonical_album_artist: str | None,
+    canonical_album: str | None,
+    canonical_year: int | None,
+    canonical_track_no: int | None,
+    canonical_track_total: int | None,
+    canonical_disc_no: int | None,
+    canonical_disc_total: int | None,
+    genres: str | None,
+    tags: str | None,
+    confidence: float,
+    status: str,
+    source: str,
+    raw_metadata: str,
+) -> None:
+    """Insert or replace an enrichment record for a track.
+
+    Args:
+        conn: Open SQLite connection.
+        track_id: ID of the track.
+        mb_recording_id: MusicBrainz recording UUID.
+        mb_release_id: MusicBrainz release UUID.
+        mb_artist_id: MusicBrainz artist UUID.
+        canonical_title: Normalized track title.
+        canonical_artist: Normalized artist name.
+        canonical_album_artist: Normalized album artist name.
+        canonical_album: Normalized album title.
+        canonical_year: Normalized release year.
+        canonical_track_no: Track number.
+        canonical_track_total: Total track count.
+        canonical_disc_no: Disc number.
+        canonical_disc_total: Total disc count.
+        genres: Serialized genres JSON.
+        tags: Serialized tags JSON.
+        confidence: Match confidence (0.0 to 1.0).
+        status: Match status ('matched', 'needs_review', 'unmatched', 'error').
+        source: Enrichment source string.
+        raw_metadata: Raw API response JSON string.
+    """
+    conn.execute(
+        """
+        INSERT INTO enrichment (
+            track_id, mb_recording_id, mb_release_id, mb_artist_id,
+            canonical_title, canonical_artist, canonical_album_artist, canonical_album,
+            canonical_year, canonical_track_no, canonical_track_total,
+            canonical_disc_no, canonical_disc_total,
+            genres, tags, confidence, status, source, raw_metadata, fetched_at
+        ) VALUES (
+            ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?,
+            ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT(track_id) DO UPDATE SET
+            mb_recording_id = excluded.mb_recording_id,
+            mb_release_id = excluded.mb_release_id,
+            mb_artist_id = excluded.mb_artist_id,
+            canonical_title = excluded.canonical_title,
+            canonical_artist = excluded.canonical_artist,
+            canonical_album_artist = excluded.canonical_album_artist,
+            canonical_album = excluded.canonical_album,
+            canonical_year = excluded.canonical_year,
+            canonical_track_no = excluded.canonical_track_no,
+            canonical_track_total = excluded.canonical_track_total,
+            canonical_disc_no = excluded.canonical_disc_no,
+            canonical_disc_total = excluded.canonical_disc_total,
+            genres = excluded.genres,
+            tags = excluded.tags,
+            confidence = excluded.confidence,
+            status = excluded.status,
+            source = excluded.source,
+            raw_metadata = excluded.raw_metadata,
+            fetched_at = CURRENT_TIMESTAMP
+        """,
+        (
+            track_id,
+            mb_recording_id,
+            mb_release_id,
+            mb_artist_id,
+            canonical_title,
+            canonical_artist,
+            canonical_album_artist,
+            canonical_album,
+            canonical_year,
+            canonical_track_no,
+            canonical_track_total,
+            canonical_disc_no,
+            canonical_disc_total,
+            genres,
+            tags,
+            confidence,
+            status,
+            source,
+            raw_metadata,
+        ),
+    )
+
+
+def get_enrichment_report(
+    conn: sqlite3.Connection,
+    confidence_threshold: float,
+) -> list[sqlite3.Row]:
+    """Retrieve tracks that are unmatched, low-confidence, or not enriched.
+
+    Args:
+        conn: Open SQLite connection.
+        confidence_threshold: Threshold below which matches need review.
+
+    Returns:
+        list[sqlite3.Row]: Rows from v_tracks_best_value needing attention.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT
+            track_id, path, original_title, original_artist, original_album,
+            canonical_title, canonical_artist, canonical_album,
+            confidence, enrichment_status
+        FROM v_tracks_best_value
+        WHERE track_status = 'active'
+          AND (
+              enrichment_status IS NULL
+              OR enrichment_status IN ('unmatched', 'needs_review', 'error')
+              OR confidence < ?
+          )
+        ORDER BY track_id ASC
+        """,
+        (confidence_threshold,),
+    )
+    return cursor.fetchall()

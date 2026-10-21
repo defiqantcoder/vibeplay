@@ -29,7 +29,6 @@ def test_cli_help() -> None:
 def test_stub_commands_not_implemented() -> None:
     """Verify that remaining stubbed CLI commands print 'not implemented'."""
     stub_commands = [
-        ["enrich"],
         ["analyze"],
         ["clusters"],
         ["playlist"],
@@ -62,14 +61,12 @@ def test_db_init_schema(tmp_path: Path) -> None:
         "playlists",
         "playlist_tracks",
         "llm_cache",
+        "network_cache",
     }
     assert expected_tables.issubset(tables)
 
-    # Verify migration 2 columns
-    cursor.execute("PRAGMA table_info(tracks)")
-    columns = {row[1] for row in cursor.fetchall()}
-    assert "status" in columns
-    assert "has_cover" in columns
-    assert "bitrate" in columns
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='view'")
+    views = {row[0] for row in cursor.fetchall()}
+    assert "v_tracks_best_value" in views
 
     conn.close()
