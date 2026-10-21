@@ -14,8 +14,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 import mutagen
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
 
 from vibeplay.db import (
     get_connection,
@@ -152,10 +150,17 @@ def _parse_int_pair(val: Any) -> tuple[int | None, int | None]:
     if isinstance(val, (list, tuple)) and len(val) > 0:
         first = val[0]
         second = val[1] if len(val) > 1 else None
-        num = int(first) if (isinstance(first, int) or (isinstance(first, str) and first.isdigit())) else None
+        num = (
+            int(first)
+            if (isinstance(first, int) or (isinstance(first, str) and first.isdigit()))
+            else None
+        )
         total = (
             int(second)
-            if (isinstance(second, int) or (isinstance(second, str) and second.isdigit()))
+            if (
+                isinstance(second, int)
+                or (isinstance(second, str) and second.isdigit())
+            )
             else None
         )
         return num, total
@@ -221,6 +226,28 @@ def _detect_cover_art(audio: Any) -> bool:
     return False
 
 
+def _extract_audio_properties(audio: Any) -> tuple[float | None, int | None]:
+    duration: float | None = None
+    if hasattr(audio, "info") and getattr(audio.info, "length", None) is not None:
+        duration = float(audio.info.length)
+
+    bitrate: int | None = None
+    if hasattr(audio, "info") and getattr(audio.info, "bitrate", None) is not None:
+        bitrate = int(audio.info.bitrate)
+
+    return duration, bitrate
+
+
+def _extract_int_pair_from_tags(tags: Any, *keys: str) -> tuple[int | None, int | None]:
+    raw_val = None
+    if tags:
+        for k in keys:
+            if k in tags:
+                raw_val = tags[k]
+                break
+    return _parse_int_pair(raw_val)
+
+
 def _serialize_tags(tags: Any) -> str:
     """Safely serialize mutagen tag objects to a JSON string.
 
@@ -268,13 +295,7 @@ def extract_metadata(file_path: Path) -> ExtractedMetadata:
         raise ValueError(f"Mutagen could not recognize audio format: {file_path}")
 
     # Audio stream properties
-    duration: float | None = None
-    if hasattr(audio, "info") and getattr(audio.info, "length", None) is not None:
-        duration = float(audio.info.length)
-
-    bitrate: int | None = None
-    if hasattr(audio, "info") and getattr(audio.info, "bitrate", None) is not None:
-        bitrate = int(audio.info.bitrate)
+    duration, bitrate = _extract_audio_properties(audio)
 
     tags = getattr(audio, "tags", None)
 
@@ -288,21 +309,12 @@ def extract_metadata(file_path: Path) -> ExtractedMetadata:
     genre = _parse_first_string(tags, "genre", "TCON", "\xa9gen")
 
     # Track and disc numbers
-    raw_track = None
-    if tags:
-        for k in ("tracknumber", "track", "TRCK", "trkn"):
-            if k in tags:
-                raw_track = tags[k]
-                break
-    track_no, track_total = _parse_int_pair(raw_track)
-
-    raw_disc = None
-    if tags:
-        for k in ("discnumber", "disc", "TPOS", "disk"):
-            if k in tags:
-                raw_disc = tags[k]
-                break
-    disc_no, disc_total = _parse_int_pair(raw_disc)
+    track_no, track_total = _extract_int_pair_from_tags(
+        tags, "tracknumber", "track", "TRCK", "trkn"
+    )
+    disc_no, disc_total = _extract_int_pair_from_tags(
+        tags, "discnumber", "disc", "TPOS", "disk"
+    )
 
     # Year
     raw_date = _parse_first_string(tags, "date", "year", "TDRC", "TYER", "\xa9day")
