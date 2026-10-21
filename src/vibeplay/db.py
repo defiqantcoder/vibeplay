@@ -4,7 +4,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -843,7 +843,7 @@ def get_unanalyzed_tracks(
         LEFT JOIN features f ON t.id = f.track_id
         WHERE t.status = 'active'
     """
-    params: list[Any] = []
+    params: list[str] = []
     if not force:
         query += " AND (f.track_id IS NULL OR f.analyzer_version != ?)"
         params.append(analyzer_version)
