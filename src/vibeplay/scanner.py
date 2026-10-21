@@ -9,15 +9,14 @@ import json
 import logging
 import os
 import re
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
 import mutagen
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
-
 from vibeplay.db import (
+    TrackRecord,
     get_connection,
     get_existing_tracks,
     init_db,
@@ -361,6 +360,98 @@ def find_audio_files(directory: Path) -> list[Path]:
     return audio_files
 
 
+
+def _process_file(
+    conn: sqlite3.Connection,
+    file_path: Path,
+    existing: TrackRecord | None,
+    summary: ScanSummary,
+) -> None:
+    """Process a single audio file and update the database and summary.
+
+    Args:
+        conn: Open SQLite connection.
+        file_path: Path to the audio file.
+        existing: Existing track record from the database, if any.
+        summary: ScanSummary object to update with results.
+    """
+    try:
+        stat = file_path.stat()
+        mtime = stat.st_mtime
+        size = stat.st_size
+    except OSError as err:
+        logger.warning("Could not stat file %s: %s", file_path, err)
+        summary.errors += 1
+        return
+
+    # Incremental check: skip unchanged files
+    if (
+        existing is not None
+        and existing.status == "active"
+        and abs(existing.mtime - mtime) < 1e-4
+        and existing.size == size
+    ):
+        summary.unchanged += 1
+        return
+
+    # File is either new, modified, or restored from missing
+    try:
+        file_hash = compute_file_hash(file_path)
+        meta = extract_metadata(file_path)
+    except Exception as err:
+        logger.warning("Error reading metadata from %s: %s", file_path, err)
+        summary.errors += 1
+        return
+
+    with conn:
+        if existing is None:
+            insert_track(
+                conn=conn,
+                path=str(file_path),
+                mtime=mtime,
+                size=size,
+                file_hash=file_hash,
+                duration=meta.duration,
+                bitrate=meta.bitrate,
+                title=meta.title,
+                artist=meta.artist,
+                album_artist=meta.album_artist,
+                album=meta.album,
+                track_no=meta.track_no,
+                track_total=meta.track_total,
+                disc_no=meta.disc_no,
+                disc_total=meta.disc_total,
+                year=meta.year,
+                genre=meta.genre,
+                has_cover=meta.has_cover,
+                tags_json=meta.tags_json,
+            )
+            summary.new += 1
+        else:
+            update_track(
+                conn=conn,
+                track_id=existing.id,
+                mtime=mtime,
+                size=size,
+                file_hash=file_hash,
+                duration=meta.duration,
+                bitrate=meta.bitrate,
+                title=meta.title,
+                artist=meta.artist,
+                album_artist=meta.album_artist,
+                album=meta.album,
+                track_no=meta.track_no,
+                track_total=meta.track_total,
+                disc_no=meta.disc_no,
+                disc_total=meta.disc_total,
+                year=meta.year,
+                genre=meta.genre,
+                has_cover=meta.has_cover,
+                tags_json=meta.tags_json,
+            )
+            summary.updated += 1
+
+
 def scan_directory(
     library_path: Path,
     db_path: Path,
@@ -409,83 +500,8 @@ def scan_directory(
             if progress_callback:
                 progress_callback(idx + 1, total_files, file_path)
 
-            try:
-                stat = file_path.stat()
-                mtime = stat.st_mtime
-                size = stat.st_size
-            except OSError as err:
-                logger.warning("Could not stat file %s: %s", file_path, err)
-                summary.errors += 1
-                continue
-
             existing = existing_tracks.get(path_str)
-
-            # Incremental check: skip unchanged files
-            if (
-                existing is not None
-                and existing.status == "active"
-                and abs(existing.mtime - mtime) < 1e-4
-                and existing.size == size
-            ):
-                summary.unchanged += 1
-                continue
-
-            # File is either new, modified, or restored from missing
-            try:
-                file_hash = compute_file_hash(file_path)
-                meta = extract_metadata(file_path)
-            except Exception as err:
-                logger.warning("Error reading metadata from %s: %s", file_path, err)
-                summary.errors += 1
-                continue
-
-            with conn:
-                if existing is None:
-                    insert_track(
-                        conn=conn,
-                        path=path_str,
-                        mtime=mtime,
-                        size=size,
-                        file_hash=file_hash,
-                        duration=meta.duration,
-                        bitrate=meta.bitrate,
-                        title=meta.title,
-                        artist=meta.artist,
-                        album_artist=meta.album_artist,
-                        album=meta.album,
-                        track_no=meta.track_no,
-                        track_total=meta.track_total,
-                        disc_no=meta.disc_no,
-                        disc_total=meta.disc_total,
-                        year=meta.year,
-                        genre=meta.genre,
-                        has_cover=meta.has_cover,
-                        tags_json=meta.tags_json,
-                    )
-                    summary.new += 1
-                else:
-                    update_track(
-                        conn=conn,
-                        track_id=existing.id,
-                        mtime=mtime,
-                        size=size,
-                        file_hash=file_hash,
-                        duration=meta.duration,
-                        bitrate=meta.bitrate,
-                        title=meta.title,
-                        artist=meta.artist,
-                        album_artist=meta.album_artist,
-                        album=meta.album,
-                        track_no=meta.track_no,
-                        track_total=meta.track_total,
-                        disc_no=meta.disc_no,
-                        disc_total=meta.disc_total,
-                        year=meta.year,
-                        genre=meta.genre,
-                        has_cover=meta.has_cover,
-                        tags_json=meta.tags_json,
-                    )
-                    summary.updated += 1
+            _process_file(conn, file_path, existing, summary)
 
         # Detect removed files: active tracks under canonical_library that were not found on disk
         missing_ids: list[int] = []

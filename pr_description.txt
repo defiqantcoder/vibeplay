@@ -1,0 +1,4 @@
+🎯 **What:** Extracted the per-file processing logic from `scan_directory` into a new `_process_file` helper function.
+💡 **Why:** This reduces the cognitive complexity of `scan_directory`, which was quite long due to the inline processing, checking, inserting, and updating of metadata for each track within a loop.
+✅ **Verification:** Used `uv run pytest` to ensure no functionality is broken, and type-checked with `uv run mypy`. `ruff` was used for formatting and linting.
+✨ **Result:** A cleaner, more readable `scan_directory` function, with a modular `_process_file` handling the single-file lifecycle.
