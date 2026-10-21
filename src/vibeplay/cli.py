@@ -20,6 +20,9 @@ from rich.table import Table
 from vibeplay.analysis import analyze_tracks
 from vibeplay.config import get_settings
 from vibeplay.enrichment import enrich_tracks, get_report_data
+from vibeplay.exporter import export_playlist_to_file
+from vibeplay.player import PlaybackError, play_playlist, play_seed
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.scanner import scan_directory
 from vibeplay.vectors import compute_clusters, similar_to
 
@@ -455,24 +458,158 @@ def playlist(
         typer.Option(help="Name of the generated playlist"),
     ] = "Vibe Playlist",
     seed: Annotated[
+        str | None,
+        typer.Option(help="Single track ID or comma-separated track IDs for similarity matching"),
+    ] = None,
+    cluster: Annotated[
         int | None,
-        typer.Option(help="Track ID to use as seed for similarity matching"),
+        typer.Option(help="Cluster ID to convert into a playlist"),
     ] = None,
     vibe: Annotated[
         str | None,
-        typer.Option(help="Target vibe or mood descriptor"),
+        typer.Option(help="Target vibe preset (chill, party, acoustic, electronic, workout, melancholy)"),
     ] = None,
     arc: Annotated[
         str | None,
-        typer.Option(help="Trajectory arc name (e.g., warmup-peak-cooldown)"),
+        typer.Option(help="Energy trajectory arc (ramp_up, cooldown, peak, steady)"),
     ] = None,
     limit: Annotated[
         int,
         typer.Option(help="Maximum number of tracks in the playlist"),
     ] = 25,
+    minutes: Annotated[
+        float | None,
+        typer.Option(help="Target total duration in minutes"),
+    ] = None,
+    max_artist_tracks: Annotated[
+        int,
+        typer.Option(help="Maximum allowed tracks by the same artist"),
+    ] = 2,
+    export_m3u8: Annotated[
+        Path | None,
+        typer.Option(help="Destination path to immediately export an M3U8 playlist file"),
+    ] = None,
+    relative: Annotated[
+        bool,
+        typer.Option(help="Use relative paths in exported M3U8 instead of absolute paths"),
+    ] = False,
+    play: Annotated[
+        bool,
+        typer.Option(help="Immediately queue and initiate playback on local MPD daemon"),
+    ] = False,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database (defaults to configured path)"),
+    ] = None,
 ) -> None:
-    """Generate a smart playlist based on seed track, target vibe, or arc."""
-    typer.echo("not implemented")
+    """Generate a cohesive smart playlist based on seeds, vibe, cluster, or energy arc."""
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    seed_ids: list[int] = []
+    if seed:
+        try:
+            seed_ids = [int(s.strip()) for s in seed.split(",") if s.strip()]
+        except ValueError:
+            console.print(f"[bold red]Error:[/bold red] Invalid seed track ID format: '{seed}'. Expected integer(s).")
+            raise typer.Exit(code=1)
+
+    try:
+        gen = generate_playlist(
+            db_path=db_path,
+            name=name,
+            seed_track_ids=seed_ids,
+            cluster_id=cluster,
+            vibe=vibe,
+            arc=arc,
+            limit=limit,
+            minutes=minutes,
+            max_artist_tracks=max_artist_tracks,
+            settings=settings,
+        )
+    except Exception as err:
+        console.print(f"[bold red]Playlist Generation Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+
+    # Render playlist table
+    table = Table(
+        title=f"Playlist: {gen.name} (ID: {gen.playlist_id})",
+        header_style="bold magenta",
+        show_lines=False,
+    )
+    table.add_column("#", justify="right", style="cyan", width=4)
+    table.add_column("Title", style="bold", max_width=30, overflow="ellipsis")
+    table.add_column("Artist", max_width=22, overflow="ellipsis")
+    table.add_column("Album", max_width=22, overflow="ellipsis")
+    table.add_column("Time", justify="right", width=6)
+    table.add_column("BPM", justify="right", width=6)
+    table.add_column("Key", justify="center", width=8)
+    table.add_column("Energy", justify="right", width=7)
+    table.add_column("Transition", justify="right", width=12)
+
+    for item in gen.tracks:
+        duration_sec = int(round(item.duration))
+        dur_mins, dur_secs = divmod(duration_sec, 60)
+        time_str = f"{dur_mins}:{dur_secs:02d}"
+        bpm_str = f"{item.bpm:.1f}" if item.bpm is not None else "-"
+        key_str = f"{item.camelot or item.key or '-'}"
+        energy_str = f"{item.energy:.2f}" if item.energy is not None else "-"
+
+        if item.position == 1 or not item.transition:
+            trans_str = "[dim]start[/dim]"
+        else:
+            score = item.transition.total_score
+            color = "green" if score >= 0.8 else ("yellow" if score >= 0.6 else "red")
+            trans_str = f"[{color}]{score:.2f}[/{color}]"
+
+        table.add_row(
+            str(item.position),
+            item.title,
+            item.artist,
+            item.album,
+            time_str,
+            bpm_str,
+            key_str,
+            energy_str,
+            trans_str,
+        )
+
+    console.print()
+    console.print(table)
+    console.print()
+
+    tot_mins, tot_secs = divmod(int(round(gen.total_duration)), 60)
+    console.print(
+        f"[bold green]Playlist Saved:[/bold green] ID [bold cyan]{gen.playlist_id}[/bold cyan] | "
+        f"Mode: [cyan]{gen.mode}[/cyan] | Tracks: [cyan]{len(gen.tracks)}[/cyan] | "
+        f"Length: [cyan]{tot_mins}m {tot_secs:02d}s[/cyan] | "
+        f"Avg Smoothness: [cyan]{gen.avg_transition_score:.2f}[/cyan]"
+    )
+
+    if export_m3u8 is not None:
+        try:
+            exported_file = export_playlist_to_file(
+                db_path=db_path,
+                playlist_id=gen.playlist_id,
+                output_path=export_m3u8,
+                export_format="m3u8",
+                relative=relative,
+            )
+            console.print(f"[bold green]Exported M3U8:[/bold green] [cyan]{exported_file}[/cyan]")
+        except Exception as err:
+            console.print(f"[bold red]M3U8 Export Failed:[/bold red] {err}")
+
+    if play:
+        try:
+            play_res = play_playlist(db_path=db_path, playlist_id=gen.playlist_id, settings=settings)
+            console.print(
+                f"[bold green]MPD Playback Started:[/bold green] Queued {play_res['queued_tracks']} tracks. "
+                f"Now playing: [cyan]{play_res['first_track']['artist']} - {play_res['first_track']['title']}[/cyan]"
+            )
+        except PlaybackError as err:
+            console.print(f"[bold yellow]MPD Daemon Notice:[/bold yellow] {err}")
+        except Exception as err:
+            console.print(f"[bold red]Playback Error:[/bold red] {err}")
 
 
 @app.command()
@@ -489,9 +626,88 @@ def export(
         str,
         typer.Option(help="Export format (m3u, m3u8, json, csv)"),
     ] = "m3u8",
+    relative: Annotated[
+        bool,
+        typer.Option(help="Use relative paths in exported playlist"),
+    ] = False,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database (defaults to configured path)"),
+    ] = None,
 ) -> None:
     """Export a saved playlist to an M3U, M3U8, JSON, or CSV file."""
-    typer.echo("not implemented")
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    try:
+        exported_path = export_playlist_to_file(
+            db_path=db_path,
+            playlist_id=playlist_id,
+            output_path=out,
+            export_format=format,
+            relative=relative,
+        )
+        console.print(
+            f"[bold green]Playlist Exported:[/bold green] Playlist ID {playlist_id} saved to "
+            f"[cyan]{exported_path}[/cyan] (format: {format.lower()})"
+        )
+    except Exception as err:
+        console.print(f"[bold red]Export Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def play(
+    playlist_id: Annotated[
+        int | None,
+        typer.Option(help="ID of the saved playlist to queue and play"),
+    ] = None,
+    seed: Annotated[
+        int | None,
+        typer.Option(help="Track ID to generate seed playlist and play"),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option(help="Maximum number of tracks if generating from seed"),
+    ] = 25,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database (defaults to configured path)"),
+    ] = None,
+) -> None:
+    """Queue a playlist or seed track into local Music Player Daemon (MPD) for bit-perfect playback."""
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    if playlist_id is None and seed is None:
+        console.print("[bold red]Error:[/bold red] Must specify either --playlist-id or --seed.")
+        raise typer.Exit(code=1)
+
+    try:
+        if playlist_id is not None:
+            res = play_playlist(db_path=db_path, playlist_id=playlist_id, settings=settings)
+            console.print(
+                f"[bold green]Playing Playlist:[/bold green] '{res['playlist_name']}' "
+                f"({res['queued_tracks']} tracks queued to MPD daemon)"
+            )
+            first = res.get("first_track")
+            if first:
+                console.print(f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}")
+        elif seed is not None:
+            res = play_seed(db_path=db_path, seed_track_id=seed, limit=limit, settings=settings)
+            console.print(
+                f"[bold green]Playing Vibe Seed:[/bold green] '{res['playlist_name']}' "
+                f"({res['queued_tracks']} tracks queued to MPD daemon)"
+            )
+            first = res.get("first_track")
+            if first:
+                console.print(f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}")
+    except PlaybackError as err:
+        console.print(f"[bold red]MPD Playback Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+    except Exception as err:
+        console.print(f"[bold red]Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
 
 
 @app.command()

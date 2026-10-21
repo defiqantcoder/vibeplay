@@ -888,11 +888,16 @@ def get_tracks_with_features(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         SELECT
             f.track_id,
             v.path,
+            v.duration,
             v.title,
             v.artist,
+            v.album_artist,
             v.album,
             v.year,
             v.genre,
+            v.mb_recording_id,
+            v.enriched_genres,
+            v.enriched_tags,
             f.analyzer_version,
             f.bpm,
             f.key,
@@ -939,3 +944,165 @@ def get_features_checksum(conn: sqlite3.Connection) -> str:
         row_str = "|".join(str(val) if val is not None else "" for val in row)
         hasher.update(row_str.encode("utf-8"))
     return hasher.hexdigest()
+
+
+def create_playlist(
+    conn: sqlite3.Connection,
+    name: str,
+    description: str | None = None,
+    rules_json: str | None = None,
+) -> int:
+    """Create a new playlist record in the database.
+
+    Args:
+        conn: Open SQLite connection.
+        name: Name of the playlist.
+        description: Optional textual description or notes.
+        rules_json: Optional JSON string recording generation parameters.
+
+    Returns:
+        int: The newly created playlist ID.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO playlists (name, description, rules_json, created_at, updated_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """,
+        (name, description, rules_json),
+    )
+    return cursor.lastrowid or 0
+
+
+def add_tracks_to_playlist(
+    conn: sqlite3.Connection,
+    playlist_id: int,
+    track_ids: list[int],
+) -> None:
+    """Associate ordered tracks with a playlist.
+
+    Args:
+        conn: Open SQLite connection.
+        playlist_id: Database ID of the target playlist.
+        track_ids: Ordered list of track IDs to add (1-indexed position).
+    """
+    cursor = conn.cursor()
+    items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
+    cursor.executemany(
+        """
+        INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, position, added_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        """,
+        items,
+    )
+
+
+def get_playlist(conn: sqlite3.Connection, playlist_id: int) -> sqlite3.Row | None:
+    """Retrieve metadata for a specific playlist.
+
+    Args:
+        conn: Open SQLite connection.
+        playlist_id: Database ID of the playlist.
+
+    Returns:
+        sqlite3.Row | None: Playlist row or None if not found.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, name, description, rules_json, created_at, updated_at
+        FROM playlists
+        WHERE id = ?
+        """,
+        (playlist_id,),
+    )
+    return cursor.fetchone()
+
+
+def get_playlist_tracks(
+    conn: sqlite3.Connection,
+    playlist_id: int,
+) -> list[sqlite3.Row]:
+    """Retrieve ordered tracks with rich metadata and features for a playlist.
+
+    Args:
+        conn: Open SQLite connection.
+        playlist_id: Database ID of the playlist.
+
+    Returns:
+        list[sqlite3.Row]: Track rows ordered by position.
+    """
+    cursor = conn.cursor()
+    query = """
+        SELECT
+            pt.position,
+            t.id AS track_id,
+            t.path,
+            t.duration,
+            v.title,
+            v.artist,
+            v.album_artist,
+            v.album,
+            v.genre,
+            v.year,
+            v.mb_recording_id,
+            f.bpm,
+            f.key,
+            f.scale,
+            f.energy,
+            f.danceability,
+            f.loudness,
+            f.mood_scores
+        FROM playlist_tracks pt
+        JOIN tracks t ON pt.track_id = t.id
+        LEFT JOIN v_tracks_best_value v ON pt.track_id = v.track_id
+        LEFT JOIN features f ON pt.track_id = f.track_id
+        WHERE pt.playlist_id = ?
+        ORDER BY pt.position ASC
+    """
+    cursor.execute(query, (playlist_id,))
+    return cursor.fetchall()
+
+
+def list_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """List all saved playlists with track counts and total durations.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        list[sqlite3.Row]: Playlists with aggregated track metrics.
+    """
+    cursor = conn.cursor()
+    query = """
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.rules_json,
+            p.created_at,
+            COUNT(pt.track_id) AS track_count,
+            COALESCE(SUM(t.duration), 0.0) AS total_duration
+        FROM playlists p
+        LEFT JOIN playlist_tracks pt ON p.id = pt.playlist_id
+        LEFT JOIN tracks t ON pt.track_id = t.id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
+
+
+def delete_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
+    """Delete a playlist and its associated tracks.
+
+    Args:
+        conn: Open SQLite connection.
+        playlist_id: Database ID of the playlist to delete.
+
+    Returns:
+        bool: True if a playlist record was deleted, False otherwise.
+    """
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
+    return cursor.rowcount > 0

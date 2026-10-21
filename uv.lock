@@ -950,6 +950,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-mpd2"
+version = "3.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/be/e77206eb35eb37ccd3506fba237e1431431d04c482707730ce2a6802e95c/python-mpd2-3.1.1.tar.gz", hash = "sha256:4baec3584cc43ed9948d5559079fafc2679b06b2ade273e909b3582654b2b3f5", size = 58713, upload-time = "2024-01-13T11:47:42.032Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/6d/1b9e1c203057c9a7fa6971db3605188a8ef1120ca305e4878c960ab6e2d3/python_mpd2-3.1.1-py2.py3-none-any.whl", hash = "sha256:86bf1100a0b135959d74a9a7a58cf0515bf30bb54eb25ae6fb8e175e50300fc3", size = 35050, upload-time = "2024-01-13T11:47:40.013Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1307,6 +1316,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pytest" },
+    { name = "python-mpd2" },
     { name = "scikit-learn" },
     { name = "typer" },
 ]
@@ -1321,6 +1331,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.14.1" },
     { name = "pydantic-settings", specifier = ">=2.16.1" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "python-mpd2", specifier = ">=3.1.1" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
     { name = "typer", specifier = ">=0.27.3" },
 ]

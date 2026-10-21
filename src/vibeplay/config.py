@@ -128,6 +128,30 @@ class Settings(BaseSettings):
         default="kmeans",
         description="Default clustering algorithm ('kmeans' or 'hdbscan')",
     )
+    playlist_default_limit: int = Field(
+        default=25,
+        description="Default maximum track count for generated playlists",
+    )
+    playlist_max_artist_tracks: int = Field(
+        default=2,
+        description="Default maximum allowed tracks by the same artist in a playlist",
+    )
+    mpd_host: str = Field(
+        default="localhost",
+        description="Hostname, IP address, or UNIX domain socket path for MPD daemon",
+    )
+    mpd_port: int = Field(
+        default=6600,
+        description="Port for Music Player Daemon (MPD) TCP connection",
+    )
+    mpd_timeout: float = Field(
+        default=10.0,
+        description="Timeout in seconds for MPD connection and commands",
+    )
+    export_default_format: str = Field(
+        default="m3u8",
+        description="Default playlist export format ('m3u8', 'm3u', 'json', or 'csv')",
+    )
 
     def get_vector_cache_path(self, db_path: Path | None = None) -> Path:
         """Return the resolved path to the vector cache file."""
