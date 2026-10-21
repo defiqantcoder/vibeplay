@@ -1,6 +1,7 @@
 """Configuration management for vibeplay using Pydantic Settings."""
 
 import logging
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -66,6 +67,22 @@ class Settings(BaseSettings):
     network_backoff_factor: float = Field(
         default=2.0,
         description="Backoff factor for exponential retry delays",
+    )
+    models_dir: Path = Field(
+        default_factory=lambda: Path("models").resolve(),
+        description="Directory containing pretrained machine learning models",
+    )
+    analyzer_backend: str = Field(
+        default="essentia",
+        description="Default audio analyzer backend ('essentia' or 'librosa')",
+    )
+    analyzer_workers: int = Field(
+        default_factory=lambda: max(1, (os.cpu_count() or 2) - 1),
+        description="Default number of parallel worker processes for audio analysis",
+    )
+    analyzer_window_seconds: float = Field(
+        default=60.0,
+        description="Analysis window duration extracted from track middle (seconds)",
     )
 
 

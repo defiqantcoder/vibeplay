@@ -17,6 +17,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from vibeplay.analysis import analyze_tracks
 from vibeplay.config import get_settings
 from vibeplay.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
@@ -237,15 +238,111 @@ def enrich(
 def analyze(
     fallback_librosa: Annotated[
         bool,
-        typer.Option(help="Force fallback to librosa instead of Essentia"),
+        typer.Option(
+            "--fallback-librosa",
+            help="Force fallback to librosa instead of Essentia",
+        ),
     ] = False,
+    backend: Annotated[
+        str | None,
+        typer.Option(
+            "--backend",
+            help="Preferred analysis backend ('essentia' or 'librosa')",
+        ),
+    ] = None,
+    workers: Annotated[
+        int | None,
+        typer.Option(
+            "--workers",
+            "-w",
+            help="Number of parallel worker processes (default: CPU count - 1)",
+        ),
+    ] = None,
     force: Annotated[
         bool,
-        typer.Option(help="Re-analyze tracks that already have feature records"),
+        typer.Option(
+            "--force",
+            help="Re-analyze tracks that already have feature records",
+        ),
     ] = False,
+    limit: Annotated[
+        int | None,
+        typer.Option(
+            "--limit",
+            help="Maximum number of tracks to analyze",
+        ),
+    ] = None,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database"),
+    ] = None,
 ) -> None:
     """Analyze audio files to extract acoustic features, rhythm, and embeddings."""
-    typer.echo("not implemented")
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    selected_backend = (
+        "librosa" if fallback_librosa else (backend or settings.analyzer_backend)
+    )
+
+    console.print(f"[bold]Target database:[/bold]   [cyan]{db_path}[/cyan]")
+    console.print(f"[bold]Analysis engine:[/bold]   [cyan]{selected_backend}[/cyan]")
+    console.print(f"[bold]Workers:[/bold]           [cyan]{workers or settings.analyzer_workers}[/cyan]")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("Analyzing audio features...", total=None)
+
+        def progress_callback(current: int, total: int, track_name: str, elapsed: float) -> None:
+            if progress.tasks[task_id].total != total:
+                progress.update(task_id, total=total)
+            progress.update(
+                task_id,
+                completed=current,
+                description=f"Analyzing: [dim]{track_name[:30]}[/dim] ({elapsed:.1f}s)",
+            )
+
+        summary = analyze_tracks(
+            db_path=db_path,
+            backend=selected_backend,
+            workers=workers,
+            force=force,
+            limit=limit,
+            progress_callback=progress_callback,
+        )
+
+    # Format timing
+    def format_time(seconds: float) -> str:
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        m, s = divmod(int(seconds), 60)
+        h, m = divmod(m, 60)
+        return f"{h}h {m}m {s}s" if h > 0 else f"{m}m {s}s"
+
+    table = Table(title="Audio Analysis Summary & Timing", show_header=True)
+    table.add_column("Metric", style="bold")
+    table.add_column("Value", justify="right")
+
+    table.add_row("Tracks Analyzed", f"[green]{summary.analyzed}[/green]")
+    table.add_row("Failures / Errors", f"[magenta]{summary.failed}[/magenta]" if summary.failed else "0")
+    table.add_row("Total Time Taken", format_time(summary.total_seconds))
+    table.add_row("Average Speed", f"{summary.avg_seconds_per_track:.2f} s/track")
+    table.add_section()
+    table.add_row("Full Library Tracks", str(summary.full_library_tracks))
+    table.add_row(
+        "Full Library Estimate",
+        f"[bold cyan]{format_time(summary.full_library_estimate_seconds)}[/bold cyan]",
+    )
+
+    console.print()
+    console.print(table)
 
 
 @app.command()

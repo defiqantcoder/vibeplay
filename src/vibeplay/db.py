@@ -749,3 +749,123 @@ def get_enrichment_report(
         (confidence_threshold,),
     )
     return cursor.fetchall()
+
+
+def insert_or_replace_features(
+    conn: sqlite3.Connection,
+    track_id: int,
+    analyzer_version: str,
+    bpm: float | None,
+    key: str | None,
+    scale: str | None,
+    loudness: float | None,
+    danceability: float | None,
+    energy: float | None,
+    mood_scores_json: str,
+    embedding_blob: bytes,
+) -> None:
+    """Insert or replace extracted audio features for a track.
+
+    Args:
+        conn: Open SQLite connection.
+        track_id: Track ID.
+        analyzer_version: Version identifier of the analyzer used.
+        bpm: Detected tempo in BPM.
+        key: Musical key (e.g. 'C', 'A#').
+        scale: Musical scale ('major' or 'minor').
+        loudness: Integrated loudness in LUFS or dB.
+        danceability: Danceability score (0.0 to 1.0).
+        energy: Energy score (0.0 to 1.0).
+        mood_scores_json: JSON string of mood probabilities.
+        embedding_blob: Binary serialized float32 embedding vector.
+    """
+    conn.execute(
+        """
+        INSERT INTO features (
+            track_id, analyzer_version, bpm, key, scale,
+            loudness, danceability, energy, mood_scores, embedding,
+            analyzed_at
+        ) VALUES (
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            CURRENT_TIMESTAMP
+        )
+        ON CONFLICT(track_id) DO UPDATE SET
+            analyzer_version = excluded.analyzer_version,
+            bpm = excluded.bpm,
+            key = excluded.key,
+            scale = excluded.scale,
+            loudness = excluded.loudness,
+            danceability = excluded.danceability,
+            energy = excluded.energy,
+            mood_scores = excluded.mood_scores,
+            embedding = excluded.embedding,
+            analyzed_at = CURRENT_TIMESTAMP
+        """,
+        (
+            track_id,
+            analyzer_version,
+            bpm,
+            key,
+            scale,
+            loudness,
+            danceability,
+            energy,
+            mood_scores_json,
+            sqlite3.Binary(embedding_blob),
+        ),
+    )
+
+
+def get_unanalyzed_tracks(
+    conn: sqlite3.Connection,
+    analyzer_version: str,
+    force: bool = False,
+    limit: int | None = None,
+) -> list[sqlite3.Row]:
+    """Fetch active tracks requiring audio feature analysis.
+
+    Skips tracks already analyzed with current analyzer_version unless force is True.
+
+    Args:
+        conn: Open SQLite connection.
+        analyzer_version: Expected analyzer version string.
+        force: If True, re-analyze tracks regardless of existing features.
+        limit: Optional maximum number of tracks to return.
+
+    Returns:
+        list[sqlite3.Row]: Tracks needing analysis.
+    """
+    cursor = conn.cursor()
+    query = """
+        SELECT t.id, t.path, t.duration, t.title, t.artist
+        FROM tracks t
+        LEFT JOIN features f ON t.id = f.track_id
+        WHERE t.status = 'active'
+    """
+    params: list[Any] = []
+    if not force:
+        query += " AND (f.track_id IS NULL OR f.analyzer_version != ?)"
+        params.append(analyzer_version)
+
+    query += " ORDER BY t.id ASC"
+    if limit is not None:
+        query += f" LIMIT {int(limit)}"
+
+    cursor.execute(query, params)
+    return cursor.fetchall()
+
+
+def get_total_active_tracks_count(conn: sqlite3.Connection) -> int:
+    """Return the total number of active tracks in the database.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        int: Total count of active tracks.
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM tracks WHERE status = 'active'")
+    row = cursor.fetchone()
+    return int(row[0]) if row else 0
