@@ -14,8 +14,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 import mutagen
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
 
 from vibeplay.db import (
     get_connection,
@@ -152,10 +150,17 @@ def _parse_int_pair(val: Any) -> tuple[int | None, int | None]:
     if isinstance(val, (list, tuple)) and len(val) > 0:
         first = val[0]
         second = val[1] if len(val) > 1 else None
-        num = int(first) if (isinstance(first, int) or (isinstance(first, str) and first.isdigit())) else None
+        num = (
+            int(first)
+            if (isinstance(first, int) or (isinstance(first, str) and first.isdigit()))
+            else None
+        )
         total = (
             int(second)
-            if (isinstance(second, int) or (isinstance(second, str) and second.isdigit()))
+            if (
+                isinstance(second, int)
+                or (isinstance(second, str) and second.isdigit())
+            )
             else None
         )
         return num, total
@@ -489,14 +494,12 @@ def scan_directory(
 
         # Detect removed files: active tracks under canonical_library that were not found on disk
         missing_ids: list[int] = []
+        canonical_str = str(canonical_library)
+        canonical_str_sep = canonical_str + os.sep
         for path_str, record in existing_tracks.items():
             if record.status == "active" and path_str not in scanned_paths_set:
-                try:
-                    p = Path(path_str)
-                    if p.is_relative_to(canonical_library):
-                        missing_ids.append(record.id)
-                except ValueError:
-                    continue
+                if path_str == canonical_str or path_str.startswith(canonical_str_sep):
+                    missing_ids.append(record.id)
 
         if missing_ids:
             with conn:

@@ -49,11 +49,15 @@ def scan(
     """Scan music directory recursively, index audio files, and extract tags."""
     resolved_path = path.expanduser().resolve()
     if not resolved_path.exists() or not resolved_path.is_dir():
-        console.print(f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory.")
+        console.print(
+            f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory."
+        )
         raise typer.Exit(code=1)
 
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     console.print(f"[bold]Scanning library:[/bold] [cyan]{resolved_path}[/cyan]")
     console.print(f"[bold]Target database:[/bold]  [cyan]{db_path}[/cyan]")
@@ -129,7 +133,9 @@ def enrich(
 ) -> None:
     """Fingerprint audio tracks and query MusicBrainz for canonical metadata."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     if report:
         report_rows = get_report_data(db_path)
@@ -154,7 +160,11 @@ def enrich(
             orig = f"{row.get('original_artist') or 'Unknown'} - {row.get('original_title') or 'Unknown'}"
             canon_artist = row.get("canonical_artist")
             canon_title = row.get("canonical_title")
-            canon = f"{canon_artist} - {canon_title}" if canon_artist and canon_title else "[dim]None[/dim]"
+            canon = (
+                f"{canon_artist} - {canon_title}"
+                if canon_artist and canon_title
+                else "[dim]None[/dim]"
+            )
 
             status = row.get("enrichment_status") or "not_enriched"
             if status == "matched":
@@ -225,7 +235,9 @@ def enrich(
     table.add_row("Matched (High Confidence)", f"[green]{summary.matched}[/green]")
     table.add_row("Needs Review", f"[yellow]{summary.needs_review}[/yellow]")
     table.add_row("Unmatched", f"[blue]{summary.unmatched}[/blue]")
-    table.add_row("Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0")
+    table.add_row(
+        "Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0"
+    )
     table.add_section()
     table.add_row("Total Processed", str(summary.total))
 

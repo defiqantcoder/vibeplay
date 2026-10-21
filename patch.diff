@@ -1,0 +1,21 @@
+--- src/vibeplay/scanner.py
++++ src/vibeplay/scanner.py
+@@ -488,14 +488,12 @@
+
+         # Detect removed files: active tracks under canonical_library that were not found on disk
+         missing_ids: list[int] = []
++        canonical_str = str(canonical_library)
++        canonical_str_sep = canonical_str + os.sep
+         for path_str, record in existing_tracks.items():
+             if record.status == "active" and path_str not in scanned_paths_set:
+-                try:
+-                    p = Path(path_str)
+-                    if p.is_relative_to(canonical_library):
+-                        missing_ids.append(record.id)
+-                except ValueError:
+-                    continue
++                if path_str == canonical_str or path_str.startswith(canonical_str_sep):
++                    missing_ids.append(record.id)
+
+         if missing_ids:
+             with conn:
