@@ -211,8 +211,12 @@ def _detect_cover_art(audio: Any) -> bool:
         return False
 
     # ID3 APIC frames
-    if any(str(k).startswith("APIC") for k in tags.keys()):
-        return True
+    for k in tags:
+        if type(k) is str:
+            if k.startswith("APIC"):
+                return True
+        elif str(k).startswith("APIC"):
+            return True
 
     # MP4 covr atom
     if "covr" in tags and bool(tags.get("covr")):
@@ -501,14 +505,12 @@ def scan_directory(
 
         # Detect removed files: active tracks under canonical_library that were not found on disk
         missing_ids: list[int] = []
+        canonical_str = str(canonical_library)
+        canonical_str_sep = canonical_str + os.sep
         for path_str, record in existing_tracks.items():
             if record.status == "active" and path_str not in scanned_paths_set:
-                try:
-                    p = Path(path_str)
-                    if p.is_relative_to(canonical_library):
-                        missing_ids.append(record.id)
-                except ValueError:
-                    continue
+                if path_str == canonical_str or path_str.startswith(canonical_str_sep):
+                    missing_ids.append(record.id)
 
         if missing_ids:
             with conn:
