@@ -29,7 +29,6 @@ def test_cli_help() -> None:
 def test_stub_commands_not_implemented() -> None:
     """Verify that remaining stubbed CLI commands print 'not implemented'."""
     stub_commands = [
-        ["clusters"],
         ["playlist"],
         ["export", "1"],
         ["serve"],
