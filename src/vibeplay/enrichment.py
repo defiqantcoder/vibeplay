@@ -27,7 +27,7 @@ from vibeplay.db import (
     insert_or_replace_enrichment,
     set_cached_response,
 )
-from vibeplay.scanner import _parse_int_pair, _parse_year
+from vibeplay.scanner import _parse_year
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,9 @@ def cached_acoustid_lookup(
     delay = 1.0
     for attempt in range(max_retries):
         try:
-            logger.debug("Querying AcoustID API (attempt %d/%d)...", attempt + 1, max_retries)
+            logger.debug(
+                "Querying AcoustID API (attempt %d/%d)...", attempt + 1, max_retries
+            )
             response = acoustid.lookup(
                 apikey=api_key,
                 fingerprint=fingerprint,
@@ -299,9 +301,26 @@ def _extract_tags_and_genres(
                         all_tags.add(name)
 
     genre_keywords = {
-        "rock", "pop", "electronic", "jazz", "classical", "hip hop", "ambient",
-        "soul", "funk", "folk", "blues", "metal", "indie", "alternative",
-        "downtempo", "house", "techno", "r&b", "country", "dance",
+        "rock",
+        "pop",
+        "electronic",
+        "jazz",
+        "classical",
+        "hip hop",
+        "ambient",
+        "soul",
+        "funk",
+        "folk",
+        "blues",
+        "metal",
+        "indie",
+        "alternative",
+        "downtempo",
+        "house",
+        "techno",
+        "r&b",
+        "country",
+        "dance",
     }
 
     genres = sorted(t for t in all_tags if any(k in t for k in genre_keywords))
@@ -482,7 +501,10 @@ def resolve_track_enrichment(
             canonical_disc_no = medium.get("position")
             canonical_track_total = medium.get("track_count")
             for t_item in medium.get("tracks", []):
-                if t_item.get("title", "").strip().lower() == str(canonical_title).strip().lower():
+                if (
+                    t_item.get("title", "").strip().lower()
+                    == str(canonical_title).strip().lower()
+                ):
                     canonical_track_no = t_item.get("position")
                     break
 

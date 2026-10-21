@@ -1,23 +1,18 @@
 """Unit tests for audio analysis and feature extraction."""
 
 import shutil
-import sqlite3
-import struct
 import wave
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 from typer.testing import CliRunner
 
 from vibeplay.analysis import (
-    AudioFeatures,
     EssentiaAnalyzer,
     LibrosaAnalyzer,
     analyze_tracks,
     decode_audio_slice,
-    get_analyzer,
     get_middle_window_offset,
 )
 from vibeplay.cli import app
@@ -189,7 +184,16 @@ def test_cli_analyze_command(db_with_two_tracks: Path) -> None:
     """Verify vibeplay analyze CLI command runs successfully and prints timing."""
     result = runner.invoke(
         app,
-        ["analyze", "--fallback-librosa", "--limit", "1", "--workers", "1", "--db", str(db_with_two_tracks)],
+        [
+            "analyze",
+            "--fallback-librosa",
+            "--limit",
+            "1",
+            "--workers",
+            "1",
+            "--db",
+            str(db_with_two_tracks),
+        ],
     )
     assert result.exit_code == 0
     assert "Audio Analysis Summary" in result.stdout
