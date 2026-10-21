@@ -18,6 +18,7 @@ from rich.progress import (
 from rich.table import Table
 
 from vibeplay.config import get_settings
+from vibeplay.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
 
 logger = logging.getLogger("vibeplay")
@@ -105,17 +106,131 @@ def scan(
 
 @app.command()
 def enrich(
+    report: Annotated[
+        bool,
+        typer.Option(
+            "--report",
+            "-r",
+            help="Display report of unmatched and low-confidence tracks",
+        ),
+    ] = False,
     limit: Annotated[
         int | None,
-        typer.Option(help="Maximum number of tracks to enrich"),
+        typer.Option(help="Maximum number of tracks to enrich in this run"),
     ] = None,
     force: Annotated[
         bool,
         typer.Option(help="Re-enrich tracks that already have enrichment records"),
     ] = False,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database"),
+    ] = None,
 ) -> None:
     """Fingerprint audio tracks and query MusicBrainz for canonical metadata."""
-    typer.echo("not implemented")
+    settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+
+    if report:
+        report_rows = get_report_data(db_path)
+        if not report_rows:
+            console.print(
+                f"[bold green]✓[/bold green] All active tracks are matched with high confidence "
+                f"(>= {settings.enrichment_confidence_threshold:.0%}). No tracks need review."
+            )
+            return
+
+        table = Table(
+            title=f"Enrichment Review Report (Threshold: {settings.enrichment_confidence_threshold:.0%})",
+            show_header=True,
+        )
+        table.add_column("ID", justify="right", style="dim")
+        table.add_column("Original Metadata", style="bold")
+        table.add_column("Canonical Match")
+        table.add_column("Status", justify="center")
+        table.add_column("Confidence", justify="right")
+
+        for row in report_rows:
+            orig = f"{row.get('original_artist') or 'Unknown'} - {row.get('original_title') or 'Unknown'}"
+            canon_artist = row.get("canonical_artist")
+            canon_title = row.get("canonical_title")
+            canon = f"{canon_artist} - {canon_title}" if canon_artist and canon_title else "[dim]None[/dim]"
+
+            status = row.get("enrichment_status") or "not_enriched"
+            if status == "matched":
+                status_style = "[green]matched[/green]"
+            elif status == "needs_review":
+                status_style = "[yellow]needs_review[/yellow]"
+            elif status == "unmatched":
+                status_style = "[red]unmatched[/red]"
+            else:
+                status_style = f"[magenta]{status}[/magenta]"
+
+            conf = row.get("confidence")
+            conf_str = f"{conf:.1%}" if conf is not None else "N/A"
+
+            table.add_row(
+                str(row["track_id"]),
+                orig,
+                canon,
+                status_style,
+                conf_str,
+            )
+
+        console.print()
+        console.print(table)
+        console.print(
+            f"\n[dim]Found {len(report_rows)} track(s) needing review or unmatched.[/dim]"
+        )
+        return
+
+    console.print(f"[bold]Target database:[/bold] [cyan]{db_path}[/cyan]")
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            MofNCompleteColumn(),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            task_id = progress.add_task("Enriching tracks...", total=None)
+
+            def progress_callback(current: int, total: int, track_name: str) -> None:
+                if progress.tasks[task_id].total != total:
+                    progress.update(task_id, total=total)
+                progress.update(
+                    task_id,
+                    completed=current,
+                    description=f"Enriching: [dim]{track_name[:35]}[/dim]",
+                )
+
+            summary = enrich_tracks(
+                db_path=db_path,
+                limit=limit,
+                force=force,
+                progress_callback=progress_callback,
+            )
+
+    except ValueError as err:
+        console.print(f"[bold red]Configuration Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+
+    table = Table(title="Enrichment Summary", show_header=True)
+    table.add_column("Category", style="bold")
+    table.add_column("Count", justify="right")
+
+    table.add_row("Matched (High Confidence)", f"[green]{summary.matched}[/green]")
+    table.add_row("Needs Review", f"[yellow]{summary.needs_review}[/yellow]")
+    table.add_row("Unmatched", f"[blue]{summary.unmatched}[/blue]")
+    table.add_row("Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0")
+    table.add_section()
+    table.add_row("Total Processed", str(summary.total))
+
+    console.print()
+    console.print(table)
 
 
 @app.command()
