@@ -1,10 +1,8 @@
 """Tests for scanner and database synchronization."""
 
-import sqlite3
 import struct
 import wave
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from mutagen.id3 import APIC, TALB, TCON, TDRC, TIT2, TPE1, TRCK
@@ -12,7 +10,7 @@ from mutagen.wave import WAVE
 from typer.testing import CliRunner
 
 from vibeplay.cli import app
-from vibeplay.db import get_connection, init_db
+from vibeplay.db import get_connection
 from vibeplay.scanner import scan_directory
 
 runner = CliRunner()
@@ -103,7 +101,9 @@ def test_scan_new_files(synthetic_music_library: Path, tmp_path: Path) -> None:
 
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT title, artist, album, track_no, year, genre, has_cover, status FROM tracks ORDER BY track_no")
+        cursor.execute(
+            "SELECT title, artist, album, track_no, year, genre, has_cover, status FROM tracks ORDER BY track_no"
+        )
         rows = cursor.fetchall()
 
         assert len(rows) == 2
@@ -122,7 +122,9 @@ def test_scan_new_files(synthetic_music_library: Path, tmp_path: Path) -> None:
         assert rows[1]["status"] == "active"
 
 
-def test_scan_incremental_unchanged(synthetic_music_library: Path, tmp_path: Path) -> None:
+def test_scan_incremental_unchanged(
+    synthetic_music_library: Path, tmp_path: Path
+) -> None:
     """Verify that rescanning an unchanged folder reports all tracks as unchanged."""
     db_path = tmp_path / "vibeplay.db"
     first_summary = scan_directory(synthetic_music_library, db_path)
@@ -163,14 +165,19 @@ def test_scan_updated_files(synthetic_music_library: Path, tmp_path: Path) -> No
 
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT title, year, genre FROM tracks WHERE path = ?", (str(song1_path.resolve()),))
+        cursor.execute(
+            "SELECT title, year, genre FROM tracks WHERE path = ?",
+            (str(song1_path.resolve()),),
+        )
         row = cursor.fetchone()
         assert row["title"] == "Updated First Track"
         assert row["year"] == 2025
         assert row["genre"] == "Modern Ambient"
 
 
-def test_scan_removed_files_marked_missing(synthetic_music_library: Path, tmp_path: Path) -> None:
+def test_scan_removed_files_marked_missing(
+    synthetic_music_library: Path, tmp_path: Path
+) -> None:
     """Verify that deleted files are marked as missing rather than deleted from the database."""
     db_path = tmp_path / "vibeplay.db"
     scan_directory(synthetic_music_library, db_path)
@@ -196,7 +203,9 @@ def test_scan_removed_files_marked_missing(synthetic_music_library: Path, tmp_pa
         assert rows[1]["path"] == str(song2_path.resolve())
 
 
-def test_scan_corrupt_files_logged_and_continued(synthetic_music_library: Path, tmp_path: Path) -> None:
+def test_scan_corrupt_files_logged_and_continued(
+    synthetic_music_library: Path, tmp_path: Path
+) -> None:
     """Verify that corrupt audio files are recorded as errors without halting scanning."""
     db_path = tmp_path / "vibeplay.db"
     corrupt_file = synthetic_music_library / "corrupt.mp3"
@@ -211,9 +220,55 @@ def test_scan_corrupt_files_logged_and_continued(synthetic_music_library: Path, 
 def test_cli_scan_command(synthetic_music_library: Path, tmp_path: Path) -> None:
     """Verify that vibeplay scan CLI command runs and outputs summary."""
     db_path = tmp_path / "cli_test.db"
-    result = runner.invoke(app, ["scan", str(synthetic_music_library), "--db", str(db_path)])
+    result = runner.invoke(
+        app, ["scan", str(synthetic_music_library), "--db", str(db_path)]
+    )
 
     assert result.exit_code == 0
     assert "Scan Summary" in result.stdout
     assert "New" in result.stdout
     assert "Total Processed" in result.stdout
+
+
+def test_extract_metadata(synthetic_music_library: Path) -> None:
+    """Verify that extract_metadata correctly reads tags from audio files."""
+    from vibeplay.scanner import extract_metadata
+
+    song1_path = synthetic_music_library / "Artist1" / "Album1" / "song1.wav"
+    metadata_1 = extract_metadata(song1_path)
+
+    assert metadata_1.title == "First Track"
+    assert metadata_1.artist == "Artist One"
+    assert metadata_1.album == "Album One"
+    assert metadata_1.track_no == 1
+    assert metadata_1.track_total == 10
+    assert metadata_1.year == 2023
+    assert metadata_1.genre == "Ambient"
+    assert metadata_1.has_cover is True
+    assert metadata_1.duration is not None
+    assert metadata_1.bitrate is not None
+
+    song2_path = synthetic_music_library / "Artist2" / "Album2" / "song2.wav"
+    metadata_2 = extract_metadata(song2_path)
+
+    assert metadata_2.title == "Second Track"
+    assert metadata_2.artist == "Artist Two"
+    assert metadata_2.album == "Album Two"
+    assert metadata_2.track_no == 2
+    assert metadata_2.track_total == 10
+    assert metadata_2.year == 2024
+    assert metadata_2.genre == "Downtempo"
+    assert metadata_2.has_cover is False
+    assert metadata_2.duration is not None
+    assert metadata_2.bitrate is not None
+
+
+def test_extract_metadata_invalid_file(tmp_path: Path) -> None:
+    """Verify that extract_metadata raises ValueError for invalid audio files."""
+    from vibeplay.scanner import extract_metadata
+
+    corrupt_file = tmp_path / "corrupt.wav"
+    corrupt_file.write_bytes(b"not a valid audio file")
+
+    with pytest.raises(ValueError, match="Mutagen could not recognize audio format"):
+        extract_metadata(corrupt_file)

@@ -14,8 +14,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 import mutagen
-from mutagen.flac import FLAC
-from mutagen.mp4 import MP4
 
 from vibeplay.db import (
     get_connection,
@@ -152,10 +150,17 @@ def _parse_int_pair(val: Any) -> tuple[int | None, int | None]:
     if isinstance(val, (list, tuple)) and len(val) > 0:
         first = val[0]
         second = val[1] if len(val) > 1 else None
-        num = int(first) if (isinstance(first, int) or (isinstance(first, str) and first.isdigit())) else None
+        num = (
+            int(first)
+            if (isinstance(first, int) or (isinstance(first, str) and first.isdigit()))
+            else None
+        )
         total = (
             int(second)
-            if (isinstance(second, int) or (isinstance(second, str) and second.isdigit()))
+            if (
+                isinstance(second, int)
+                or (isinstance(second, str) and second.isdigit())
+            )
             else None
         )
         return num, total
@@ -263,7 +268,13 @@ def extract_metadata(file_path: Path) -> ExtractedMetadata:
         ValueError: If file is not recognized as a valid audio container.
     """
     # Open file with mutagen in read mode
-    audio = mutagen.File(file_path)
+    try:
+        audio = mutagen.File(file_path)
+    except Exception as e:
+        raise ValueError(
+            f"Mutagen could not recognize audio format: {file_path}"
+        ) from e
+
     if audio is None:
         raise ValueError(f"Mutagen could not recognize audio format: {file_path}")
 

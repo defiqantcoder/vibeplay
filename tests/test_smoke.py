@@ -36,7 +36,9 @@ def test_stub_commands_not_implemented() -> None:
     ]
     for cmd_args in stub_commands:
         result = runner.invoke(app, cmd_args)
-        assert result.exit_code == 0, f"Command {cmd_args} failed with {result.exit_code}"
+        assert result.exit_code == 0, (
+            f"Command {cmd_args} failed with {result.exit_code}"
+        )
         assert "not implemented" in result.stdout
 
 

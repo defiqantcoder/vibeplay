@@ -22,5 +22,7 @@ def compute_clusters(
     Returns:
         dict[str, Any]: Cluster summary mapping and cluster statistics.
     """
-    logger.info("Computing clusters (algorithm=%s, k=%d) from %s", algorithm, k, db_path)
+    logger.info(
+        "Computing clusters (algorithm=%s, k=%d) from %s", algorithm, k, db_path
+    )
     raise NotImplementedError("Clustering engine will be implemented in Phase 5.")
