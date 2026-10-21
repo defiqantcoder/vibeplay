@@ -4,7 +4,6 @@ import logging
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +252,7 @@ def migrate_db(conn: sqlite3.Connection) -> int:
     )
     cursor = conn.cursor()
     cursor.execute("SELECT version FROM schema_migrations")
-    applied_versions = {row[0] for row in cursor.fetchall()}
+    applied_versions = {row[0] for row in cursor}
 
     applied_count = 0
     for version, name, script in MIGRATIONS:
@@ -301,7 +300,7 @@ def get_existing_tracks(conn: sqlite3.Connection) -> dict[str, TrackRecord]:
         """
     )
     tracks: dict[str, TrackRecord] = {}
-    for row in cursor.fetchall():
+    for row in cursor:
         tracks[row["path"]] = TrackRecord(
             id=row["id"],
             path=row["path"],
