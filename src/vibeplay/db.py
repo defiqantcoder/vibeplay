@@ -4,7 +4,6 @@ import logging
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -518,14 +517,13 @@ def mark_tracks_missing(conn: sqlite3.Connection, track_ids: list[int]) -> int:
     if not track_ids:
         return 0
     cursor = conn.cursor()
-    placeholders = ",".join("?" for _ in track_ids)
-    cursor.execute(
-        f"""
+    cursor.executemany(
+        """
         UPDATE tracks
         SET status = 'missing', updated_at = CURRENT_TIMESTAMP
-        WHERE id IN ({placeholders}) AND status != 'missing'
+        WHERE id = ? AND status != 'missing'
         """,
-        track_ids,
+        [(tid,) for tid in track_ids],
     )
     return cursor.rowcount
 
