@@ -1814,3 +1814,103 @@ input:checked + .slider:before {
   --border-strong: #30363d;
 }
 
+/* ==============================================================================
+   PHASE 3 HARDWARE SETTINGS, VALIDATION & HIGH-CONTRAST OVERRIDES
+   ============================================================================== */
+
+.panel-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.telemetry-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch-sm {
+  width: 30px;
+  height: 16px;
+}
+
+.switch-sm .slider:before {
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+}
+
+.switch-sm input:checked + .slider:before {
+  transform: translateX(14px);
+}
+
+.accent-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.accent-color-well {
+  width: 38px;
+  height: 36px;
+  padding: 2px;
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.settings-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 10px;
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.settings-input:focus {
+  border-color: var(--primary);
+}
+
+.settings-error-msg {
+  display: none;
+  width: 100%;
+  color: #ffb4ab;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.settings-input:user-invalid {
+  border-color: #ffb4ab;
+  background-color: rgba(147, 0, 10, 0.25);
+}
+
+.settings-input:user-invalid + .settings-error-msg {
+  display: block;
+}
+
+.settings-input:user-valid {
+  border-color: var(--tertiary);
+}
+
+.settings-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:root[data-contrast='high-contrast'],
+html[data-contrast='high-contrast'],
+body[data-contrast='high-contrast'] {
+  --text-primary: #ffffff;
+  --text-muted: #d1d5db;
+  --border-subtle: #4b5563;
+  --border-strong: #9ca3af;
+}

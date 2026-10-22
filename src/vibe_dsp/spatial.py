@@ -397,7 +397,7 @@ def set_spatial_virtualization_mode(mode: str) -> bool:
         bool: True if mode was applied successfully, False otherwise.
     """
     clean_mode = mode.lower().strip()
-    if clean_mode in {"3d_binaural", "3d", "enable", "on", "spatial"}:
+    if clean_mode in {"3d_binaural", "spatial_binaural", "3d", "enable", "on", "spatial"}:
         target_mode = "3d_binaural"
     elif clean_mode in {"stereo_direct", "stereo", "direct", "disable", "off", "bypass"}:
         target_mode = "stereo_direct"

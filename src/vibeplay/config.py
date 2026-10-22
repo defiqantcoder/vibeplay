@@ -114,6 +114,18 @@ class Settings(BaseSettings):
         default=60.0,
         description="Analysis window duration extracted from track middle (seconds)",
     )
+    analyzer_fallback_enabled: bool = Field(
+        default=True,
+        description="Automatically fall back to Librosa multiprocessing when Essentia fails",
+    )
+    mood_confidence_threshold: float = Field(
+        default=0.50,
+        description="Minimum confidence threshold (0.05..0.95) for mood tag classification",
+    )
+    desktop_settings_path: Path | None = Field(
+        default=None,
+        description="Optional override path for persisted desktop settings JSON file",
+    )
     weight_bpm: float = Field(
         default=1.0,
         description="Weight for BPM tempo feature in vibe vector formulation",
@@ -189,6 +201,16 @@ class Settings(BaseSettings):
             return self.vector_cache_dir / "vectors_cache.npz"
         base_dir = (db_path or self.db_path).parent
         return base_dir / "vectors_cache.npz"
+
+    def get_desktop_settings_path(self, db_path: Path | None = None) -> Path:
+        """Return the resolved path to the persisted desktop settings JSON file."""
+        if self.desktop_settings_path is not None:
+            return self.desktop_settings_path.expanduser()
+        target_db = db_path or self.db_path
+        default_db = Path("~/.local/share/vibeplay/vibeplay.db").expanduser()
+        if target_db.expanduser() != default_db:
+            return target_db.expanduser().parent / "desktop_settings.json"
+        return Path("~/.config/vibeplay/desktop_settings.json").expanduser()
 
 
 @lru_cache(maxsize=1)

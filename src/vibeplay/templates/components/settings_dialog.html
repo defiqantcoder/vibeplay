@@ -1,4 +1,4 @@
-<!-- Settings Popover & Hardware Controls Floating Panel (Stitch Design Specification) -->
+<!-- Settings Popover & Hardware Controls Floating Panel (Stitch Design Specification — Phase 3) -->
 <dialog id="settings-dialog" class="settings-dialog" closedby="any" aria-labelledby="settings-dialog-title">
   <div class="settings-container">
     <!-- Header -->
@@ -37,39 +37,68 @@
     <div class="settings-body">
       <!-- 1. ALSA Hardware Transport Tab -->
       <div class="settings-panel active" id="panel-transport">
-        <div class="panel-section">
-          <label class="section-label">Direct ALSA Hardware Device (Exclusive Mode)</label>
-          <div class="select-wrapper">
-            <select id="cfg-alsa-device" class="settings-select" onchange="updateAudioDeviceConfig()">
-              <option value="hw:0,0" selected>hw:0,0 — Intel/Realtek High Definition Audio (Analog Speaker)</option>
-              <option value="hw:0,3">hw:0,3 — HDMI/DP Digital Bitstream Out (Endpoint 1)</option>
-              <option value="hw:0,4">hw:0,4 — HDMI/DP Digital Bitstream Out (Endpoint 2)</option>
-              <option value="plughw:0,0">plughw:0,0 — Transparent ALSA Format Converter Fallback</option>
-              <option value="pipewire">PipeWire Sound Server (Shared Desktop Mixer)</option>
-            </select>
-          </div>
-          <p class="section-help">Direct hardware exclusive mode strictly bypasses pulse/pipewire mixers and software resampling.</p>
-        </div>
-
         <div class="panel-grid-2">
           <div class="panel-section">
-            <label class="section-label">DMA Period Buffer Tuning</label>
-            <select id="cfg-buffer-size" class="settings-select">
-              <option value="64">64 frames (0.67ms @ 96kHz - Ultra Low Latency)</option>
-              <option value="128" selected>128 frames (1.33ms @ 96kHz - Recommended)</option>
-              <option value="256">256 frames (2.67ms @ 96kHz - Safe Studio)</option>
-              <option value="512">512 frames (5.33ms @ 96kHz - Relaxed)</option>
+            <label class="section-label" for="cfg-alsa-device">Direct ALSA Hardware Device</label>
+            <div class="select-wrapper">
+              <select id="cfg-alsa-device" class="settings-select" onchange="updateAudioDeviceConfig(); saveDesktopSettings();">
+                <option value="hw:0,0" {% if not desktop_settings or desktop_settings.alsa_device == 'hw:0,0' %}selected{% endif %}>hw:0,0 — Intel/Realtek High Definition Audio (Analog Speaker)</option>
+                <option value="hw:0,3" {% if desktop_settings and desktop_settings.alsa_device == 'hw:0,3' %}selected{% endif %}>hw:0,3 — HDMI/DP Digital Bitstream Out (Endpoint 1)</option>
+                <option value="hw:0,4" {% if desktop_settings and desktop_settings.alsa_device == 'hw:0,4' %}selected{% endif %}>hw:0,4 — HDMI/DP Digital Bitstream Out (Endpoint 2)</option>
+                <option value="plughw:0,0" {% if desktop_settings and desktop_settings.alsa_device == 'plughw:0,0' %}selected{% endif %}>plughw:0,0 — Transparent ALSA Format Converter Fallback</option>
+                <option value="pipewire" {% if desktop_settings and desktop_settings.alsa_device == 'pipewire' %}selected{% endif %}>PipeWire Sound Server (Shared Desktop Mixer)</option>
+              </select>
+            </div>
+            <p class="section-help">Direct hardware mode bypasses desktop mixers and software resampling.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-exclusive-lock">Exclusive Hardware Card Lock</label>
+            <div class="toggle-row">
+              <label class="switch">
+                <input type="checkbox" id="cfg-exclusive-lock" {% if not desktop_settings or desktop_settings.alsa_exclusive_lock %}checked{% endif %} onchange="saveDesktopSettings()">
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label" id="cfg-exclusive-label">Exclusive hw: Lock (Bit-Perfect)</span>
+            </div>
+            <p class="section-help">Prevents concurrent OS streams from polluting the hardware DAC clock.</p>
+          </div>
+        </div>
+
+        <div class="panel-grid-3">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-buffer-size">DMA Period Buffer Tuning</label>
+            <select id="cfg-buffer-size" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="32" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 32 %}selected{% endif %}>32 frames (0.33ms @ 96kHz - Extreme)</option>
+              <option value="64" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 64 %}selected{% endif %}>64 frames (0.67ms @ 96kHz - Ultra Low Latency)</option>
+              <option value="128" {% if not desktop_settings or desktop_settings.alsa_buffer_frames == 128 %}selected{% endif %}>128 frames (1.33ms @ 96kHz - Recommended)</option>
+              <option value="256" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 256 %}selected{% endif %}>256 frames (2.67ms @ 96kHz - Safe Studio)</option>
+              <option value="512" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 512 %}selected{% endif %}>512 frames (5.33ms @ 96kHz - Relaxed)</option>
+              <option value="1024" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 1024 %}selected{% endif %}>1024 frames (10.67ms @ 96kHz - High Stability)</option>
+              <option value="2048" {% if desktop_settings and desktop_settings.alsa_buffer_frames == 2048 %}selected{% endif %}>2048 frames (21.33ms @ 96kHz - Maximum Buffer)</option>
             </select>
           </div>
 
           <div class="panel-section">
-            <label class="section-label">Master Clock Sample Rate Lock</label>
-            <select id="cfg-sample-rate" class="settings-select">
-              <option value="auto" selected>Auto-Follow Source Track (Strict Bit-Perfect)</option>
-              <option value="44100">Lock to 44.1 kHz (Redbook CD)</option>
-              <option value="48000">Lock to 48.0 kHz (Broadcast Standard)</option>
-              <option value="96000">Lock to 96.0 kHz (Studio Master High-Res)</option>
-              <option value="192000">Lock to 192.0 kHz (Reference Audiophile)</option>
+            <label class="section-label" for="cfg-period-count">DMA Ring Periods</label>
+            <select id="cfg-period-count" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="2" {% if not desktop_settings or desktop_settings.alsa_period_count == 2 %}selected{% endif %}>2 Periods (Double Buffered)</option>
+              <option value="3" {% if desktop_settings and desktop_settings.alsa_period_count == 3 %}selected{% endif %}>3 Periods (Balanced)</option>
+              <option value="4" {% if desktop_settings and desktop_settings.alsa_period_count == 4 %}selected{% endif %}>4 Periods (Quad Buffered)</option>
+            </select>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-sample-rate">Master Clock Sample Rate Lock</label>
+            <select id="cfg-sample-rate" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="auto" {% if not desktop_settings or desktop_settings.alsa_sample_rate_lock == 'auto' %}selected{% endif %}>Auto-Follow Source Track (Strict Bit-Perfect)</option>
+              <option value="44100" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '44100' %}selected{% endif %}>Lock to 44.1 kHz (Redbook CD)</option>
+              <option value="48000" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '48000' %}selected{% endif %}>Lock to 48.0 kHz (Broadcast Standard)</option>
+              <option value="88200" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '88200' %}selected{% endif %}>Lock to 88.2 kHz (2x Oversampled)</option>
+              <option value="96000" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '96000' %}selected{% endif %}>Lock to 96.0 kHz (Studio Master High-Res)</option>
+              <option value="176400" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '176400' %}selected{% endif %}>Lock to 176.4 kHz (4x Redbook)</option>
+              <option value="192000" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '192000' %}selected{% endif %}>Lock to 192.0 kHz (Reference Audiophile)</option>
+              <option value="384000" {% if desktop_settings and desktop_settings.alsa_sample_rate_lock == '384000' %}selected{% endif %}>Lock to 384.0 kHz (DXD Ultra)</option>
             </select>
           </div>
         </div>
@@ -77,7 +106,13 @@
         <div class="panel-section telemetry-box">
           <div class="telemetry-box-header">
             <span>Real-time Kernel Latency & DPC Watchdog</span>
-            <span class="badge-mini badge-green" id="cfg-xrun-badge">Healthy</span>
+            <div class="telemetry-header-controls">
+              <label class="switch switch-sm" title="Enable DPC Latency Watchdog">
+                <input type="checkbox" id="cfg-dpc-watchdog" {% if not desktop_settings or desktop_settings.dpc_watchdog_enabled %}checked{% endif %} onchange="saveDesktopSettings()">
+                <span class="slider round"></span>
+              </label>
+              <span class="badge-mini badge-green" id="cfg-xrun-badge">Healthy</span>
+            </div>
           </div>
           <div class="telemetry-box-grid">
             <div>
@@ -86,11 +121,11 @@
             </div>
             <div>
               <div class="box-stat-label">Clock Jitter:</div>
-              <div class="box-stat-value text-cyan">±0.02 ppm</div>
+              <div class="box-stat-value text-cyan" id="cfg-jitter-val">±0.02 ppm</div>
             </div>
             <div>
               <div class="box-stat-label">Scheduling Mode:</div>
-              <div class="box-stat-value">SCHED_FIFO (rtkit)</div>
+              <div class="box-stat-value" id="cfg-sched-val">SCHED_FIFO (rtkit)</div>
             </div>
           </div>
         </div>
@@ -101,7 +136,7 @@
         <div class="panel-section">
           <label class="section-label">Audio Transport Routing Profile</label>
           <div class="profile-cards-grid">
-            <div class="profile-card active" id="pcard-bitperfect" onclick="setDspProfile('pure-bitperfect')">
+            <div class="profile-card {% if not desktop_settings or desktop_settings.dsp_profile == 'pure-bitperfect' %}active{% endif %}" id="pcard-bitperfect" onclick="setDspProfile('pure-bitperfect')">
               <div class="pcard-header">
                 <span class="pcard-title">Pure Bit-Perfect</span>
                 <span class="pcard-badge badge-green">Direct ALSA</span>
@@ -109,7 +144,7 @@
               <p class="pcard-desc">Bypasses all software mixers, resamplers, and OS audio routing. Strictly outputs bit-perfect PCM/DSD.</p>
             </div>
 
-            <div class="profile-card" id="pcard-spatial" onclick="setDspProfile('spatial-headphones')">
+            <div class="profile-card {% if desktop_settings and desktop_settings.dsp_profile == 'spatial-headphones' %}active{% endif %}" id="pcard-spatial" onclick="setDspProfile('spatial-headphones')">
               <div class="pcard-header">
                 <span class="pcard-title">7.1.4 Spatial Audio</span>
                 <span class="pcard-badge badge-cyan">PipeWire SOFA</span>
@@ -117,7 +152,7 @@
               <p class="pcard-desc">Virtualizes multi-channel audio via KEMAR HRTF impulse response files with transducer-specific PEQ.</p>
             </div>
 
-            <div class="profile-card" id="pcard-receiver" onclick="setDspProfile('receiver-passthrough')">
+            <div class="profile-card {% if desktop_settings and desktop_settings.dsp_profile == 'receiver-passthrough' %}active{% endif %}" id="pcard-receiver" onclick="setDspProfile('receiver-passthrough')">
               <div class="pcard-header">
                 <span class="pcard-title">Receiver Passthrough</span>
                 <span class="pcard-badge">HDMI Bitstream</span>
@@ -129,25 +164,40 @@
 
         <div class="panel-grid-2">
           <div class="panel-section">
-            <label class="section-label">3D Binaural Virtualization</label>
-            <div class="toggle-row">
-              <label class="switch">
-                <input type="checkbox" id="cfg-spatial-toggle" onchange="triggerSpatialToggle()">
-                <span class="slider round"></span>
-              </label>
-              <span class="toggle-label" id="cfg-spatial-label">KEMAR HRTF 7.1.4 Convolver</span>
-            </div>
+            <label class="section-label" for="cfg-peq-profile">Parametric EQ (PEQ) Profile Loader</label>
+            <select id="cfg-peq-profile" class="settings-select" onchange="applyPeqProfile(this.value)">
+              <option value="none" {% if not desktop_settings or desktop_settings.peq_profile == 'none' %}selected{% endif %}>Bypass / Flat (0.0 dB)</option>
+              <option value="7hz_zero_2" {% if desktop_settings and desktop_settings.peq_profile == '7hz_zero_2' %}selected{% endif %}>7Hz Salnotes Zero:2 (Harman IEM Target)</option>
+              <option value="moondrop_blessing_2" {% if desktop_settings and desktop_settings.peq_profile == 'moondrop_blessing_2' %}selected{% endif %}>Moondrop Blessing 2 (Diffuse Field Reference)</option>
+              <option value="sennheiser_hd600" {% if desktop_settings and desktop_settings.peq_profile == 'sennheiser_hd600' %}selected{% endif %}>Sennheiser HD 600 (Oratory1990 Harman OE)</option>
+              <option value="apple_airpods_pro_2" {% if desktop_settings and desktop_settings.peq_profile == 'apple_airpods_pro_2' %}selected{% endif %}>Apple AirPods Pro 2 (Reference Correction)</option>
+            </select>
+            <p class="section-help">Applies 64-bit biquad cascaded filters calibrated to transducer impedance curves.</p>
           </div>
 
           <div class="panel-section">
             <label class="section-label">Anti-Clipping Negative Pre-Amp</label>
             <div class="toggle-row">
               <label class="switch">
-                <input type="checkbox" id="cfg-preamp-toggle" checked>
+                <input type="checkbox" id="cfg-preamp-toggle" {% if not desktop_settings or desktop_settings.peq_preamp_auto %}checked{% endif %} onchange="saveDesktopSettings()">
                 <span class="slider round"></span>
               </label>
-              <span class="toggle-label">Auto-Attenuate Headroom (-5.5 dB)</span>
+              <span class="toggle-label" id="cfg-preamp-label">Auto-Attenuate Headroom (<span id="cfg-preamp-db-val">{{ desktop_settings.peq_preamp_db if desktop_settings else '-5.5' }}</span> dB)</span>
             </div>
+            <p class="section-help">Prevents inter-sample digital clipping across peaked biquad EQ bands.</p>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">3D Binaural SOFA 7.1.4 Virtualization</label>
+          <div class="toggle-row">
+            <label class="switch">
+              <input type="checkbox" id="cfg-spatial-toggle" {% if desktop_settings and desktop_settings.spatial_enabled %}checked{% endif %} onchange="triggerSpatialToggle()">
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label" id="cfg-spatial-label">
+              {% if desktop_settings and desktop_settings.spatial_enabled %}KEMAR HRTF 7.1.4 Convolver (Active){% else %}KEMAR HRTF 7.1.4 Convolver{% endif %}
+            </span>
           </div>
         </div>
       </div>
@@ -156,27 +206,48 @@
       <div class="settings-panel" id="panel-analyzer">
         <div class="panel-grid-2">
           <div class="panel-section">
-            <label class="section-label">Analyzer Architecture</label>
-            <select id="cfg-analyzer-backend" class="settings-select">
-              <option value="essentia" selected>Essentia TensorFlow (Default)</option>
-              <option value="librosa">Librosa Multiprocessing (Pure Python Fallback)</option>
+            <label class="section-label" for="cfg-analyzer-backend">Analyzer Architecture</label>
+            <select id="cfg-analyzer-backend" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="essentia" {% if not desktop_settings or desktop_settings.analyzer_backend == 'essentia' %}selected{% endif %}>Essentia TensorFlow (Default)</option>
+              <option value="librosa" {% if desktop_settings and desktop_settings.analyzer_backend == 'librosa' %}selected{% endif %}>Librosa Multiprocessing (Pure Python Fallback)</option>
             </select>
           </div>
 
           <div class="panel-section">
-            <label class="section-label">Parallel Extraction Workers</label>
-            <select id="cfg-workers" class="settings-select">
-              <option value="2">2 Worker Cores</option>
-              <option value="4" selected>4 Worker Cores (Recommended)</option>
-              <option value="8">8 Worker Cores (High Throughput)</option>
+            <label class="section-label" for="cfg-workers">Parallel Extraction Workers</label>
+            <select id="cfg-workers" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="1" {% if desktop_settings and desktop_settings.analyzer_workers == 1 %}selected{% endif %}>1 Worker Core (Minimal Load)</option>
+              <option value="2" {% if desktop_settings and desktop_settings.analyzer_workers == 2 %}selected{% endif %}>2 Worker Cores</option>
+              <option value="4" {% if not desktop_settings or desktop_settings.analyzer_workers == 4 %}selected{% endif %}>4 Worker Cores (Recommended)</option>
+              <option value="8" {% if desktop_settings and desktop_settings.analyzer_workers == 8 %}selected{% endif %}>8 Worker Cores (High Throughput)</option>
+              <option value="16" {% if desktop_settings and desktop_settings.analyzer_workers == 16 %}selected{% endif %}>16 Worker Cores (Workstation Max)</option>
             </select>
           </div>
         </div>
 
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-window-sec">Analysis Center Window Duration: <span id="label-window-sec" class="text-primary">{{ (desktop_settings.analyzer_window_seconds | int) if desktop_settings else 60 }}s</span></label>
+            <input type="range" class="settings-range" id="cfg-window-sec" min="15" max="120" value="{{ (desktop_settings.analyzer_window_seconds | int) if desktop_settings else 60 }}" oninput="document.getElementById('label-window-sec').textContent = this.value + 's';" onchange="saveDesktopSettings()">
+            <p class="section-help">Extracts spectral features and harmonic vectors from the middle segment of tracks.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-mood-threshold">Mood Classifier Threshold: <span id="label-mood-threshold" class="text-primary">{{ ((desktop_settings.mood_confidence_threshold * 100) | int) if desktop_settings else 50 }}%</span></label>
+            <input type="range" class="settings-range" id="cfg-mood-threshold" min="0.10" max="0.90" step="0.05" value="{{ desktop_settings.mood_confidence_threshold if desktop_settings else 0.50 }}" oninput="document.getElementById('label-mood-threshold').textContent = Math.round(parseFloat(this.value) * 100) + '%';" onchange="saveDesktopSettings()">
+            <p class="section-help">Minimum neural classifier confidence required to assign a mood cluster tag.</p>
+          </div>
+        </div>
+
         <div class="panel-section">
-          <label class="section-label">Analysis Center Window Duration: <span id="label-window-sec" class="text-primary">60s</span></label>
-          <input type="range" class="settings-range" id="cfg-window-sec" min="15" max="120" value="60" oninput="document.getElementById('label-window-sec').textContent = this.value + 's';">
-          <p class="section-help">Extracts spectral features and harmonic vectors from the middle segment of tracks.</p>
+          <label class="section-label">Automatic Fallback Backend</label>
+          <div class="toggle-row">
+            <label class="switch">
+              <input type="checkbox" id="cfg-analyzer-fallback" {% if not desktop_settings or desktop_settings.analyzer_fallback_enabled %}checked{% endif %} onchange="saveDesktopSettings()">
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">Fallback to Librosa DSP when Essentia TensorFlow weights are unavailable</span>
+          </div>
         </div>
       </div>
 
@@ -244,13 +315,48 @@
             <div class="theme-card-sub">Studio Neutral & Emerald</div>
           </div>
         </div>
+
+        <div class="panel-grid-2" style="margin-top: 1rem;">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-custom-accent">Custom Accent Color Override</label>
+            <span id="custom-accent-hint" class="section-help" style="display:block; margin-bottom: 0.25rem;">Format: 6-digit hex (#RRGGBB)</span>
+            <div class="accent-picker-row">
+              <input type="color" id="cfg-custom-accent-picker" class="accent-color-well" value="{{ desktop_settings.custom_accent_color if desktop_settings else '#6874a6' }}" oninput="syncAccentHexInput(this.value)" onchange="applyCustomAccent(this.value, true)">
+              <input
+                type="text"
+                id="cfg-custom-accent"
+                class="settings-input font-mono"
+                value="{{ desktop_settings.custom_accent_color if desktop_settings else '#6874a6' }}"
+                pattern="^#[0-9a-fA-F]{6}$"
+                required
+                aria-describedby="custom-accent-hint"
+                aria-errormessage="custom-accent-error"
+                onchange="applyCustomAccent(this.value, true)"
+              >
+              <div id="custom-accent-error" class="settings-error-msg">
+                <span aria-hidden="true">❌</span> Enter a valid 6-digit hex color (e.g. #6874a6).
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-contrast-mode">Contrast & Dark Mode Calibration</label>
+            <select id="cfg-contrast-mode" class="settings-select" onchange="applyContrastMode(this.value, true)">
+              <option value="standard" {% if not desktop_settings or desktop_settings.contrast_mode == 'standard' %}selected{% endif %}>Standard Studio Dark (OLED Safe)</option>
+              <option value="high-contrast" {% if desktop_settings and desktop_settings.contrast_mode == 'high-contrast' %}selected{% endif %}>High-Contrast Mastering (Enhanced Borders & Text)</option>
+            </select>
+            <p class="section-help">Boosts tonal border luminance and text contrast for bright mastering rooms.</p>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Footer -->
     <div class="settings-footer">
-      <span class="text-muted text-xs">Settings apply instantly and persist to local storage.</span>
-      <button type="button" class="btn-primary" onclick="closeSettingsDialog()">Done</button>
+      <span class="text-muted text-xs" id="settings-save-status">Settings apply instantly and persist to disk &amp; local storage.</span>
+      <div class="settings-footer-actions">
+        <button type="button" class="btn-primary" onclick="saveDesktopSettings(true)">Done</button>
+      </div>
     </div>
   </div>
 </dialog>
