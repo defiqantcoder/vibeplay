@@ -72,6 +72,17 @@ input, select {
   color: inherit;
 }
 
+.icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

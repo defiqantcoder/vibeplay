@@ -61,12 +61,12 @@
     
     <div class="filter-group">
       <!-- Search text -->
-      <div style="position: relative;">
-        <span class="material-symbols-outlined" style="position: absolute; left: 8px; top: 7px; font-size: 18px; color: var(--text-dim);">search</span>
+      <div style="position: relative; display: flex; align-items: center;">
+        <svg class="icon" style="position: absolute; left: 10px; width: 15px; height: 15px; fill: var(--text-dim); pointer-events: none;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <input type="text"
                name="q"
                class="input-text search-input"
-               placeholder="Search title, album..."
+               placeholder="Search title, album, artist..."
                style="padding-left: 32px;"/>
       </div>
 
@@ -315,8 +315,8 @@
 
         <!-- Generate Button -->
         <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 0.5rem;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">auto_awesome</span>
-          Generate Smart Playlist
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+          <span>Generate Smart Playlist</span>
         </button>
       </form>
     </div>
