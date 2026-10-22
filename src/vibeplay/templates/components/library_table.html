@@ -1,0 +1,86 @@
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 40px; text-align: center;">#</th>
+        <th>Track Title</th>
+        <th>Artist</th>
+        <th>Album</th>
+        <th style="text-align: right; width: 80px;">BPM</th>
+        <th style="text-align: center; width: 80px;">Key</th>
+        <th style="text-align: right; width: 90px;">Energy</th>
+        <th style="text-align: right; width: 90px;">Danceability</th>
+        <th style="text-align: right; width: 110px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for track in tracks %}
+      <tr>
+        <td style="text-align: center; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px;">
+          {{ track.track_id }}
+        </td>
+        <td>
+          <div style="font-weight: 600; color: var(--text-primary);">{{ track.title }}</div>
+          <div style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
+            {{ track.genre or 'Lossless Audio' }}
+          </div>
+        </td>
+        <td style="color: var(--text-secondary);">{{ track.artist }}</td>
+        <td style="color: var(--text-muted);">{{ track.album }}</td>
+        <td style="text-align: right; font-family: var(--font-mono); font-weight: 500;">
+          {% if track.bpm %}{{ track.bpm|round(1) }}{% else %}—{% endif %}
+        </td>
+        <td style="text-align: center;">
+          {% if track.camelot %}
+            <span class="badge-camelot">{{ track.camelot }}</span>
+          {% elif track.key %}
+            <span class="badge-camelot">{{ track.key }}</span>
+          {% else %}
+            <span style="color: var(--text-dim);">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align: right; font-family: var(--font-mono);">
+          {% if track.energy is not none %}
+            <span style="color: {% if track.energy >= 0.7 %}var(--secondary){% elif track.energy >= 0.4 %}var(--primary){% else %}var(--tertiary){% endif %};">
+              {{ track.energy|round(2) }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align: right; font-family: var(--font-mono);">
+          {% if track.danceability is not none %}
+            {{ track.danceability|round(2) }}
+          {% else %}—{% endif %}
+        </td>
+        <td style="text-align: right;">
+          <div style="display: inline-flex; align-items: center; gap: 4px;">
+            <button class="btn-icon"
+                    hx-post="/api/player/play-track/{{ track.track_id }}"
+                    hx-target="#transport-footer-container"
+                    hx-swap="innerHTML"
+                    title="Play Track">
+              <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+            </button>
+            <button class="btn-icon"
+                    hx-get="/api/track/{{ track.track_id }}"
+                    hx-target="#track-detail-modal"
+                    hx-swap="innerHTML"
+                    title="View Audio Details">
+              <span class="material-symbols-outlined" style="font-size: 18px;">info</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+          No matching tracks found in library.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0.25rem; font-size: 12px; color: var(--text-muted);">
+  <span>Showing {{ tracks|length }} tracks</span>
+  <span style="font-family: var(--font-mono);">FLAC / DSD / WAV Lossless Stream</span>
+</div>

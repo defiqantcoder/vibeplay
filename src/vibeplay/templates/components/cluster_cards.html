@@ -1,0 +1,75 @@
+<div class="cluster-grid">
+  {% for cluster in clusters %}
+  <div class="cluster-card">
+    <div>
+      <div class="cluster-card-header">
+        <span class="badge-camelot">Cluster #{{ cluster.cluster_id }}</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+          {{ cluster.size }} Tracks • Avg {{ cluster.avg_bpm|round(1) }} BPM
+        </span>
+      </div>
+
+      <div class="cluster-title">
+        {{ cluster.label }}
+      </div>
+
+      <!-- Dominant Moods -->
+      <div class="cluster-tags">
+        {% for mood_name, mood_score in cluster.dominant_moods %}
+          <span class="cluster-tag" style="border-color: rgba(88, 166, 255, 0.3);">
+            {{ mood_name }} ({{ (mood_score * 100)|round(0)|int }}%)
+          </span>
+        {% endfor %}
+      </div>
+
+      <!-- Top Artists -->
+      <div style="font-size: 12px; color: var(--text-secondary); margin: 0.5rem 0;">
+        <span style="color: var(--text-dim); text-transform: uppercase; font-size: 10px; font-family: var(--font-mono);">
+          Top Artists:
+        </span>
+        {% for artist_name, count in cluster.top_artists[:3] %}
+          {{ artist_name }} ({{ count }}){% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </div>
+
+      <!-- Representative Seed Tracks -->
+      <div style="margin-top: 0.75rem;">
+        <div style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px;">
+          Centroid Seed Tracks:
+        </div>
+        <ul class="cluster-tracks-list">
+          {% for rep in cluster.representative_tracks[:3] %}
+          <li style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">
+              {{ rep.title }} — {{ rep.artist }}
+            </span>
+            <span style="font-family: var(--font-mono); color: var(--primary); font-size: 11px;">
+              {% set sim = rep.similarity_to_centroid if rep.similarity_to_centroid is defined else (rep.similarity if rep.similarity is defined else 1.0) %}
+              {{ (sim * 100)|round(0)|int }}%
+            </span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 0.85rem; margin-top: 0.5rem;">
+      <button class="btn-primary"
+              style="width: 100%; justify-content: center;"
+              hx-post="/api/playlist/generate"
+              hx-vals='{"cluster_id": {{ cluster.cluster_id }}, "limit": 15, "name": "Cluster {{ cluster.cluster_id }} Playlist"}'
+              hx-target="#playlist-builder-container"
+              hx-swap="innerHTML"
+              onclick="showTab('builder')">
+        <span class="material-symbols-outlined" style="font-size: 18px;">auto_awesome</span>
+        Build Cluster Playlist
+      </button>
+    </div>
+  </div>
+  {% else %}
+  <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted);">
+    No cluster data computed. Run audio feature analysis to generate library clusters.
+  </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,142 @@
+/* vibeplay — Audiophile Precision Console Client-side Interactions */
+
+// Tab Navigation
+function showTab(tabId) {
+  const tabs = ['library', 'clusters', 'builder'];
+  tabs.forEach(t => {
+    const section = document.getElementById(`tab-${t}`);
+    const btn = document.getElementById(`nav-btn-${t}`);
+    if (section) {
+      if (t === tabId) {
+        section.style.display = 'block';
+      } else {
+        section.style.display = 'none';
+      }
+    }
+    if (btn) {
+      if (t === tabId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  });
+}
+
+// Open Track Detail Modal
+function openTrackModal() {
+  const modal = document.getElementById('track-detail-modal');
+  if (modal && typeof modal.showModal === 'function') {
+    modal.showModal();
+  }
+}
+
+// Light-Dismiss Fallback for <dialog closedby="any"> (Modern Web Guidance)
+document.addEventListener('click', (event) => {
+  const dialog = document.getElementById('track-detail-modal');
+  if (!dialog || !dialog.open) return;
+
+  if (!('closedBy' in HTMLDialogElement.prototype)) {
+    if (event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const isDialogContent = (
+      rect.top <= event.clientY &&
+      event.clientY <= rect.top + rect.height &&
+      rect.left <= event.clientX &&
+      event.clientX <= rect.left + rect.width
+    );
+    if (!isDialogContent) {
+      dialog.close();
+    }
+  }
+});
+
+// Update Range Slider Labels
+function updateSliderLabel(sliderId, labelId, suffix = '') {
+  const slider = document.getElementById(sliderId);
+  const label = document.getElementById(labelId);
+  if (slider && label) {
+    label.textContent = slider.value + suffix;
+  }
+}
+
+// Drag & Drop Playlist Track Reordering
+let draggedItem = null;
+
+function initPlaylistDragDrop() {
+  const container = document.getElementById('playlist-tracks-list');
+  if (!container) return;
+
+  const items = container.querySelectorAll('.playlist-track-row');
+  items.forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      draggedItem = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedItem = null;
+      submitNewPlaylistOrder();
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const afterElement = getDragAfterElement(container, e.clientY);
+      if (afterElement == null) {
+        container.appendChild(draggedItem);
+      } else {
+        container.insertBefore(draggedItem, afterElement);
+      }
+    });
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.playlist-track-row:not(.dragging)')];
+
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function submitNewPlaylistOrder() {
+  const container = document.getElementById('playlist-tracks-list');
+  if (!container) return;
+  const items = container.querySelectorAll('.playlist-track-row');
+  const trackIds = Array.from(items).map(i => i.getAttribute('data-track-id')).filter(Boolean);
+  const playlistId = container.getAttribute('data-playlist-id');
+
+  if (playlistId && trackIds.length > 0 && window.htmx) {
+    htmx.ajax('POST', '/api/playlist/reorder', {
+      target: '#playlist-builder-container',
+      swap: 'innerHTML',
+      values: {
+        playlist_id: playlistId,
+        track_ids: trackIds.join(','),
+      }
+    });
+  }
+}
+
+// Re-initialize drag and drop after HTMX swaps
+document.addEventListener('htmx:afterSwap', (event) => {
+  if (event.detail.target.id === 'playlist-builder-container' || event.detail.target.id === 'tab-builder') {
+    initPlaylistDragDrop();
+  }
+  if (event.detail.target.id === 'track-detail-modal') {
+    openTrackModal();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPlaylistDragDrop();
+});
