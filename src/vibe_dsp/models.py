@@ -68,3 +68,86 @@ class AuditReport(BaseModel):
         default_factory=lambda: [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000],
         description="Master list of rates to unlock in PipeWire",
     )
+
+
+class LatencyHealthRating(str, Enum):
+    """Concise real-time audio thread latency health classification."""
+
+    GOOD = "Good"
+    MARGINAL = "Marginal"
+    THROTTLED = "Throttled"
+
+
+class CpuCorePowerState(BaseModel):
+    """Hardware power and frequency scaling state of a CPU core."""
+
+    core_id: int
+    governor: str = "unknown"
+    cur_freq_mhz: float = 0.0
+    max_freq_mhz: float = 0.0
+    epp: str | None = None
+    is_throttled: bool = False
+
+
+class PowerProfileReport(BaseModel):
+    """ACPI CPU throttling and frequency scaling audit."""
+
+    ac_online: bool = True
+    battery_present: bool = False
+    battery_status: str | None = None
+    cores: list[CpuCorePowerState] = Field(default_factory=list)
+    is_throttled: bool = False
+    active_governor: str = "unknown"
+    recommendation: str = ""
+
+
+class XrunReport(BaseModel):
+    """Buffer underruns and ALSA/PipeWire PCM hardware status."""
+
+    card_index: int = 1
+    device_index: int = 0
+    state: str = "closed"
+    xrun_count: int = 0
+    active_rate: int | None = None
+    buffer_size: int | None = None
+    period_size: int | None = None
+    pipewire_errors: int = 0
+    pipewire_rate: int | None = None
+
+
+class JitterMetrics(BaseModel):
+    """Real-time audio thread scheduling jitter measurements in microseconds."""
+
+    min_jitter_us: float = 0.0
+    avg_jitter_us: float = 0.0
+    max_jitter_us: float = 0.0
+    stddev_jitter_us: float = 0.0
+    sample_count: int = 0
+    source: str = "python_perf_counter"
+
+
+class MicroStutterAnomaly(BaseModel):
+    """Logged micro-stutter latency spike anomaly."""
+
+    timestamp: str
+    jitter_us: float
+    xrun_detected: bool = False
+    active_rate: int | None = None
+    system_load: float = 0.0
+    cpu_throttled: bool = False
+    message: str = ""
+
+
+class LatencyMonitorReport(BaseModel):
+    """Master latency watchdog report with DPC jitter, xruns, and power state."""
+
+    timestamp: str
+    health_rating: LatencyHealthRating
+    xrun_report: XrunReport
+    jitter_metrics: JitterMetrics
+    power_profile: PowerProfileReport
+    rtkit_granted: bool = False
+    rtkit_details: str = ""
+    system_load: float = 0.0
+    anomalies: list[MicroStutterAnomaly] = Field(default_factory=list)
+    diagnostics: list[str] = Field(default_factory=list)

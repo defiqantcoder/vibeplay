@@ -28,6 +28,7 @@ from vibeplay.player import (
     play_playlist,
     play_track,
     previous_song,
+    seek_playback,
     set_output_profile,
     set_volume_level,
     toggle_pause,
@@ -612,7 +613,20 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
     @app.post("/api/player/toggle", response_class=HTMLResponse)
     async def api_player_toggle(request: Request) -> Response:
         """Toggle play/pause state in MPD."""
-        toggle_pause(cfg)
+        toggle_pause(db_path=resolved_db_path, settings=cfg)
+        playback = get_playback_status(resolved_db_path, cfg)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/transport_bar.html",
+            context={
+                "playback": playback,
+            },
+        )
+
+    @app.post("/api/player/seek", response_class=HTMLResponse)
+    async def api_player_seek(request: Request, seconds: float = Form(0.0)) -> Response:
+        """Seek active track in MPD to target time offset."""
+        seek_playback(seconds, settings=cfg)
         playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,

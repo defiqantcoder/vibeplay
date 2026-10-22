@@ -19,7 +19,8 @@ from vibe_dsp.alsa_reservation import (
 )
 from vibe_dsp.backup import create_backup, execute_rollback, find_latest_backup
 from vibe_dsp.hardware import scan_hardware
-from vibe_dsp.models import AudioEndpoint, CardType
+from vibe_dsp.latency import audit_latency
+from vibe_dsp.models import AudioEndpoint, CardType, LatencyHealthRating
 from vibe_dsp.pipewire import (
     DEFAULT_PIPEWIRE_CONF_DIR,
     generate_pipewire_dropin_config,
@@ -49,6 +50,13 @@ route_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(route_app, name="route")
+
+latency_app = typer.Typer(
+    name="latency",
+    help="Kernel DPC latency watchdog and xrun detection commands.",
+    no_args_is_help=True,
+)
+app.add_typer(latency_app, name="latency")
 
 
 @hardware_app.command(name="audit")
@@ -320,3 +328,161 @@ def rollback_cmd() -> None:
     else:
         console.print(f"[bold red]Rollback error:[/bold red] {output}")
         raise typer.Exit(code=1)
+
+
+@latency_app.command(name="monitor")
+def latency_monitor(
+    card: Annotated[
+        int | None,
+        typer.Option("--card", "-c", help="Target ALSA card index to audit (defaults to auto-detected DAC)"),
+    ] = None,
+    device: Annotated[
+        int,
+        typer.Option("--device", "-d", help="Target ALSA device index"),
+    ] = 0,
+    samples: Annotated[
+        int,
+        typer.Option("--samples", "-s", help="Scheduling jitter sample count"),
+    ] = 30,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output raw telemetry JSON"),
+    ] = False,
+    procfs: Annotated[
+        Path | None,
+        typer.Option(help="Path to ALSA procfs directory (defaults to /proc/asound)"),
+    ] = None,
+    sysfs: Annotated[
+        Path | None,
+        typer.Option(help="Path to sysfs directory (defaults to /sys)"),
+    ] = None,
+) -> None:
+    """Monitor real-time audio thread latency, detect buffer underruns (xruns), and audit CPU throttling."""
+    proc_root = procfs or Path("/proc/asound")
+    sys_root = sysfs or Path("/sys")
+
+    target_card = card
+    if target_card is None:
+        hw_rep = scan_hardware(procfs_root=proc_root)
+        if hw_rep.active_dac:
+            target_card = hw_rep.active_dac.card_index
+            device = hw_rep.active_dac.device_index
+        elif hw_rep.fallback_endpoint:
+            target_card = hw_rep.fallback_endpoint.card_index
+            device = hw_rep.fallback_endpoint.device_index
+        else:
+            target_card = 0
+
+    report = audit_latency(
+        card_index=target_card,
+        device_index=device,
+        jitter_samples=samples,
+        procfs_root=proc_root,
+        sysfs_root=sys_root,
+    )
+
+    if json_output:
+        print(report.model_dump_json(indent=2))
+        return
+
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]vibe-dsp[/bold cyan] [bold white]Kernel DPC Latency Watchdog & xrun Detector[/bold white]\n"
+            f"Target Endpoint: [yellow]hw:{target_card},{device}[/yellow] • Timestamp: [dim]{report.timestamp}[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    # Health Rating Badge Panel
+    if report.health_rating == LatencyHealthRating.GOOD:
+        rating_panel = Panel.fit(
+            "[bold green]HEALTH RATING: GOOD[/bold green]\n"
+            "[white]Real-time audio transport latency optimal. Zero underruns detected.[/white]",
+            border_style="green",
+        )
+    elif report.health_rating == LatencyHealthRating.MARGINAL:
+        rating_panel = Panel.fit(
+            "[bold yellow]HEALTH RATING: MARGINAL[/bold yellow]\n"
+            "[yellow]Elevated scheduling jitter or power saving state detected.[/yellow]",
+            border_style="yellow",
+        )
+    else:
+        rating_panel = Panel.fit(
+            "[bold red]HEALTH RATING: THROTTLED[/bold red]\n"
+            "[red]Active xruns, severe timer jitter, or ACPI CPU throttling detected.[/red]",
+            border_style="red",
+        )
+    console.print(rating_panel)
+    console.print()
+
+    # Telemetry Tables
+    table = Table(title="Audio Transport & Scheduling Latency", show_lines=True)
+    table.add_column("Category", style="bold magenta", width=22)
+    table.add_column("Metric", style="cyan", width=26)
+    table.add_column("Status / Reading", style="bold", width=34)
+
+    # ALSA & Buffer Telemetry
+    rate_str = (
+        f"{report.xrun_report.active_rate / 1000.0:.1f} kHz"
+        if report.xrun_report.active_rate
+        else "Standby / Idle"
+    )
+    buf_str = (
+        f"{report.xrun_report.buffer_size} frames (period {report.xrun_report.period_size})"
+        if report.xrun_report.buffer_size
+        else "Unallocated"
+    )
+    xrun_color = "green" if report.xrun_report.xrun_count == 0 else "bold red"
+
+    table.add_row("ALSA Hardware", "Endpoint Address", f"hw:{target_card},{device}")
+    table.add_row("ALSA Hardware", "PCM State", report.xrun_report.state)
+    table.add_row("ALSA Hardware", "Active Sample Rate", rate_str)
+    table.add_row("ALSA Hardware", "Buffer & Period", buf_str)
+    table.add_row(
+        "ALSA Hardware",
+        "Buffer Underruns (xruns)",
+        f"[{xrun_color}]{report.xrun_report.xrun_count} dropouts[/{xrun_color}]",
+    )
+
+    # Jitter Telemetry
+    jit = report.jitter_metrics
+    table.add_row("Kernel DPC Jitter", "Avg Scheduling Delay", f"{jit.avg_jitter_us:.1f} µs")
+    table.add_row(
+        "Kernel DPC Jitter",
+        "Peak Jitter / StdDev",
+        f"{jit.max_jitter_us:.1f} µs / ±{jit.stddev_jitter_us:.1f} µs",
+    )
+    table.add_row("Kernel DPC Jitter", "Timer Evaluator", f"{jit.source} ({jit.sample_count} samples)")
+
+    # Power Profile Telemetry
+    pwr = report.power_profile
+    ac_label = "[bold green]Connected (AC)[/bold green]" if pwr.ac_online else "[bold yellow]Battery Discharging[/bold yellow]"
+    pwr_label = "[bold red]THROTTLED[/bold red]" if pwr.is_throttled else "[green]Nominal[/green]"
+    table.add_row("ACPI Power State", "Power Supply", ac_label)
+    table.add_row("ACPI Power State", "CPU Governor", f"{pwr.active_governor} ({len(pwr.cores)} cores)")
+    table.add_row("ACPI Power State", "Frequency Throttling", pwr_label)
+
+    # RealtimeKit
+    rt_color = "bold green" if report.rtkit_granted else "yellow"
+    table.add_row("RealtimeKit", "Scheduling Priority", f"[{rt_color}]{report.rtkit_details}[/{rt_color}]")
+
+    console.print(table)
+    console.print()
+
+    # Recommendations & Diagnostics
+    console.print("[bold cyan]Diagnostics & Tuning Advice:[/bold cyan]")
+    for diag in report.diagnostics:
+        console.print(f"  • {diag}")
+    console.print(f"  [dim]Power Advice:[/dim] {pwr.recommendation}")
+
+    # Micro-Stutter Anomalies Log
+    if report.anomalies:
+        console.print()
+        console.print(f"[bold red]Detected Micro-Stutter Anomalies ({len(report.anomalies)}):[/bold red]")
+        for anom in report.anomalies:
+            console.print(
+                f"  [{anom.timestamp}] [bold red]Anomaly:[/bold red] {anom.message} "
+                f"(Peak Jitter: {anom.jitter_us:.1f} µs, Load: {anom.system_load:.2f})"
+            )
+    console.print()
