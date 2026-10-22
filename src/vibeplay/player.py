@@ -325,8 +325,11 @@ def play_track(
         }
 
 
-ACTIVE_OUTPUT_PROFILE = "USB DAC (Bit-Perfect)"
+ACTIVE_OUTPUT_PROFILE = "Pure Bit-Perfect (Direct ALSA)"
 OUTPUT_PROFILES = [
+    "Pure Bit-Perfect (Direct ALSA)",
+    "7.1.4 Spatial Headphones (SOFA 3D)",
+    "AV Receiver Passthrough (HDMI)",
     "USB DAC (Bit-Perfect)",
     "Direct ALSA (hw:0,0)",
     "Analog Line Out",
@@ -337,7 +340,7 @@ OUTPUT_PROFILES = [
 def set_output_profile(profile_name: str) -> str:
     """Set the active hardware audio output profile."""
     global ACTIVE_OUTPUT_PROFILE
-    if profile_name in OUTPUT_PROFILES:
+    if profile_name in OUTPUT_PROFILES or profile_name in {"pure-bitperfect", "spatial-headphones", "receiver-passthrough"}:
         ACTIVE_OUTPUT_PROFILE = profile_name
         logger.info("Active audio output profile switched to: %s", profile_name)
     return ACTIVE_OUTPUT_PROFILE

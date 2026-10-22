@@ -571,4 +571,34 @@ def test_operational_health_in_status_endpoint(test_environment: tuple[Path, Set
     assert "acoustid" in data["services"]
     assert "llm" in data["services"]
     assert data["services"]["database"] == "connected"
+    assert "dsp" in data
+
+
+def test_dsp_profile_web_endpoints(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    """Verify /api/dsp/profile GET and POST endpoints and player output switching."""
+    _, _, client = test_environment
+
+    # 1. GET /api/dsp/profile
+    get_res = client.get("/api/dsp/profile")
+    assert get_res.status_code == 200
+    get_data = get_res.json()
+    assert get_data["status"] == "ok"
+    assert "data" in get_data
+    assert "available_profiles" in get_data["data"]
+
+    # 2. POST /api/dsp/profile with JSON
+    post_res = client.post("/api/dsp/profile", json={"profile": "spatial-headphones"})
+    assert post_res.status_code == 200
+    post_data = post_res.json()
+    assert post_data["status"] == "ok"
+
+    # 3. POST /api/dsp/profile with invalid profile
+    invalid_res = client.post("/api/dsp/profile", json={"profile": ""})
+    assert invalid_res.status_code == 400
+
+    # 4. POST /api/player/output Form
+    form_res = client.post("/api/player/output", data={"profile": "7.1.4 Spatial Headphones (SOFA 3D)"})
+    assert form_res.status_code == 200
+    assert "transport-footer" in form_res.text
+
 
