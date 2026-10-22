@@ -22,15 +22,13 @@ def test_cli_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "vibeplay [OPTIONS] COMMAND [ARGS]" in result.stdout
-    for cmd in ["scan", "enrich", "analyze", "clusters", "playlist", "export", "serve"]:
+    for cmd in ["scan", "enrich", "analyze", "clusters", "playlist", "export", "play", "serve"]:
         assert cmd in result.stdout
 
 
 def test_stub_commands_not_implemented() -> None:
     """Verify that remaining stubbed CLI commands print 'not implemented'."""
     stub_commands = [
-        ["playlist"],
-        ["export", "1"],
         ["serve"],
     ]
     for cmd_args in stub_commands:
