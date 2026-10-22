@@ -530,17 +530,37 @@ def mark_tracks_missing(conn: sqlite3.Connection, track_ids: list[int]) -> int:
     return cursor.rowcount
 
 
-def get_cached_response(conn: sqlite3.Connection, cache_key: str) -> str | None:
+def get_cached_response(
+    conn: sqlite3.Connection,
+    cache_key: str,
+    max_age_days: int | None = None,
+) -> str | None:
     """Retrieve cached response JSON from network_cache.
 
     Args:
         conn: Open SQLite connection.
         cache_key: Unique cache key identifier.
+        max_age_days: Optional TTL expiration threshold in days.
 
     Returns:
-        str | None: Cached JSON string or None if cache miss.
+        str | None: Cached JSON string or None if cache miss or expired.
     """
     cursor = conn.cursor()
+    if max_age_days is not None:
+        cursor.execute(
+            f"""
+            SELECT response_json
+            FROM network_cache
+            WHERE cache_key = ? AND created_at >= datetime('now', '-{int(max_age_days)} days')
+            """,
+            (cache_key,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            cursor.execute("DELETE FROM network_cache WHERE cache_key = ?", (cache_key,))
+            return None
+        return row["response_json"]
+
     cursor.execute(
         "SELECT response_json FROM network_cache WHERE cache_key = ?",
         (cache_key,),
@@ -1108,22 +1128,100 @@ def delete_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     return cursor.rowcount > 0
 
 
-def get_llm_cache(conn: sqlite3.Connection, prompt_hash: str) -> str | None:
+def get_llm_cache(
+    conn: sqlite3.Connection,
+    prompt_hash: str,
+    max_age_days: int | None = None,
+) -> str | None:
     """Retrieve cached LLM response for a given SHA256 prompt hash.
 
     Args:
         conn: Open SQLite connection.
         prompt_hash: Hexadecimal SHA256 hash string.
+        max_age_days: Optional TTL expiration threshold in days.
 
     Returns:
-        str | None: Cached JSON/text response, or None if not found.
+        str | None: Cached JSON/text response, or None if not found or expired.
     """
     cursor = conn.cursor()
+    if max_age_days is not None:
+        cursor.execute(
+            f"""
+            SELECT response
+            FROM llm_cache
+            WHERE prompt_hash = ? AND created_at >= datetime('now', '-{int(max_age_days)} days')
+            """,
+            (prompt_hash,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            cursor.execute("DELETE FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,))
+            return None
+        return row["response"]
+
     cursor.execute(
         "SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,)
     )
     row = cursor.fetchone()
     return row["response"] if row else None
+
+
+def cleanup_expired_caches(
+    conn: sqlite3.Connection, max_age_days: int = 30
+) -> dict[str, int]:
+    """Prune cached LLM prompts and network metadata responses older than max_age_days.
+
+    Enforces privacy data retention policies and removes stale cached API data.
+
+    Args:
+        conn: Open SQLite connection.
+        max_age_days: Expiration threshold in days (default: 30).
+
+    Returns:
+        dict[str, int]: Deleted records count {'llm_cache': N, 'network_cache': M}.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        f"DELETE FROM llm_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
+    )
+    llm_count = cursor.rowcount
+
+    cursor.execute(
+        f"DELETE FROM network_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
+    )
+    net_count = cursor.rowcount
+
+    logger.info(
+        "Cleaned expired caches (> %d days): %d LLM records, %d network records",
+        max_age_days,
+        llm_count,
+        net_count,
+    )
+    return {"llm_cache": max(0, llm_count), "network_cache": max(0, net_count)}
+
+
+def purge_all_caches(conn: sqlite3.Connection) -> dict[str, int]:
+    """Purge all cached LLM prompts and network API responses unconditionally.
+
+    Args:
+        conn: Open SQLite connection.
+
+    Returns:
+        dict[str, int]: Deleted records count {'llm_cache': N, 'network_cache': M}.
+    """
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM llm_cache")
+    llm_count = cursor.rowcount
+
+    cursor.execute("DELETE FROM network_cache")
+    net_count = cursor.rowcount
+
+    logger.info(
+        "Purged all local cache tables: %d LLM records, %d network records",
+        llm_count,
+        net_count,
+    )
+    return {"llm_cache": max(0, llm_count), "network_cache": max(0, net_count)}
 
 
 def set_llm_cache(

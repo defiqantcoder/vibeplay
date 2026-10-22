@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -502,3 +503,72 @@ def test_player_controls_and_telemetry(
     play_tr_res = client.post("/api/player/play-track/1")
     assert play_tr_res.status_code == 200
     assert "transport-footer" in play_tr_res.text
+
+
+def test_api_authentication_middleware(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    """Verify API authentication enforcement, token headers, and 401 rejections."""
+    db_file, cfg, _ = test_environment
+    from fastapi.testclient import TestClient
+    from vibeplay.web import create_app
+
+    auth_app = create_app(db_path=db_file, settings=cfg, api_key="secret-key-12345")
+    auth_client = TestClient(auth_app)
+
+    # 1. Unauthenticated request rejected with 401
+    unauth_api = auth_client.get("/api/player/status")
+    assert unauth_api.status_code == 401
+    assert "Unauthorized" in unauth_api.text
+
+    unauth_html = auth_client.get("/", headers={"accept": "text/html"})
+    assert unauth_html.status_code == 401
+    assert "401 Unauthorized" in unauth_html.text
+
+    # 2. X-API-Key header accepted
+    header_res = auth_client.get("/api/player/status", headers={"X-API-Key": "secret-key-12345"})
+    assert header_res.status_code == 200
+
+    # 3. Authorization Bearer header accepted
+    bearer_res = auth_client.get("/api/player/status", headers={"Authorization": "Bearer secret-key-12345"})
+    assert bearer_res.status_code == 200
+
+    # 4. Query parameter accepted and sets cookie
+    query_res = auth_client.get("/?api_key=secret-key-12345")
+    assert query_res.status_code == 200
+    assert "vibeplay_api_key" in query_res.cookies
+
+
+def test_localhost_server_guardrails(tmp_path: Path) -> None:
+    """Verify run_server blocks unauthenticated remote interface binding."""
+    from vibeplay.web import run_server
+
+    db_file = tmp_path / "test.db"
+
+    # Attempting to bind 0.0.0.0 without auth or override raises ValueError
+    with pytest.raises(ValueError, match="Security Guardrail"):
+        run_server(db_path=db_file, host="0.0.0.0", port=8000)
+
+    # With allow_insecure_remote, it proceeds to uvicorn.run
+    with patch("uvicorn.run") as mock_uvicorn:
+        run_server(db_path=db_file, host="0.0.0.0", port=8000, allow_insecure_remote=True)
+        mock_uvicorn.assert_called_once()
+
+    # With API key configured, it proceeds to uvicorn.run
+    with patch("uvicorn.run") as mock_uvicorn:
+        run_server(db_path=db_file, host="0.0.0.0", port=8000, api_key="secret")
+        mock_uvicorn.assert_called_once()
+
+
+def test_operational_health_in_status_endpoint(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    """Verify operational health diagnostics in /api/player/status."""
+    _, _, client = test_environment
+
+    res = client.get("/api/player/status")
+    assert res.status_code == 200
+    data = res.json()
+    assert "services" in data
+    assert "mpd" in data["services"]
+    assert "database" in data["services"]
+    assert "acoustid" in data["services"]
+    assert "llm" in data["services"]
+    assert data["services"]["database"] == "connected"
+

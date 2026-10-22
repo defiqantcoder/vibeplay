@@ -927,6 +927,21 @@ def serve(
         int,
         typer.Option(help="Port number to listen on"),
     ] = 8000,
+    api_key: Annotated[
+        str | None,
+        typer.Option(
+            "--api-key",
+            envvar="VIBEPLAY_API_KEY",
+            help="Optional API key for web UI & API access (required when binding beyond localhost)",
+        ),
+    ] = None,
+    allow_insecure_remote: Annotated[
+        bool,
+        typer.Option(
+            "--allow-insecure-remote",
+            help="Permit binding to external network interfaces without API key authentication",
+        ),
+    ] = False,
 ) -> None:
     """Launch the local FastAPI web server and user interface."""
     from vibeplay.web import run_server
@@ -936,13 +951,90 @@ def serve(
         f"[bold cyan]vibeplay Web UI starting on http://{host}:{port}[/bold cyan]"
     )
     try:
-        run_server(db_path=cfg.db_path, host=host, port=port)
+        run_server(
+            db_path=cfg.db_path,
+            host=host,
+            port=port,
+            api_key=api_key,
+            allow_insecure_remote=allow_insecure_remote,
+        )
     except KeyboardInterrupt:
         console.print("[dim]Web server stopped.[/dim]")
+    except ValueError as err:
+        console.print(f"[bold red]Configuration / Security Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
 
 
-if __name__ == "__main__":
-    app()
+cache_app = typer.Typer(
+    name="cache",
+    help="Privacy data retention and cache management commands.",
+    no_args_is_help=True,
+)
+app.add_typer(cache_app, name="cache")
+
+
+@cache_app.command(name="cleanup")
+def cache_cleanup(
+    days: Annotated[
+        int,
+        typer.Option(
+            "--days",
+            "-d",
+            help="Retention threshold in days. Caches older than this are pruned.",
+        ),
+    ] = 30,
+    db: Annotated[
+        Path | None,
+        typer.Option("--db", help="Path to SQLite database."),
+    ] = None,
+) -> None:
+    """Prune expired LLM prompts and network metadata caches older than retention threshold."""
+    from vibeplay.db import cleanup_expired_caches, get_connection
+
+    cfg = get_settings()
+    db_path = db or cfg.db_path
+    with get_connection(db_path) as conn:
+        results = cleanup_expired_caches(conn, max_age_days=days)
+    console.print(
+        f"[bold green]✓ Cache cleanup completed[/bold green] (threshold: {days} days):\n"
+        f"  • LLM Prompts Pruned:     [cyan]{results['llm_cache']}[/cyan]\n"
+        f"  • Network Records Pruned: [cyan]{results['network_cache']}[/cyan]"
+    )
+
+
+@cache_app.command(name="purge")
+def cache_purge(
+    yes: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "-y",
+            help="Confirm unconditional purge without interactive prompt.",
+        ),
+    ] = False,
+    db: Annotated[
+        Path | None,
+        typer.Option("--db", help="Path to SQLite database."),
+    ] = None,
+) -> None:
+    """Purge all cached LLM prompts and external API responses unconditionally."""
+    from vibeplay.db import get_connection, purge_all_caches
+
+    if not yes and not typer.confirm(
+        "Are you sure you want to permanently delete all cached prompts and network responses?"
+    ):
+        console.print("[dim]Aborted.[/dim]")
+        return
+
+    cfg = get_settings()
+    db_path = db or cfg.db_path
+    with get_connection(db_path) as conn:
+        results = purge_all_caches(conn)
+    console.print(
+        f"[bold yellow]✓ All caches purged:[/bold yellow]\n"
+        f"  • LLM Prompts Deleted:     [cyan]{results['llm_cache']}[/cyan]\n"
+        f"  • Network Records Deleted: [cyan]{results['network_cache']}[/cyan]"
+    )
 
 
 @app.command()
@@ -994,3 +1086,8 @@ def duplicates(
     except Exception as e:
         console.print(f"[bold red]Error finding duplicates:[/bold red] {e}")
         raise typer.Exit(code=1)
+
+
+if __name__ == "__main__":
+    app()
+

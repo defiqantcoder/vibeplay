@@ -128,7 +128,7 @@ def cached_acoustid_lookup(
     fp_hash = hashlib.sha256(fingerprint).hexdigest()
     cache_key = f"acoustid:{fp_hash}:{int(duration)}"
 
-    cached = get_cached_response(conn, cache_key)
+    cached = get_cached_response(conn, cache_key, max_age_days=30)
     if cached:
         logger.debug("Cache hit for AcoustID fingerprint %s", fp_hash[:12])
         try:
@@ -186,7 +186,7 @@ def cached_musicbrainz_recording(
         dict[str, Any] | None: MusicBrainz recording dictionary or None.
     """
     cache_key = f"musicbrainz:recording:{mb_recording_id}"
-    cached = get_cached_response(conn, cache_key)
+    cached = get_cached_response(conn, cache_key, max_age_days=30)
     if cached:
         logger.debug("Cache hit for MusicBrainz recording %s", mb_recording_id)
         try:
