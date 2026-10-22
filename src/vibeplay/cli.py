@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -576,7 +576,7 @@ def playlist(
 
     if prompt:
         console.print(
-            f"[bold cyan]AI Vibe Planner:[/bold cyan] Translating prompt: [italic]\"{prompt}\"[/italic]"
+            f'[bold cyan]AI Vibe Planner:[/bold cyan] Translating prompt: [italic]"{prompt}"[/italic]'
         )
         plan = parse_prompt_to_plan(prompt, db_path=db_path, settings=settings)
         console.print(
@@ -932,7 +932,9 @@ def serve(
     from vibeplay.web import run_server
 
     cfg = get_settings()
-    console.print(f"[bold cyan]vibeplay Web UI starting on http://{host}:{port}[/bold cyan]")
+    console.print(
+        f"[bold cyan]vibeplay Web UI starting on http://{host}:{port}[/bold cyan]"
+    )
     try:
         run_server(db_path=cfg.db_path, host=host, port=port)
     except KeyboardInterrupt:

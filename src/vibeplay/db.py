@@ -1196,4 +1196,3 @@ def update_track_vibe_tags(
         "UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (combined_tags_json, track_id),
     )
-

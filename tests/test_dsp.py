@@ -8,15 +8,11 @@ atomic backup and rollback automation, and Typer CLI workflows.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 from typer.testing import CliRunner
 
 from vibe_dsp.alsa_reservation import (
-    check_alsa_device_status,
     generate_mpd_audio_outputs,
     write_mpd_audio_outputs_config,
 )
@@ -34,18 +30,14 @@ from vibe_dsp.hardware import (
     scan_hardware,
 )
 from vibe_dsp.latency import (
-    audit_latency,
     check_alsa_xruns,
     detect_cpu_power_profile,
     evaluate_latency_health,
     measure_scheduling_jitter,
-    request_realtime_scheduling,
 )
 from vibe_dsp.models import (
     AudioEndpoint,
-    AuditReport,
     CardType,
-    CpuCorePowerState,
     JitterMetrics,
     LatencyHealthRating,
     PowerProfileReport,
@@ -53,7 +45,6 @@ from vibe_dsp.models import (
 )
 from vibe_dsp.pipewire import (
     generate_pipewire_dropin_config,
-    reload_pipewire_daemons,
     write_pipewire_dropin,
 )
 
@@ -115,6 +106,7 @@ Playback:
 # Hardware Procfs Parsing Tests
 # -----------------------------------------------------------------------------
 
+
 def test_parse_proc_asound_cards():
     """Verify parsing of /proc/asound/cards with hyphenated driver names."""
     cards = parse_proc_asound_cards(MOCK_CARDS_MULTI)
@@ -138,9 +130,21 @@ def test_parse_proc_asound_pcm():
     devices = parse_proc_asound_pcm(MOCK_PCM_CONTENT)
     assert len(devices) == 5
 
-    assert devices[0] == {"card_index": 0, "device_index": 0, "device_name": "HDA Analog (*)"}
-    assert devices[1] == {"card_index": 0, "device_index": 3, "device_name": "HDMI1 (*)"}
-    assert devices[4] == {"card_index": 1, "device_index": 0, "device_name": "USB Audio"}
+    assert devices[0] == {
+        "card_index": 0,
+        "device_index": 0,
+        "device_name": "HDA Analog (*)",
+    }
+    assert devices[1] == {
+        "card_index": 0,
+        "device_index": 3,
+        "device_name": "HDMI1 (*)",
+    }
+    assert devices[4] == {
+        "card_index": 1,
+        "device_index": 0,
+        "device_name": "USB Audio",
+    }
 
 
 def test_parse_usb_stream_capabilities():
@@ -190,7 +194,9 @@ def test_scan_hardware_fallback_when_no_dac(tmp_path: Path):
     proc_root = tmp_path / "asound"
     proc_root.mkdir()
     (proc_root / "cards").write_text(MOCK_CARDS_NO_DAC)
-    (proc_root / "pcm").write_text("00-00: HDA Analog (*) :  : playback 1\n00-03: HDMI1 : : playback 1\n")
+    (proc_root / "pcm").write_text(
+        "00-00: HDA Analog (*) :  : playback 1\n00-03: HDMI1 : : playback 1\n"
+    )
 
     report = scan_hardware(procfs_root=proc_root)
     assert report.active_dac is None
@@ -209,6 +215,7 @@ def test_scan_hardware_missing_procfs(tmp_path: Path):
 # -----------------------------------------------------------------------------
 # PipeWire Drop-in Configuration Tests
 # -----------------------------------------------------------------------------
+
 
 def test_generate_pipewire_dropin_config():
     """Verify generation of 99-bitperfect.conf with unlocked rates and resample bypass."""
@@ -234,6 +241,7 @@ def test_write_pipewire_dropin(tmp_path: Path):
 # -----------------------------------------------------------------------------
 # ALSA Device Reservation & MPD Configuration Tests
 # -----------------------------------------------------------------------------
+
 
 def test_generate_mpd_audio_outputs():
     """Verify MPD output block with hw:, plughw:, speakers, and pipewire fallback."""
@@ -296,6 +304,7 @@ def test_write_mpd_audio_outputs_config(tmp_path: Path):
 # Backup & Rollback Tests
 # -----------------------------------------------------------------------------
 
+
 def test_backup_and_rollback_workflow(tmp_path: Path):
     """Verify that create_backup correctly snapshots files and rollback.sh reverts them."""
     backup_root = tmp_path / "backups"
@@ -357,6 +366,7 @@ def test_find_latest_backup(tmp_path: Path):
 # -----------------------------------------------------------------------------
 # CLI Integration Tests
 # -----------------------------------------------------------------------------
+
 
 def test_cli_hardware_audit(tmp_path: Path):
     """Test 'vibe-dsp hardware audit' command with mock procfs."""
@@ -445,6 +455,7 @@ def test_cli_route_bitperfect_apply_and_rollback(tmp_path: Path):
 # Phase 5.2: Kernel DPC Latency & xrun Watchdog Tests
 # -----------------------------------------------------------------------------
 
+
 def test_check_alsa_xruns_running(tmp_path: Path):
     """Test ALSA status and hw_params parsing for active RUNNING stream."""
     proc_root = tmp_path / "asound"
@@ -522,19 +533,31 @@ def test_evaluate_latency_health_ratings():
     """Verify classification of Good, Marginal, and Throttled health states."""
     # Good
     good_xrun = XrunReport(card_index=1, state="RUNNING", xrun_count=0)
-    good_jit = JitterMetrics(min_jitter_us=20.0, avg_jitter_us=80.0, max_jitter_us=150.0)
-    good_pwr = PowerProfileReport(ac_online=True, is_throttled=False, active_governor="performance")
-    rating_good, _ = evaluate_latency_health(good_xrun, good_jit, good_pwr, rtkit_granted=True)
+    good_jit = JitterMetrics(
+        min_jitter_us=20.0, avg_jitter_us=80.0, max_jitter_us=150.0
+    )
+    good_pwr = PowerProfileReport(
+        ac_online=True, is_throttled=False, active_governor="performance"
+    )
+    rating_good, _ = evaluate_latency_health(
+        good_xrun, good_jit, good_pwr, rtkit_granted=True
+    )
     assert rating_good == LatencyHealthRating.GOOD
 
     # Marginal
-    marg_jit = JitterMetrics(min_jitter_us=50.0, avg_jitter_us=400.0, max_jitter_us=1200.0)
-    rating_marg, _ = evaluate_latency_health(good_xrun, marg_jit, good_pwr, rtkit_granted=False)
+    marg_jit = JitterMetrics(
+        min_jitter_us=50.0, avg_jitter_us=400.0, max_jitter_us=1200.0
+    )
+    rating_marg, _ = evaluate_latency_health(
+        good_xrun, marg_jit, good_pwr, rtkit_granted=False
+    )
     assert rating_marg == LatencyHealthRating.MARGINAL
 
     # Throttled
     bad_xrun = XrunReport(card_index=1, state="XRUN", xrun_count=3)
-    rating_throttled, diags = evaluate_latency_health(bad_xrun, good_jit, good_pwr, rtkit_granted=True)
+    rating_throttled, diags = evaluate_latency_health(
+        bad_xrun, good_jit, good_pwr, rtkit_granted=True
+    )
     assert rating_throttled == LatencyHealthRating.THROTTLED
     assert any("underrun" in d.lower() for d in diags)
 
@@ -545,7 +568,9 @@ def test_cli_latency_monitor(tmp_path: Path):
     sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
     sub_dir.mkdir(parents=True)
     (sub_dir / "status").write_text("state: RUNNING\n")
-    (sub_dir / "hw_params").write_text("rate: 96000 (96000/1)\nbuffer_size: 4096\nperiod_size: 1024\n")
+    (sub_dir / "hw_params").write_text(
+        "rate: 96000 (96000/1)\nbuffer_size: 4096\nperiod_size: 1024\n"
+    )
 
     sys_root = tmp_path / "sys"
     cpu_dir = sys_root / "devices" / "system" / "cpu" / "cpu0" / "cpufreq"

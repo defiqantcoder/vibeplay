@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -42,9 +41,7 @@ def parse_proc_asound_cards(cards_content: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     lines = cards_content.strip().splitlines()
 
-    card_header_pattern = re.compile(
-        r"^\s*(\d+)\s+\[([^\]]+)\]:\s+(.*)$"
-    )
+    card_header_pattern = re.compile(r"^\s*(\d+)\s+\[([^\]]+)\]:\s+(.*)$")
 
     current_card: dict[str, Any] | None = None
 
@@ -146,9 +143,7 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
         formats.add(fmt.upper())
 
     # Extract rates lines
-    rate_matches = re.findall(
-        r"Rates:\s+([0-9,\s]+)", stream_content, re.IGNORECASE
-    )
+    rate_matches = re.findall(r"Rates:\s+([0-9,\s]+)", stream_content, re.IGNORECASE)
     for r_str in rate_matches:
         for single in r_str.split(","):
             s_clean = single.strip()
@@ -156,16 +151,12 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
                 rates.add(int(s_clean))
 
     # Extract bits lines
-    bit_matches = re.findall(
-        r"Bits:\s+(\d+)", stream_content, re.IGNORECASE
-    )
+    bit_matches = re.findall(r"Bits:\s+(\d+)", stream_content, re.IGNORECASE)
     for b in bit_matches:
         bit_depths.add(int(b))
 
     # Extract channels lines
-    chan_matches = re.findall(
-        r"Channels:\s+(\d+)", stream_content, re.IGNORECASE
-    )
+    chan_matches = re.findall(r"Channels:\s+(\d+)", stream_content, re.IGNORECASE)
     if chan_matches:
         channels = max(int(c) for c in chan_matches)
 
@@ -236,16 +227,8 @@ def scan_hardware(procfs_root: Path = Path("/proc/asound")) -> AuditReport:
         # Probe USB identifiers
         usb_id_file = card_dir / "usbid"
         usb_bus_file = card_dir / "usbbus"
-        usb_id = (
-            usb_id_file.read_text().strip()
-            if usb_id_file.exists()
-            else None
-        )
-        usb_bus = (
-            usb_bus_file.read_text().strip()
-            if usb_bus_file.exists()
-            else None
-        )
+        usb_id = usb_id_file.read_text().strip() if usb_id_file.exists() else None
+        usb_bus = usb_bus_file.read_text().strip() if usb_bus_file.exists() else None
 
         is_usb_class = bool(
             usb_id
@@ -352,9 +335,7 @@ def scan_hardware(procfs_root: Path = Path("/proc/asound")) -> AuditReport:
     active_dac = usb_dacs[0] if usb_dacs else None
 
     # Fallback to speakers/headphones if no DAC is plugged in
-    speakers = [
-        ep for ep in endpoints if ep.card_type == CardType.SPEAKER_ANALOG
-    ]
+    speakers = [ep for ep in endpoints if ep.card_type == CardType.SPEAKER_ANALOG]
     hdmi = [ep for ep in endpoints if ep.card_type == CardType.HDMI]
 
     fallback = speakers[0] if speakers else (hdmi[0] if hdmi else None)

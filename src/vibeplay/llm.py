@@ -142,9 +142,7 @@ class LLMProvider(ABC):
     model_name: str
 
     @abstractmethod
-    def generate_text(
-        self, prompt: str, system_instruction: str | None = None
-    ) -> str:
+    def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
         """Generate raw text response from prompt."""
         ...
 
@@ -213,15 +211,11 @@ class GeminiProvider(LLMProvider):
                 time.sleep(delay)
                 delay *= self.backoff_factor
 
-    def generate_text(
-        self, prompt: str, system_instruction: str | None = None
-    ) -> str:
+    def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
         """Generate text using Gemini."""
         from google.genai import types
 
-        config = types.GenerateContentConfig(
-            system_instruction=system_instruction
-        )
+        config = types.GenerateContentConfig(system_instruction=system_instruction)
 
         def call() -> str:
             response = self.client.models.generate_content(
@@ -314,9 +308,7 @@ class OllamaProvider(LLMProvider):
                 time.sleep(delay)
                 delay *= self.backoff_factor
 
-    def generate_text(
-        self, prompt: str, system_instruction: str | None = None
-    ) -> str:
+    def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
         """Generate text using Ollama chat endpoint."""
         messages: list[dict[str, str]] = []
         if system_instruction:
@@ -330,9 +322,7 @@ class OllamaProvider(LLMProvider):
         }
 
         def call() -> str:
-            with httpx.Client(
-                base_url=self.base_url, timeout=self.timeout
-            ) as client:
+            with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
                 res = client.post("/api/chat", json=payload)
                 res.raise_for_status()
                 data = res.json()
@@ -360,9 +350,7 @@ class OllamaProvider(LLMProvider):
         }
 
         def call() -> dict[str, Any]:
-            with httpx.Client(
-                base_url=self.base_url, timeout=self.timeout
-            ) as client:
+            with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
                 res = client.post("/api/chat", json=payload)
                 res.raise_for_status()
                 data = res.json()
@@ -398,9 +386,7 @@ class FakeLLMProvider(LLMProvider):
         self.call_history: list[dict[str, Any]] = []
         self.fail_count = fail_count
 
-    def generate_text(
-        self, prompt: str, system_instruction: str | None = None
-    ) -> str:
+    def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
         """Return pre-configured text response."""
         self.call_history.append(
             {
@@ -615,9 +601,7 @@ def get_llm_provider(settings: Settings | None = None) -> LLMProvider | None:
     elif provider_type == "fake":
         return FakeLLMProvider(model_name="fake-model")
     else:
-        logger.warning(
-            "Unknown llm_provider '%s'; falling back to None", provider_type
-        )
+        logger.warning("Unknown llm_provider '%s'; falling back to None", provider_type)
         return None
 
 
@@ -653,9 +637,7 @@ def parse_prompt_to_plan(
         PromptPlaylistPlan: Validated playlist configuration plan.
     """
     cfg = settings or get_settings()
-    active_provider = (
-        provider if provider is not None else get_llm_provider(cfg)
-    )
+    active_provider = provider if provider is not None else get_llm_provider(cfg)
 
     clean_prompt = prompt.strip()
     if not clean_prompt:
@@ -757,12 +739,7 @@ def _fallback_keyword_plan(prompt: str) -> PromptPlaylistPlan:
             energy_max=0.50,
             bpm_max=110.0,
         )
-    elif (
-        "workout" in lower
-        or "run" in lower
-        or "gym" in lower
-        or "techno" in lower
-    ):
+    elif "workout" in lower or "run" in lower or "gym" in lower or "techno" in lower:
         return PromptPlaylistPlan(
             name="High-Energy Workout",
             description="Driving tempo and intense rhythm to power physical exercise.",
@@ -820,15 +797,9 @@ def sanitize_track_for_privacy(track: dict[str, Any]) -> dict[str, Any]:
     raw_id = track.get("track_id") or track.get("id") or 0
     return {
         "track_id": int(raw_id),
-        "artist": str(
-            track.get("artist") or track.get("original_artist") or "Unknown"
-        ),
-        "title": str(
-            track.get("title") or track.get("original_title") or "Unknown"
-        ),
-        "bpm": round(float(track["bpm"]), 1)
-        if track.get("bpm") is not None
-        else None,
+        "artist": str(track.get("artist") or track.get("original_artist") or "Unknown"),
+        "title": str(track.get("title") or track.get("original_title") or "Unknown"),
+        "bpm": round(float(track["bpm"]), 1) if track.get("bpm") is not None else None,
         "energy": round(float(track["energy"]), 3)
         if track.get("energy") is not None
         else None,
@@ -867,17 +838,13 @@ def batch_vibe_tag_tracks(
         list[TrackVibeTag]: Generated tags for each processed track.
     """
     cfg = settings or get_settings()
-    active_provider = (
-        provider if provider is not None else get_llm_provider(cfg)
-    )
+    active_provider = provider if provider is not None else get_llm_provider(cfg)
 
     if not tracks:
         return []
 
     if active_provider is None:
-        logger.warning(
-            "LLM provider is off; cannot perform batch vibe tagging."
-        )
+        logger.warning("LLM provider is off; cannot perform batch vibe tagging.")
         return []
 
     # 1. Sanitize all tracks for privacy
@@ -888,9 +855,7 @@ def batch_vibe_tag_tracks(
     for i in range(0, len(safe_tracks), batch_size):
         batch = safe_tracks[i : i + batch_size]
         batch_json_input = json.dumps({"tracks": batch}, sort_keys=True)
-        prompt_hash = compute_prompt_hash(
-            active_provider.model_name, batch_json_input
-        )
+        prompt_hash = compute_prompt_hash(active_provider.model_name, batch_json_input)
 
         batch_response_dict: dict[str, Any] | None = None
 

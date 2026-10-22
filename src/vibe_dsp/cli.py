@@ -98,9 +98,7 @@ def hardware_audit(
 
     for ep in report.endpoints:
         # Determine role label
-        is_active = (
-            report.active_dac and ep.hw_device == report.active_dac.hw_device
-        )
+        is_active = report.active_dac and ep.hw_device == report.active_dac.hw_device
         is_fallback = (
             report.fallback_endpoint
             and ep.hw_device == report.fallback_endpoint.hw_device
@@ -145,13 +143,19 @@ def hardware_audit(
 
     if report.active_dac:
         dac = report.active_dac
-        rates_summary = ", ".join(f"{r/1000:.1f}k" for r in dac.rates)
+        rates_summary = ", ".join(f"{r / 1000:.1f}k" for r in dac.rates)
         console.print(
             f"[bold green]Priority Target:[/bold green] [bold cyan]{dac.card_name}[/bold cyan] ({dac.hw_device})"
         )
-        console.print(f"  [dim]USB ID:[/dim]              {dac.usb_id or 'Class Compliant'}")
-        console.print(f"  [dim]Native Clock Rates:[/dim]  {rates_summary or 'Standard'}")
-        console.print(f"  [dim]Formats Supported:[/dim]   {', '.join(dac.formats) or 'S16_LE, S24, S32'}")
+        console.print(
+            f"  [dim]USB ID:[/dim]              {dac.usb_id or 'Class Compliant'}"
+        )
+        console.print(
+            f"  [dim]Native Clock Rates:[/dim]  {rates_summary or 'Standard'}"
+        )
+        console.print(
+            f"  [dim]Formats Supported:[/dim]   {', '.join(dac.formats) or 'S16_LE, S24, S32'}"
+        )
         if report.fallback_endpoint:
             fb = report.fallback_endpoint
             console.print(
@@ -177,7 +181,9 @@ def route_bitperfect(
     ] = 0,
     dry_run: Annotated[
         bool,
-        typer.Option("--dry-run", help="Preview configuration changes without modifying files"),
+        typer.Option(
+            "--dry-run", help="Preview configuration changes without modifying files"
+        ),
     ] = False,
     no_reload: Annotated[
         bool,
@@ -248,12 +254,12 @@ def route_bitperfect(
     target_pw_file = output_pipewire or (
         DEFAULT_PIPEWIRE_CONF_DIR / "99-bitperfect.conf"
     )
-    target_mpd_file = output_mpd or (
-        DEFAULT_MPD_CONF_DIR / "bitperfect.conf"
-    )
+    target_mpd_file = output_mpd or (DEFAULT_MPD_CONF_DIR / "bitperfect.conf")
 
     if dry_run:
-        console.print("[bold yellow][DRY RUN MODE][/bold yellow] Previewing generated configurations:")
+        console.print(
+            "[bold yellow][DRY RUN MODE][/bold yellow] Previewing generated configurations:"
+        )
         console.print(f"\n[bold cyan]--- {target_pw_file} ---[/bold cyan]")
         console.print(pipewire_cfg)
         console.print(f"\n[bold cyan]--- {target_mpd_file} ---[/bold cyan]")
@@ -294,10 +300,18 @@ def route_bitperfect(
     summary_table.add_column("Key", style="bold")
     summary_table.add_column("Value")
 
-    summary_table.add_row("Primary Output", f"[green]{target_ep.hw_device}[/green] ({target_ep.card_name})")
-    summary_table.add_row("Fallback Driver", f"[yellow]{target_ep.plughw_device}[/yellow] (transparent format plug)")
+    summary_table.add_row(
+        "Primary Output",
+        f"[green]{target_ep.hw_device}[/green] ({target_ep.card_name})",
+    )
+    summary_table.add_row(
+        "Fallback Driver",
+        f"[yellow]{target_ep.plughw_device}[/yellow] (transparent format plug)",
+    )
     summary_table.add_row("PipeWire Sinks", "resample.disable = true (*.usb-*)")
-    summary_table.add_row("Unlocked Rates", "44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384 kHz")
+    summary_table.add_row(
+        "Unlocked Rates", "44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384 kHz"
+    )
     summary_table.add_row("Device State", f"[cyan]{status}[/cyan]")
     summary_table.add_row("PipeWire Drop-in", str(target_pw_file))
     summary_table.add_row("MPD Output Conf", str(target_mpd_file))
@@ -334,7 +348,11 @@ def rollback_cmd() -> None:
 def latency_monitor(
     card: Annotated[
         int | None,
-        typer.Option("--card", "-c", help="Target ALSA card index to audit (defaults to auto-detected DAC)"),
+        typer.Option(
+            "--card",
+            "-c",
+            help="Target ALSA card index to audit (defaults to auto-detected DAC)",
+        ),
     ] = None,
     device: Annotated[
         int,
@@ -447,25 +465,47 @@ def latency_monitor(
 
     # Jitter Telemetry
     jit = report.jitter_metrics
-    table.add_row("Kernel DPC Jitter", "Avg Scheduling Delay", f"{jit.avg_jitter_us:.1f} µs")
+    table.add_row(
+        "Kernel DPC Jitter", "Avg Scheduling Delay", f"{jit.avg_jitter_us:.1f} µs"
+    )
     table.add_row(
         "Kernel DPC Jitter",
         "Peak Jitter / StdDev",
         f"{jit.max_jitter_us:.1f} µs / ±{jit.stddev_jitter_us:.1f} µs",
     )
-    table.add_row("Kernel DPC Jitter", "Timer Evaluator", f"{jit.source} ({jit.sample_count} samples)")
+    table.add_row(
+        "Kernel DPC Jitter",
+        "Timer Evaluator",
+        f"{jit.source} ({jit.sample_count} samples)",
+    )
 
     # Power Profile Telemetry
     pwr = report.power_profile
-    ac_label = "[bold green]Connected (AC)[/bold green]" if pwr.ac_online else "[bold yellow]Battery Discharging[/bold yellow]"
-    pwr_label = "[bold red]THROTTLED[/bold red]" if pwr.is_throttled else "[green]Nominal[/green]"
+    ac_label = (
+        "[bold green]Connected (AC)[/bold green]"
+        if pwr.ac_online
+        else "[bold yellow]Battery Discharging[/bold yellow]"
+    )
+    pwr_label = (
+        "[bold red]THROTTLED[/bold red]"
+        if pwr.is_throttled
+        else "[green]Nominal[/green]"
+    )
     table.add_row("ACPI Power State", "Power Supply", ac_label)
-    table.add_row("ACPI Power State", "CPU Governor", f"{pwr.active_governor} ({len(pwr.cores)} cores)")
+    table.add_row(
+        "ACPI Power State",
+        "CPU Governor",
+        f"{pwr.active_governor} ({len(pwr.cores)} cores)",
+    )
     table.add_row("ACPI Power State", "Frequency Throttling", pwr_label)
 
     # RealtimeKit
     rt_color = "bold green" if report.rtkit_granted else "yellow"
-    table.add_row("RealtimeKit", "Scheduling Priority", f"[{rt_color}]{report.rtkit_details}[/{rt_color}]")
+    table.add_row(
+        "RealtimeKit",
+        "Scheduling Priority",
+        f"[{rt_color}]{report.rtkit_details}[/{rt_color}]",
+    )
 
     console.print(table)
     console.print()
@@ -479,7 +519,9 @@ def latency_monitor(
     # Micro-Stutter Anomalies Log
     if report.anomalies:
         console.print()
-        console.print(f"[bold red]Detected Micro-Stutter Anomalies ({len(report.anomalies)}):[/bold red]")
+        console.print(
+            f"[bold red]Detected Micro-Stutter Anomalies ({len(report.anomalies)}):[/bold red]"
+        )
         for anom in report.anomalies:
             console.print(
                 f"  [{anom.timestamp}] [bold red]Anomaly:[/bold red] {anom.message} "

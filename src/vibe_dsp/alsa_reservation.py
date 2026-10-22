@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
-from vibe_dsp.models import AudioEndpoint, CardType
+from vibe_dsp.models import AudioEndpoint
 
 logger = logging.getLogger(__name__)
 

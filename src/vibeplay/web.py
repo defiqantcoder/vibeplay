@@ -140,7 +140,9 @@ def get_filtered_tracks(
         row_dict["title"] = row_dict["title"] or Path(row_dict["path"]).stem
         row_dict["artist"] = row_dict["artist"] or "Unknown Artist"
         row_dict["album"] = row_dict["album"] or "Unknown Album"
-        row_dict["duration"] = float(row_dict["duration"]) if row_dict["duration"] else 0.0
+        row_dict["duration"] = (
+            float(row_dict["duration"]) if row_dict["duration"] else 0.0
+        )
         row_dict["genre"] = _format_genre(row_dict["genre"])
 
         # Filter by key/camelot if requested
@@ -166,7 +168,9 @@ def get_filtered_tracks(
     return tracks
 
 
-def get_library_clusters(db_path: Path, settings: Settings | None = None) -> list[ClusterSummary]:
+def get_library_clusters(
+    db_path: Path, settings: Settings | None = None
+) -> list[ClusterSummary]:
     """Compute or load unsupervised vibe clusters for the library."""
     try:
         clust_res = compute_clusters(db_path=db_path, settings=settings)
@@ -201,8 +205,14 @@ def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | 
     for pos, t in enumerate(tracks, start=1):
         meta = dict(t)
         tid = int(t["track_id"])
-        vec = vectors[id_to_vec_idx[tid]] if vectors is not None and tid in id_to_vec_idx else None
-        trans = calculate_transition(prev_meta, meta, prev_vec, vec) if pos > 1 else None
+        vec = (
+            vectors[id_to_vec_idx[tid]]
+            if vectors is not None and tid in id_to_vec_idx
+            else None
+        )
+        trans = (
+            calculate_transition(prev_meta, meta, prev_vec, vec) if pos > 1 else None
+        )
         items.append(
             PlaylistTrackItem(
                 position=pos,
@@ -239,7 +249,9 @@ def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | 
     )
 
 
-def create_app(db_path: Path | None = None, settings: Settings | None = None) -> FastAPI:
+def create_app(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> FastAPI:
     """Create and configure the FastAPI web application.
 
     Args:
@@ -271,7 +283,9 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
         """Render the main console dashboard shell."""
         with get_connection(resolved_db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*), COALESCE(SUM(duration), 0) FROM tracks WHERE status = 'active'")
+            cursor.execute(
+                "SELECT COUNT(*), COALESCE(SUM(duration), 0) FROM tracks WHERE status = 'active'"
+            )
             count_row = cursor.fetchone()
             total_tracks = count_row[0] if count_row else 0
             total_duration = float(count_row[1]) if count_row else 0.0
@@ -382,14 +396,20 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
             )
             row = cursor.fetchone()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Track {track_id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Track {track_id} not found"
+                )
 
             track_dict = dict(row)
             track_dict["title"] = track_dict["title"] or Path(track_dict["path"]).stem
             track_dict["artist"] = track_dict["artist"] or "Unknown Artist"
             track_dict["album"] = track_dict["album"] or "Unknown Album"
-            track_dict["camelot"] = key_to_camelot(track_dict["key"], track_dict["scale"])
-            track_dict["duration"] = float(track_dict["duration"]) if track_dict["duration"] else 0.0
+            track_dict["camelot"] = key_to_camelot(
+                track_dict["key"], track_dict["scale"]
+            )
+            track_dict["duration"] = (
+                float(track_dict["duration"]) if track_dict["duration"] else 0.0
+            )
 
             mood_scores: dict[str, float] = {}
             if track_dict.get("mood_scores"):
@@ -398,7 +418,15 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
                 except Exception:
                     mood_scores = {}
 
-            for m in ("happy", "sad", "relaxed", "aggressive", "party", "acoustic", "electronic"):
+            for m in (
+                "happy",
+                "sad",
+                "relaxed",
+                "aggressive",
+                "party",
+                "acoustic",
+                "electronic",
+            ):
                 if m not in mood_scores:
                     mood_scores[m] = 0.0
 
@@ -441,8 +469,16 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
         max_artist_tracks: int = Form(2),
     ) -> Response:
         """Generate smart playlist and return updated playlist builder component."""
-        parsed_seed_id = int(seed_track_id) if seed_track_id and str(seed_track_id).strip().isdigit() else None
-        parsed_cluster_id = int(cluster_id) if cluster_id and str(cluster_id).strip().isdigit() else None
+        parsed_seed_id = (
+            int(seed_track_id)
+            if seed_track_id and str(seed_track_id).strip().isdigit()
+            else None
+        )
+        parsed_cluster_id = (
+            int(cluster_id)
+            if cluster_id and str(cluster_id).strip().isdigit()
+            else None
+        )
         parsed_vibe = vibe.strip() if vibe and vibe.strip() else None
         parsed_arc = arc.strip() if arc and arc.strip() else None
 
@@ -451,7 +487,9 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
 
         if prompt and prompt.strip():
             try:
-                plan = parse_prompt_to_plan(prompt.strip(), db_path=resolved_db_path, settings=cfg)
+                plan = parse_prompt_to_plan(
+                    prompt.strip(), db_path=resolved_db_path, settings=cfg
+                )
                 name = plan.name
                 desc = plan.description
                 parsed_vibe = plan.vibe or parsed_vibe
@@ -479,8 +517,12 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
             rules = PlaylistRuleConfig(
                 energy_min=max(0.0, energy - 0.25) if energy is not None else None,
                 energy_max=min(1.0, energy + 0.25) if energy is not None else None,
-                danceability_min=max(0.0, danceability - 0.25) if danceability is not None else None,
-                danceability_max=min(1.0, danceability + 0.25) if danceability is not None else None,
+                danceability_min=max(0.0, danceability - 0.25)
+                if danceability is not None
+                else None,
+                danceability_max=min(1.0, danceability + 0.25)
+                if danceability is not None
+                else None,
             )
 
         try:
@@ -498,7 +540,10 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
                 settings=cfg,
             )
         except Exception as err:
-            logger.warning("Playlist generation with bounds failed (%s); trying standard similarity", err)
+            logger.warning(
+                "Playlist generation with bounds failed (%s); trying standard similarity",
+                err,
+            )
             playlist = generate_playlist(
                 db_path=resolved_db_path,
                 name=name or "Audiophile Vibe Session",
@@ -527,7 +572,9 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
         track_ids: str = Form(...),
     ) -> Response:
         """Reorder tracks in playlist, update database, recalculate transitions."""
-        ordered_ids = [int(x.strip()) for x in track_ids.split(",") if x.strip().isdigit()]
+        ordered_ids = [
+            int(x.strip()) for x in track_ids.split(",") if x.strip().isdigit()
+        ]
         if not ordered_ids:
             raise HTTPException(status_code=400, detail="Invalid track_ids")
 
@@ -537,7 +584,9 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
                 raise HTTPException(status_code=404, detail="Playlist not found")
 
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
+            cursor.execute(
+                "DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,)
+            )
             add_tracks_to_playlist(conn, playlist_id, ordered_ids)
 
         reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
@@ -561,13 +610,19 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
 
         lines = ["#EXTM3U\n"]
         for t in tracks:
-            duration_sec = int(round(float(t["duration"]))) if t["duration"] is not None else -1
+            duration_sec = (
+                int(round(float(t["duration"]))) if t["duration"] is not None else -1
+            )
             artist = t["artist"] or "Unknown Artist"
             title = t["title"] or "Unknown Title"
             lines.append(f"#EXTINF:{duration_sec},{artist} - {title}\n")
             lines.append(f"{t['path']}\n")
 
-        safe_name = "".join(c for c in pl_row["name"] if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        safe_name = (
+            "".join(c for c in pl_row["name"] if c.isalnum() or c in (" ", "_", "-"))
+            .strip()
+            .replace(" ", "_")
+        )
         filename = f"{safe_name or 'playlist'}_{playlist_id}.m3u8"
 
         return Response(

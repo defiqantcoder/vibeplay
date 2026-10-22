@@ -347,7 +347,9 @@ def get_output_profile() -> str:
     return ACTIVE_OUTPUT_PROFILE
 
 
-def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+def toggle_pause(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> dict[str, Any]:
     """Toggle play/pause state in Music Player Daemon, auto-seeding if queue is empty."""
     cfg = settings or get_settings()
     try:
@@ -357,39 +359,48 @@ def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) 
             queue_len = int(st.get("playlistlength", 0))
 
             if current_state == "play":
-                transport.client.pause(1)
+                if transport.client:
+                    transport.client.pause(1)
             elif current_state == "pause":
-                transport.client.pause(0)
+                if transport.client:
+                    transport.client.pause(0)
             else:
                 # State is 'stop'
                 if queue_len > 0:
-                    transport.client.play(0)
+                    if transport.client:
+                        transport.client.play(0)
                 else:
                     # Queue is empty - auto-seed active tracks from database
                     db_p = db_path or cfg.db_path
                     if db_p.exists():
                         with get_connection(db_p) as conn:
                             cursor = conn.cursor()
-                            cursor.execute("SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50")
+                            cursor.execute(
+                                "SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50"
+                            )
                             rows = cursor.fetchall()
                             if rows:
                                 paths = [r[0] for r in rows if r[0]]
                                 transport.add_tracks(paths)
-                                transport.client.play(0)
+                                if transport.client:
+                                    transport.client.play(0)
             return transport.status()
     except Exception as err:
         logger.debug("MPD toggle_pause unavailable: %s", err)
         return {"state": "paused", "error": str(err)}
 
 
-def seek_playback(time_seconds: float, settings: Settings | None = None) -> dict[str, Any]:
+def seek_playback(
+    time_seconds: float, settings: Settings | None = None
+) -> dict[str, Any]:
     """Seek playback to target time position in seconds."""
     cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
             st = transport.status()
             if st.get("state") in ("play", "pause"):
-                transport.client.seekcur(max(0.0, time_seconds))
+                if transport.client:
+                    transport.client.seekcur(max(0.0, time_seconds))
             return transport.status()
     except Exception as err:
         logger.debug("MPD seek unavailable: %s", err)
@@ -403,7 +414,8 @@ def next_song(settings: Settings | None = None) -> dict[str, Any]:
         with get_mpd_transport(cfg) as transport:
             st = transport.status()
             if int(st.get("playlistlength", 0)) > 0:
-                transport.client.next()
+                if transport.client:
+                    transport.client.next()
             return transport.status()
     except Exception as err:
         logger.debug("MPD next_song unavailable: %s", err)
@@ -417,7 +429,8 @@ def previous_song(settings: Settings | None = None) -> dict[str, Any]:
         with get_mpd_transport(cfg) as transport:
             st = transport.status()
             if int(st.get("playlistlength", 0)) > 0:
-                transport.client.previous()
+                if transport.client:
+                    transport.client.previous()
             return transport.status()
     except Exception as err:
         logger.debug("MPD previous_song unavailable: %s", err)
@@ -430,14 +443,17 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
     vol = max(0, min(100, volume))
     try:
         with get_mpd_transport(cfg) as transport:
-            transport.client.setvol(vol)
+            if transport.client:
+                transport.client.setvol(vol)
             return transport.status()
     except Exception as err:
         logger.debug("MPD setvol unavailable: %s", err)
         return {"volume": str(vol), "error": str(err)}
 
 
-def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+def get_playback_status(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> dict[str, Any]:
     """Retrieve real-time player telemetry, DAC buffer health, and active track."""
     cfg = settings or get_settings()
     try:
@@ -457,7 +473,12 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
             return {
                 "state": st.get("state", "stop"),
                 "song_id": cur.get("id"),
-                "title": cur.get("title") or (Path(cur.get("file", "")).stem if cur.get("file") else "vibeplay Ready"),
+                "title": cur.get("title")
+                or (
+                    Path(cur.get("file", "")).stem
+                    if cur.get("file")
+                    else "vibeplay Ready"
+                ),
                 "artist": cur.get("artist") or "Audiophile Precision",
                 "album": cur.get("album") or "Studio Master",
                 "file": cur.get("file", ""),
@@ -465,7 +486,9 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 "duration": duration,
                 "volume": int(st.get("volume", "80")),
                 "audio_spec": audio_spec,
-                "sample_rate": f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz",
+                "sample_rate": f"{rate_hz / 1000:.1f}kHz"
+                if rate_hz >= 1000
+                else f"{rate_hz}Hz",
                 "bit_depth": f"{depth_bits}-bit",
                 "codec": "FLAC",
                 "bit_perfect": True,
@@ -552,11 +575,14 @@ def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     return {
         "codec": codec,
         "sample_rate": sample_rate,
-        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz" if sample_rate >= 1000 else f"{sample_rate} Hz",
+        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz"
+        if sample_rate >= 1000
+        else f"{sample_rate} Hz",
         "bits_per_sample": bits_per_sample,
         "bit_depth_str": f"{bits_per_sample}-bit",
         "channels": channels,
-        "channels_str": "Stereo" if channels == 2 else ("Mono" if channels == 1 else f"{channels} Ch"),
+        "channels_str": "Stereo"
+        if channels == 2
+        else ("Mono" if channels == 1 else f"{channels} Ch"),
         "bitrate_kbps": f"{int(bitrate / 1000)} kbps" if bitrate else "Lossless VBR",
     }
-
