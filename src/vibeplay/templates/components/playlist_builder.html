@@ -1,0 +1,106 @@
+{% if playlist %}
+<div class="builder-tracks-container">
+  <!-- Playlist Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
+    <div>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); text-transform: uppercase;">
+        {{ playlist.mode }} Mode • Playlist ID #{{ playlist.playlist_id }}
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 2px 0;">
+        {{ playlist.name }}
+      </h3>
+      <div style="font-size: 12px; color: var(--text-muted);">
+        {{ playlist.tracks|length }} Tracks • {{ (playlist.total_duration // 60)|int }}m {{ "%02d"|format((playlist.total_duration % 60)|int) }}s • Avg Smoothness: <span style="color: var(--tertiary); font-weight: 600;">{{ playlist.avg_transition_score|round(2) }}</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <a href="/api/playlist/{{ playlist.playlist_id }}/export-m3u8" class="btn-secondary" download>
+        <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+        Export M3U8
+      </a>
+      <button class="btn-primary"
+              hx-post="/api/player/play-playlist/{{ playlist.playlist_id }}"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML">
+        <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+        Play in MPD
+      </button>
+    </div>
+  </div>
+
+  <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
+    <span class="material-symbols-outlined" style="font-size: 14px;">drag_indicator</span>
+    Drag and drop tracks to reorder playlist sequence
+  </div>
+
+  <!-- Draggable Track Rows -->
+  <div id="playlist-tracks-list"
+       data-playlist-id="{{ playlist.playlist_id }}"
+       style="display: flex; flex-direction: column; gap: 6px;">
+    {% for item in playlist.tracks %}
+    <div class="playlist-track-row"
+         draggable="true"
+         data-track-id="{{ item.track_id }}"
+         data-position="{{ item.position }}">
+      
+      <!-- Left side: Drag handle + title/artist -->
+      <div style="display: flex; align-items: center;">
+        <span class="material-symbols-outlined drag-handle">drag_indicator</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 24px;">
+          {{ item.position }}
+        </span>
+        <div>
+          <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
+            {{ item.title }}
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">
+            {{ item.artist }} — <span style="color: var(--text-dim);">{{ item.album }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Specs & Transition Smoothness -->
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">
+          {{ (item.duration // 60)|int }}:{{ "%02d"|format((item.duration % 60)|int) }}
+        </span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 55px; text-align: right;">
+          {{ item.bpm|round(1) if item.bpm else '—' }} BPM
+        </span>
+        <span class="badge-camelot" style="width: 40px; text-align: center;">
+          {{ item.camelot or item.key or '—' }}
+        </span>
+
+        <!-- Transition Pill -->
+        <div style="width: 90px; text-align: right;">
+          {% if item.position == 1 or not item.transition %}
+            <span style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--text-dim);">
+              Start
+            </span>
+          {% else %}
+            {% set score = item.transition.total_score %}
+            <span class="badge-score {% if score >= 0.8 %}score-high{% elif score >= 0.6 %}score-mid{% else %}score-low{% endif %}">
+              {{ score|round(2) }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="builder-tracks-container" style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+  <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-dim); margin-bottom: 0.5rem;">
+    queue_music
+  </span>
+  <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
+    No Playlist Generated Yet
+  </h3>
+  <p style="font-size: 13px; max-width: 400px; margin: 0 auto;">
+    Select a seed track from the library or use the DSP controls on the left to generate an energy-arc smart playlist.
+  </p>
+</div>
+{% endif %}

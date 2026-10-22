@@ -2,6 +2,7 @@
 
 import sqlite3
 from pathlib import Path
+from typing import Any
 from typer.testing import CliRunner
 
 import vibeplay
@@ -26,15 +27,21 @@ def test_cli_help() -> None:
         assert cmd in result.stdout
 
 
-def test_stub_commands_not_implemented() -> None:
-    """Verify that remaining stubbed CLI commands print 'not implemented'."""
-    stub_commands = [
-        ["serve"],
-    ]
-    for cmd_args in stub_commands:
-        result = runner.invoke(app, cmd_args)
-        assert result.exit_code == 0, f"Command {cmd_args} failed with {result.exit_code}"
-        assert "not implemented" in result.stdout
+def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
+    """Verify that vibeplay serve invokes run_server with default arguments."""
+    called = {}
+
+    def mock_run_server(db_path: Path, host: str = "127.0.0.1", port: int = 8000) -> None:
+        called["db_path"] = db_path
+        called["host"] = host
+        called["port"] = port
+
+    monkeypatch.setattr("vibeplay.web.run_server", mock_run_server)
+    result = runner.invoke(app, ["serve", "--port", "8008"])
+    assert result.exit_code == 0
+    assert called["host"] == "127.0.0.1"
+    assert called["port"] == 8008
+    assert "Web UI starting" in result.stdout
 
 
 def test_db_init_schema(tmp_path: Path) -> None:

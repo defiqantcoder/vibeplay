@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Top Telemetry Banner -->
+<section class="telemetry-grid">
+  <div class="telemetry-card">
+    <div class="telemetry-header">
+      <span>Master Clock / Telemetry</span>
+      <span class="badge-spec">0.02 PPM</span>
+    </div>
+    <div class="telemetry-metric">96.0 kHz</div>
+    <div class="telemetry-sub">Ultra-low jitter master audio crystal lock</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-header">
+      <span>Dynamic Range</span>
+      <span class="badge-spec" style="color: var(--primary); border-color: rgba(88,166,255,0.3);">DR14+</span>
+    </div>
+    <div class="telemetry-metric">118.4 dB</div>
+    <div class="telemetry-sub">Zero inter-sample clipping telemetry</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-header">
+      <span>Harmonic Key Alignment</span>
+      <span class="badge-camelot">Camelot Sync</span>
+    </div>
+    <div class="telemetry-metric">1A — 12B</div>
+    <div class="telemetry-sub">Harmonic circular pitch wheel active</div>
+  </div>
+
+  <div class="telemetry-card">
+    <div class="telemetry-header">
+      <span>Library Audio Features</span>
+      <span class="badge-spec" style="color: var(--secondary); border-color: rgba(188,140,255,0.3);">{{ total_clusters }} Clusters</span>
+    </div>
+    <div class="telemetry-metric">{{ total_tracks }} Tracks</div>
+    <div class="telemetry-sub">{{ (total_duration // 3600)|int }}h {{ "%02d"|format(((total_duration % 3600) // 60)|int) }}m total analyzed audio</div>
+  </div>
+</section>
+
+<!-- Tab 1: Library View -->
+<section id="tab-library" style="display: block;">
+  <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+        Music Library
+      </h2>
+      <p style="font-size: 13px; color: var(--text-muted);">
+        Sortable and filterable by BPM, Camelot harmonic key, mood scores, and artist.
+      </p>
+    </div>
+  </div>
+
+  <!-- Filter Controls Form -->
+  <form class="filter-bar"
+        hx-get="/api/library/table"
+        hx-trigger="input changed delay:300ms, change, submit"
+        hx-target="#library-table-container">
+    
+    <div class="filter-group">
+      <!-- Search text -->
+      <div style="position: relative;">
+        <span class="material-symbols-outlined" style="position: absolute; left: 8px; top: 7px; font-size: 18px; color: var(--text-dim);">search</span>
+        <input type="text"
+               name="q"
+               class="input-text search-input"
+               placeholder="Search title, album..."
+               style="padding-left: 32px;"/>
+      </div>
+
+      <!-- Artist Filter -->
+      <select name="artist" class="select-input">
+        <option value="">All Artists ({{ artists|length }})</option>
+        {% for a in artists %}
+          <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Key Selector -->
+      <select name="key" class="select-input">
+        <option value="">All Keys</option>
+        <option value="1A">1A (G# Minor)</option>
+        <option value="2A">2A (D# Minor)</option>
+        <option value="3A">3A (A# Minor)</option>
+        <option value="4A">4A (F Minor)</option>
+        <option value="5A">5A (C Minor)</option>
+        <option value="6A">6A (G Minor)</option>
+        <option value="7A">7A (D Minor)</option>
+        <option value="8A">8A (A Minor)</option>
+        <option value="9A">9A (E Minor)</option>
+        <option value="10A">10A (B Minor)</option>
+        <option value="11A">11A (F# Minor)</option>
+        <option value="12A">12A (C# Minor)</option>
+        <option value="1B">1B (B Major)</option>
+        <option value="2B">2B (F# Major)</option>
+        <option value="3B">3B (Db Major)</option>
+        <option value="4B">4B (Ab Major)</option>
+        <option value="5B">5B (Eb Major)</option>
+        <option value="6B">6B (Bb Major)</option>
+        <option value="7B">7B (F Major)</option>
+        <option value="8B">8B (C Major)</option>
+        <option value="9B">9B (G Major)</option>
+        <option value="10B">10B (D Major)</option>
+        <option value="11B">11B (A Major)</option>
+        <option value="12B">12B (E Major)</option>
+      </select>
+
+      <!-- Mood Filter -->
+      <select name="mood" class="select-input">
+        <option value="">All Moods</option>
+        <option value="happy">Happy (≥ 50%)</option>
+        <option value="relaxed">Relaxed (≥ 50%)</option>
+        <option value="party">Party (≥ 50%)</option>
+        <option value="aggressive">Aggressive (≥ 50%)</option>
+        <option value="acoustic">Acoustic (≥ 50%)</option>
+        <option value="electronic">Electronic (≥ 50%)</option>
+        <option value="sad">Sad / Melancholy (≥ 50%)</option>
+      </select>
+    </div>
+
+    <!-- Tempo BPM Range -->
+    <div class="filter-group">
+      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase;">
+        BPM Range:
+      </span>
+      <input type="number"
+             name="bpm_min"
+             placeholder="Min"
+             class="input-text"
+             style="width: 70px; text-align: center;"
+             min="40"
+             max="220"/>
+      <span style="color: var(--text-dim);">—</span>
+      <input type="number"
+             name="bpm_max"
+             placeholder="Max"
+             class="input-text"
+             style="width: 70px; text-align: center;"
+             min="40"
+             max="220"/>
+      
+      <!-- Sort selection -->
+      <select name="sort" class="select-input">
+        <option value="id_asc">Sort: Default ID</option>
+        <option value="bpm_asc">Sort: BPM (Low to High)</option>
+        <option value="bpm_desc">Sort: BPM (High to Low)</option>
+        <option value="energy_desc">Sort: Energy (Highest)</option>
+        <option value="title_asc">Sort: Title (A-Z)</option>
+        <option value="artist_asc">Sort: Artist (A-Z)</option>
+      </select>
+    </div>
+  </form>
+
+  <!-- Table Container (HTMX swapped) -->
+  <div id="library-table-container" style="margin-top: 1rem;">
+    {% include "components/library_table.html" %}
+  </div>
+</section>
+
+<!-- Tab 2: Clusters View -->
+<section id="tab-clusters" style="display: none;">
+  <div style="margin-bottom: 1.25rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+      Vibe Cluster Explorer
+    </h2>
+    <p style="font-size: 13px; color: var(--text-muted);">
+      Unsupervised machine learning cluster centroids, dominant tags, and representative anchor tracks.
+    </p>
+  </div>
+
+  <div id="clusters-container">
+    {% include "components/cluster_cards.html" %}
+  </div>
+</section>
+
+<!-- Tab 3: Playlist Builder View -->
+<section id="tab-builder" style="display: none;">
+  <div style="margin-bottom: 1.25rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+      Interactive Smart Playlist Builder
+    </h2>
+    <p style="font-size: 13px; color: var(--text-muted);">
+      Design custom acoustic journeys with dynamic DSP sliders, energy trajectory arcs, and drag-and-drop sequencing.
+    </p>
+  </div>
+
+  <div class="builder-layout">
+    <!-- Builder Left Controls Form -->
+    <div class="builder-controls">
+      <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--primary);">
+        Generation Parameters
+      </div>
+
+      <form hx-post="/api/playlist/generate"
+            hx-target="#playlist-builder-container"
+            hx-swap="innerHTML"
+            style="display: flex; flex-direction: column; gap: 1.25rem;">
+        
+        <!-- Playlist Name -->
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            Playlist Name
+          </label>
+          <input type="text"
+                 name="name"
+                 class="input-text"
+                 value="Audiophile Vibe Session"
+                 style="width: 100%;"/>
+        </div>
+
+        <!-- Seed Track Selection -->
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            Reference Seed Track
+          </label>
+          <select name="seed_track_id" class="select-input" style="width: 100%;">
+            <option value="">— Automatic Centroid Seed —</option>
+            {% for t in tracks %}
+              <option value="{{ t.track_id }}">{{ t.artist }} — {{ t.title }} ({{ t.bpm|round(0)|int if t.bpm else '?' }} BPM, {{ t.camelot or t.key or 'Key' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Vibe Preset Selection -->
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            Vibe Preset
+          </label>
+          <select name="vibe" class="select-input" style="width: 100%;">
+            <option value="">— None (Natural Similarity) —</option>
+            <option value="chill">Chill (Low Energy, High Relaxed)</option>
+            <option value="party">Party (High Danceability, High Energy)</option>
+            <option value="acoustic">Acoustic (Unplugged, Natural Timbre)</option>
+            <option value="electronic">Electronic (Synthesizers, Beat Driven)</option>
+            <option value="workout">Workout (High Energy, ≥115 BPM)</option>
+            <option value="melancholy">Melancholy (Moody, Contemplative)</option>
+          </select>
+        </div>
+
+        <!-- Energy Arc Trajectory Selection -->
+        <div>
+          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+            Energy Curve Arc
+          </label>
+          <select name="arc" class="select-input" style="width: 100%;">
+            <option value="">— Standard Cohesive (Steady) —</option>
+            <option value="ramp_up">Ramp Up (Gentle Start → High Intensity Peak)</option>
+            <option value="cooldown">Cool Down (High Intensity → Relaxed Finish)</option>
+            <option value="peak">Peak / Wave (Warmup → Peak → Cool Down)</option>
+            <option value="steady">Steady Plateau (Consistent Energy Level)</option>
+          </select>
+        </div>
+
+        <!-- Energy Slider -->
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Target Energy</span>
+            <span id="energy-val" class="slider-val">0.70</span>
+          </div>
+          <input type="range"
+                 name="energy"
+                 id="energy-slider"
+                 min="0.0"
+                 max="1.0"
+                 step="0.05"
+                 value="0.70"
+                 oninput="updateSliderLabel('energy-slider', 'energy-val')"/>
+        </div>
+
+        <!-- Danceability Slider -->
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Target Danceability</span>
+            <span id="dance-val" class="slider-val">0.60</span>
+          </div>
+          <input type="range"
+                 name="danceability"
+                 id="dance-slider"
+                 min="0.0"
+                 max="1.0"
+                 step="0.05"
+                 value="0.60"
+                 oninput="updateSliderLabel('dance-slider', 'dance-val')"/>
+        </div>
+
+        <!-- Track Limit -->
+        <div style="display: flex; gap: 0.75rem;">
+          <div style="flex: 1;">
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+              Track Count
+            </label>
+            <input type="number"
+                   name="limit"
+                   class="input-text"
+                   value="10"
+                   min="3"
+                   max="100"
+                   style="width: 100%; text-align: center;"/>
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+              Max Per Artist
+            </label>
+            <input type="number"
+                   name="max_artist_tracks"
+                   class="input-text"
+                   value="2"
+                   min="1"
+                   max="10"
+                   style="width: 100%; text-align: center;"/>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 0.5rem;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">auto_awesome</span>
+          Generate Smart Playlist
+        </button>
+      </form>
+    </div>
+
+    <!-- Builder Right: Playlist Items List (HTMX Swapped) -->
+    <div id="playlist-builder-container">
+      {% include "components/playlist_builder.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

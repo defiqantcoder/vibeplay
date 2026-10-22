@@ -722,7 +722,14 @@ def serve(
     ] = 8000,
 ) -> None:
     """Launch the local FastAPI web server and user interface."""
-    typer.echo("not implemented")
+    from vibeplay.web import run_server
+
+    cfg = get_settings()
+    console.print(f"[bold cyan]vibeplay Web UI starting on http://{host}:{port}[/bold cyan]")
+    try:
+        run_server(db_path=cfg.db_path, host=host, port=port)
+    except KeyboardInterrupt:
+        console.print("[dim]Web server stopped.[/dim]")
 
 
 if __name__ == "__main__":

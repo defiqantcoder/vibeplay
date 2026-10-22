@@ -1,0 +1,108 @@
+<div class="transport-footer"
+     hx-get="/api/player/transport"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML">
+  
+  <!-- Scrub Timeline -->
+  <div class="transport-scrub-row">
+    <span class="timecode">
+      {% set el_m = (playback.elapsed // 60)|int %}
+      {% set el_s = (playback.elapsed % 60)|int %}
+      {{ "%02d:%02d"|format(el_m, el_s) }}
+    </span>
+    
+    <div class="scrub-bar" title="Playback Timeline">
+      {% set pct = 0 %}
+      {% if playback.duration and playback.duration > 0 %}
+        {% set pct = ((playback.elapsed / playback.duration) * 100)|round(1) %}
+      {% endif %}
+      <div class="scrub-fill" style="width: {{ pct }}%;"></div>
+    </div>
+    
+    <span class="timecode">
+      {% set dur_m = (playback.duration // 60)|int %}
+      {% set dur_s = (playback.duration % 60)|int %}
+      {{ "%02d:%02d"|format(dur_m, dur_s) }}
+    </span>
+  </div>
+
+  <!-- Main Controls Row -->
+  <div class="transport-main-row">
+    <!-- Active Song Info -->
+    <div class="now-playing">
+      <div class="album-art-thumb">
+        <span class="material-symbols-outlined" style="font-size: 24px;">graphic_eq</span>
+      </div>
+      <div class="now-playing-meta">
+        <div class="now-playing-title">{{ playback.title }}</div>
+        <div class="now-playing-artist">{{ playback.artist }} — {{ playback.album }}</div>
+      </div>
+    </div>
+
+    <!-- Playback Buttons -->
+    <div class="transport-controls">
+      <button class="btn-icon"
+              hx-post="/api/player/prev"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML"
+              title="Previous Track">
+        <span class="material-symbols-outlined">skip_previous</span>
+      </button>
+      
+      <button class="btn-play-pause"
+              hx-post="/api/player/toggle"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML"
+              title="Play / Pause">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">
+          {% if playback.state == "play" %}pause{% else %}play_arrow{% endif %}
+        </span>
+      </button>
+
+      <button class="btn-icon"
+              hx-post="/api/player/next"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML"
+              title="Next Track">
+        <span class="material-symbols-outlined">skip_next</span>
+      </button>
+    </div>
+
+    <!-- Right Telemetry & Output Controls -->
+    <div class="transport-right">
+      <!-- Hardware Telemetry Specs -->
+      <div class="dac-indicator">
+        <span class="rate">{{ playback.sample_rate }} / {{ playback.bit_depth }}</span>
+        <span class="mode">{{ playback.buffer_health }}</span>
+      </div>
+
+      <!-- Volume -->
+      <div class="volume-stack">
+        <span class="material-symbols-outlined" style="font-size: 18px; color: var(--text-muted);">
+          {% if playback.volume == 0 %}volume_off{% elif playback.volume < 50 %}volume_down{% else %}volume_up{% endif %}
+        </span>
+        <form hx-post="/api/player/volume" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0;">
+          <input type="range"
+                 name="volume"
+                 class="volume-slider"
+                 min="0"
+                 max="100"
+                 value="{{ playback.volume }}"
+                 onchange="this.form.requestSubmit()"
+                 title="Volume: {{ playback.volume }}%">
+        </form>
+      </div>
+
+      <!-- Audio Output Profile Selector -->
+      <form hx-post="/api/player/output" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0;">
+        <select name="profile" class="select-input" onchange="this.form.requestSubmit()" style="font-size: 11px; padding: 3px 6px;">
+          {% for prof in playback.output_profiles %}
+            <option value="{{ prof }}" {% if prof == playback.output_profile %}selected{% endif %}>
+              {{ prof }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
