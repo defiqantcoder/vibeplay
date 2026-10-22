@@ -33,7 +33,24 @@ from vibe_dsp.hardware import (
     parse_usb_stream_capabilities,
     scan_hardware,
 )
-from vibe_dsp.models import AudioEndpoint, AuditReport, CardType
+from vibe_dsp.latency import (
+    audit_latency,
+    check_alsa_xruns,
+    detect_cpu_power_profile,
+    evaluate_latency_health,
+    measure_scheduling_jitter,
+    request_realtime_scheduling,
+)
+from vibe_dsp.models import (
+    AudioEndpoint,
+    AuditReport,
+    CardType,
+    CpuCorePowerState,
+    JitterMetrics,
+    LatencyHealthRating,
+    PowerProfileReport,
+    XrunReport,
+)
 from vibe_dsp.pipewire import (
     generate_pipewire_dropin_config,
     reload_pipewire_daemons,
@@ -422,3 +439,168 @@ def test_cli_route_bitperfect_apply_and_rollback(tmp_path: Path):
     result_rb = runner.invoke(app, ["rollback"])
     # If a backup exists, rollback succeeds
     assert result_rb.exit_code == 0
+
+
+# -----------------------------------------------------------------------------
+# Phase 5.2: Kernel DPC Latency & xrun Watchdog Tests
+# -----------------------------------------------------------------------------
+
+def test_check_alsa_xruns_running(tmp_path: Path):
+    """Test ALSA status and hw_params parsing for active RUNNING stream."""
+    proc_root = tmp_path / "asound"
+    sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
+    sub_dir.mkdir(parents=True)
+
+    status_mock = "state: RUNNING\nowner_pid: 1234\nhw_ptr: 4096\nappl_ptr: 4096\n"
+    hw_params_mock = "access: MMAP_INTERLEAVED\nformat: S32_LE\nrate: 96000 (96000/1)\nperiod_size: 1024\nbuffer_size: 4096\n"
+
+    (sub_dir / "status").write_text(status_mock)
+    (sub_dir / "hw_params").write_text(hw_params_mock)
+
+    rep = check_alsa_xruns(procfs_root=proc_root, card_index=1, device_index=0)
+    assert rep.state == "RUNNING"
+    assert rep.xrun_count == 0
+    assert rep.active_rate == 96000
+    assert rep.buffer_size == 4096
+    assert rep.period_size == 1024
+
+
+def test_check_alsa_xruns_detected(tmp_path: Path):
+    """Test ALSA status parsing when xrun underrun is reported."""
+    proc_root = tmp_path / "asound"
+    sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
+    sub_dir.mkdir(parents=True)
+
+    status_mock = "state: XRUN\nowner_pid: 1234\nxrun: 2\n"
+    (sub_dir / "status").write_text(status_mock)
+
+    rep = check_alsa_xruns(procfs_root=proc_root, card_index=1, device_index=0)
+    assert rep.state == "XRUN"
+    assert rep.xrun_count >= 1
+
+
+def test_measure_scheduling_jitter():
+    """Verify kernel thread scheduling delay and jitter metrics computation."""
+    metrics = measure_scheduling_jitter(samples=10, interval_ms=0.5)
+    assert metrics.sample_count == 10
+    assert metrics.min_jitter_us >= 0.0
+    assert metrics.avg_jitter_us >= 0.0
+    assert metrics.max_jitter_us >= metrics.min_jitter_us
+    assert metrics.source == "python_perf_counter"
+
+
+def test_detect_cpu_power_profile_throttled(tmp_path: Path):
+    """Test ACPI CPU throttling detection when running on battery with powersave."""
+    sys_root = tmp_path / "sys"
+    cpu0_dir = sys_root / "devices" / "system" / "cpu" / "cpu0" / "cpufreq"
+    cpu0_dir.mkdir(parents=True)
+
+    (cpu0_dir / "scaling_governor").write_text("powersave\n")
+    (cpu0_dir / "scaling_cur_freq").write_text("400000\n")  # 400 MHz
+    (cpu0_dir / "scaling_max_freq").write_text("4600000\n")  # 4.6 GHz
+    (cpu0_dir / "energy_performance_preference").write_text("balance_power\n")
+
+    # Battery Discharging
+    bat_dir = sys_root / "class" / "power_supply" / "BAT0"
+    bat_dir.mkdir(parents=True)
+    (bat_dir / "status").write_text("Discharging\n")
+
+    adp_dir = sys_root / "class" / "power_supply" / "ADP1"
+    adp_dir.mkdir(parents=True)
+    (adp_dir / "online").write_text("0\n")
+
+    pwr = detect_cpu_power_profile(sysfs_root=sys_root)
+    assert pwr.ac_online is False
+    assert pwr.battery_present is True
+    assert pwr.is_throttled is True
+    assert len(pwr.cores) == 1
+    assert pwr.cores[0].is_throttled is True
+    assert "AC power disconnected" in pwr.recommendation
+
+
+def test_evaluate_latency_health_ratings():
+    """Verify classification of Good, Marginal, and Throttled health states."""
+    # Good
+    good_xrun = XrunReport(card_index=1, state="RUNNING", xrun_count=0)
+    good_jit = JitterMetrics(min_jitter_us=20.0, avg_jitter_us=80.0, max_jitter_us=150.0)
+    good_pwr = PowerProfileReport(ac_online=True, is_throttled=False, active_governor="performance")
+    rating_good, _ = evaluate_latency_health(good_xrun, good_jit, good_pwr, rtkit_granted=True)
+    assert rating_good == LatencyHealthRating.GOOD
+
+    # Marginal
+    marg_jit = JitterMetrics(min_jitter_us=50.0, avg_jitter_us=400.0, max_jitter_us=1200.0)
+    rating_marg, _ = evaluate_latency_health(good_xrun, marg_jit, good_pwr, rtkit_granted=False)
+    assert rating_marg == LatencyHealthRating.MARGINAL
+
+    # Throttled
+    bad_xrun = XrunReport(card_index=1, state="XRUN", xrun_count=3)
+    rating_throttled, diags = evaluate_latency_health(bad_xrun, good_jit, good_pwr, rtkit_granted=True)
+    assert rating_throttled == LatencyHealthRating.THROTTLED
+    assert any("underrun" in d.lower() for d in diags)
+
+
+def test_cli_latency_monitor(tmp_path: Path):
+    """Test 'vibe-dsp latency monitor' CLI output with mock procfs and sysfs."""
+    proc_root = tmp_path / "asound"
+    sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
+    sub_dir.mkdir(parents=True)
+    (sub_dir / "status").write_text("state: RUNNING\n")
+    (sub_dir / "hw_params").write_text("rate: 96000 (96000/1)\nbuffer_size: 4096\nperiod_size: 1024\n")
+
+    sys_root = tmp_path / "sys"
+    cpu_dir = sys_root / "devices" / "system" / "cpu" / "cpu0" / "cpufreq"
+    cpu_dir.mkdir(parents=True)
+    (cpu_dir / "scaling_governor").write_text("performance\n")
+    (cpu_dir / "scaling_cur_freq").write_text("3000000\n")
+    (cpu_dir / "scaling_max_freq").write_text("3200000\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "latency",
+            "monitor",
+            "--card",
+            "1",
+            "--device",
+            "0",
+            "--samples",
+            "10",
+            "--procfs",
+            str(proc_root),
+            "--sysfs",
+            str(sys_root),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Kernel DPC Latency Watchdog" in result.output
+    assert "hw:1,0" in result.output
+    assert "96.0 kHz" in result.output
+    assert "HEALTH RATING:" in result.output
+
+
+def test_cli_latency_monitor_json(tmp_path: Path):
+    """Test 'vibe-dsp latency monitor --json' output format."""
+    proc_root = tmp_path / "asound"
+    sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
+    sub_dir.mkdir(parents=True)
+    (sub_dir / "status").write_text("state: closed\n")
+
+    result = runner.invoke(
+        app,
+        [
+            "latency",
+            "monitor",
+            "--card",
+            "1",
+            "--samples",
+            "5",
+            "--json",
+            "--procfs",
+            str(proc_root),
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert "health_rating" in data
+    assert "jitter_metrics" in data
+    assert "power_profile" in data

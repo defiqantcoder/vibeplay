@@ -11,7 +11,10 @@
       {{ "%02d:%02d"|format(el_m, el_s) }}
     </span>
     
-    <div class="scrub-bar" title="Playback Timeline">
+    <div class="scrub-bar"
+         title="Click to Seek"
+         onclick="const rect = this.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)); const total = {{ playback.duration or 0 }}; if (total > 0 && window.htmx) { htmx.ajax('POST', '/api/player/seek', { target: '#transport-footer-container', swap: 'innerHTML', values: { seconds: (pct * total).toFixed(1) } }); }"
+         style="cursor: pointer;">
       {% set pct = 0 %}
       {% if playback.duration and playback.duration > 0 %}
         {% set pct = ((playback.elapsed / playback.duration) * 100)|round(1) %}

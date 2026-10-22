@@ -91,26 +91,35 @@ class MPDTransport:
             raise PlaybackError(f"Failed to clear MPD queue: {err}") from err
 
     def add(self, uri_or_path: str) -> None:
-        """Add a single file path or URI to the MPD queue."""
+        """Add a single file path or URI to the MPD queue, resolving candidates."""
         if not self.client:
             raise PlaybackError("Not connected to MPD daemon")
-        try:
-            self.client.add(uri_or_path)
-        except Exception as err:
-            # Fall back to file:// URI if direct path fails
-            if (
-                not uri_or_path.startswith("file://")
-                and Path(uri_or_path).is_absolute()
-            ):
-                file_uri = Path(uri_or_path).as_uri()
+
+        candidates = [uri_or_path]
+        p = Path(uri_or_path)
+
+        # If absolute path, generate relative candidates for MPD's music_directory
+        if p.is_absolute():
+            candidates.append(p.as_uri())
+            for parent in p.parents:
                 try:
-                    self.client.add(file_uri)
-                    return
-                except Exception:
+                    rel = str(p.relative_to(parent))
+                    if rel and rel != ".":
+                        candidates.append(rel)
+                except ValueError:
                     pass
-            raise PlaybackError(
-                f"Failed to add '{uri_or_path}' to MPD queue: {err}"
-            ) from err
+
+        last_err: Exception | None = None
+        for cand in candidates:
+            try:
+                self.client.add(cand)
+                return
+            except Exception as err:
+                last_err = err
+
+        raise PlaybackError(
+            f"Failed to add '{uri_or_path}' to MPD queue: {last_err}"
+        ) from last_err
 
     def add_tracks(self, paths: list[str]) -> int:
         """Queue multiple track paths in order."""
@@ -338,20 +347,53 @@ def get_output_profile() -> str:
     return ACTIVE_OUTPUT_PROFILE
 
 
-def toggle_pause(settings: Settings | None = None) -> dict[str, Any]:
-    """Toggle play/pause state in Music Player Daemon."""
+def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+    """Toggle play/pause state in Music Player Daemon, auto-seeding if queue is empty."""
     cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
             st = transport.status()
-            if st.get("state") == "play":
+            current_state = st.get("state", "stop")
+            queue_len = int(st.get("playlistlength", 0))
+
+            if current_state == "play":
                 transport.client.pause(1)
-            else:
+            elif current_state == "pause":
                 transport.client.pause(0)
+            else:
+                # State is 'stop'
+                if queue_len > 0:
+                    transport.client.play(0)
+                else:
+                    # Queue is empty - auto-seed active tracks from database
+                    db_p = db_path or cfg.db_path
+                    if db_p.exists():
+                        with get_connection(db_p) as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50")
+                            rows = cursor.fetchall()
+                            if rows:
+                                paths = [r[0] for r in rows if r[0]]
+                                transport.add_tracks(paths)
+                                transport.client.play(0)
             return transport.status()
     except Exception as err:
         logger.debug("MPD toggle_pause unavailable: %s", err)
         return {"state": "paused", "error": str(err)}
+
+
+def seek_playback(time_seconds: float, settings: Settings | None = None) -> dict[str, Any]:
+    """Seek playback to target time position in seconds."""
+    cfg = settings or get_settings()
+    try:
+        with get_mpd_transport(cfg) as transport:
+            st = transport.status()
+            if st.get("state") in ("play", "pause"):
+                transport.client.seekcur(max(0.0, time_seconds))
+            return transport.status()
+    except Exception as err:
+        logger.debug("MPD seek unavailable: %s", err)
+        return {"state": "stopped", "error": str(err)}
 
 
 def next_song(settings: Settings | None = None) -> dict[str, Any]:
@@ -359,7 +401,9 @@ def next_song(settings: Settings | None = None) -> dict[str, Any]:
     cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
-            transport.client.next()
+            st = transport.status()
+            if int(st.get("playlistlength", 0)) > 0:
+                transport.client.next()
             return transport.status()
     except Exception as err:
         logger.debug("MPD next_song unavailable: %s", err)
@@ -371,7 +415,9 @@ def previous_song(settings: Settings | None = None) -> dict[str, Any]:
     cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
-            transport.client.previous()
+            st = transport.status()
+            if int(st.get("playlistlength", 0)) > 0:
+                transport.client.previous()
             return transport.status()
     except Exception as err:
         logger.debug("MPD previous_song unavailable: %s", err)
