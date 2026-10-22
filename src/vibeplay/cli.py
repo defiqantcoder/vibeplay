@@ -965,6 +965,59 @@ def serve(
         raise typer.Exit(code=1)
 
 
+@app.command()
+def desktop(
+    host: Annotated[
+        str,
+        typer.Option(help="Host address for backend loopback server"),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int,
+        typer.Option(help="TCP port for backend server"),
+    ] = 8000,
+    db: Annotated[
+        Path | None,
+        typer.Option("--db", help="Path to SQLite database file"),
+    ] = None,
+    headless: Annotated[
+        bool,
+        typer.Option(
+            "--headless",
+            help="Run supervisor and backend without opening PyWebView GUI window",
+        ),
+    ] = False,
+    no_mpd: Annotated[
+        bool,
+        typer.Option(
+            "--no-mpd",
+            help="Skip starting or managing MPD child daemon",
+        ),
+    ] = False,
+) -> None:
+    """Launch the unified vibeplay desktop application shell and runtime supervisor."""
+    from vibeplay.desktop.supervisor import DesktopSupervisor
+
+    cfg = get_settings()
+    db_path = db or cfg.db_path
+
+    supervisor = DesktopSupervisor(
+        db_path=db_path,
+        host=host,
+        port=port,
+        start_mpd_child=not no_mpd,
+    )
+    console.print("[bold cyan]Starting vibeplay desktop supervisor...[/bold cyan]")
+    try:
+        supervisor.start(headless=headless)
+    except KeyboardInterrupt:
+        console.print("[dim]Stopping supervisor...[/dim]")
+        supervisor.stop()
+    except Exception as err:
+        console.print(f"[bold red]Supervisor Error:[/bold red] {err}")
+        supervisor.stop()
+        raise typer.Exit(code=1)
+
+
 cache_app = typer.Typer(
     name="cache",
     help="Privacy data retention and cache management commands.",

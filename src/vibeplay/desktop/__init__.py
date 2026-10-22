@@ -17,17 +17,27 @@ from vibeplay.desktop.environment import (
     generate_ephemeral_session_token,
     inspect_desktop_environment,
 )
+from vibeplay.desktop.supervisor import (
+    DEFAULT_MPD_DATA_DIR,
+    DesktopSupervisor,
+    generate_audiophile_mpd_config,
+    run_desktop,
+)
 
 __all__ = [
     "DEFAULT_BACKEND_HOST",
     "DEFAULT_BACKEND_PORT",
+    "DEFAULT_MPD_DATA_DIR",
     "DEFAULT_WINDOW_HEIGHT",
     "DEFAULT_WINDOW_MIN_HEIGHT",
     "DEFAULT_WINDOW_MIN_WIDTH",
     "DEFAULT_WINDOW_WIDTH",
     "DesktopEnvironment",
+    "DesktopSupervisor",
     "WINDOW_TITLE",
     "find_free_loopback_port",
+    "generate_audiophile_mpd_config",
     "generate_ephemeral_session_token",
     "inspect_desktop_environment",
+    "run_desktop",
 ]

@@ -297,7 +297,7 @@ def create_app(
                 else None
             )
             query_key = request.query_params.get("api_key") or request.query_params.get("token")
-            cookie_key = request.cookies.get("vibeplay_api_key")
+            cookie_key = request.cookies.get("vibeplay_session_token") or request.cookies.get("vibeplay_api_key")
 
             provided_key = header_key or bearer_key or query_key or cookie_key
 
@@ -321,6 +321,9 @@ def create_app(
 
             response = await call_next(request)
             if query_key == effective_api_key:
+                response.set_cookie(
+                    "vibeplay_session_token", effective_api_key, httponly=True, samesite="lax"
+                )
                 response.set_cookie(
                     "vibeplay_api_key", effective_api_key, httponly=True, samesite="lax"
                 )
