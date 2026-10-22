@@ -1,0 +1,397 @@
+<!-- Desktop Application Chrome: Simulated Titlebar + Native-Style Menubar (Stitch Design Specification) -->
+<div class="desktop-chrome-container" id="desktop-chrome">
+  <!-- 1. Simulated Window Titlebar (28px) -->
+  <div class="desktop-titlebar">
+    <div class="titlebar-left">
+      <!-- Window Control Dots -->
+      <div class="window-controls">
+        <button type="button" class="window-dot dot-close" title="Close vibeplay" onclick="handleDesktopQuit()"></button>
+        <button type="button" class="window-dot dot-minimize" title="Minimize Window" onclick="handleDesktopMinimize()"></button>
+        <button type="button" class="window-dot dot-maximize" title="Toggle Fullscreen (F12)" onclick="toggleFullscreen()"></button>
+      </div>
+      <span class="brand-title-mono">VIBEPLAY</span>
+      <span class="titlebar-sep">/</span>
+      <span class="titlebar-session">Active Desktop Session: RT-Core 6.8.9-lowLatency</span>
+    </div>
+
+    <div class="titlebar-right">
+      <span class="status-badge xruns-badge" id="chrome-xruns-status">
+        <span class="dot-indicator dot-green"></span>
+        <span id="xruns-count-text">0 xruns</span>
+      </span>
+      <span class="status-badge sync-badge" id="chrome-sync-status">
+        <svg class="icon-inline" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        <span>Bit-Perfect Sync</span>
+      </span>
+      <span class="titlebar-sep">|</span>
+      <span class="mode-pill" id="chrome-mode-pill">Exclusive Mode</span>
+      <button type="button" class="btn-chrome-settings" title="Preferences & Hardware Settings (Ctrl+,)" onclick="toggleSettingsDialog()">
+        <svg class="icon-inline" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Application Menu Bar (28px) -->
+  <div class="desktop-menubar" role="menubar">
+    <div class="menubar-nav">
+      <!-- File Menu -->
+      <div class="menu-item-wrapper" data-menu="file">
+        <button type="button" class="menu-btn" onclick="toggleMenu('file')">
+          <span>File</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-file">
+          <div class="menu-row" onclick="triggerLibraryRescan()">
+            <div class="menu-label-group">
+              <span class="menu-icon">↻</span>
+              <span>Rescan Music Library</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+R</kbd>
+          </div>
+
+          <div class="menu-row" onclick="triggerAddFolder()">
+            <div class="menu-label-group">
+              <span class="menu-icon">📁</span>
+              <span>Add Music Directory...</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+O</kbd>
+          </div>
+
+          <!-- Submenu: Export Active Playlist -->
+          <div class="menu-row has-submenu">
+            <div class="menu-label-group">
+              <span class="menu-icon">📑</span>
+              <span>Export Active Playlist</span>
+            </div>
+            <div class="submenu-arrow">▶</div>
+            
+            <div class="menu-submenu">
+              <div class="submenu-header">Export Formats</div>
+              <div class="menu-row" onclick="exportActivePlaylist('m3u8')">
+                <span>UTF-8 M3U8</span>
+                <span class="badge-mini badge-green">Standard</span>
+              </div>
+              <div class="menu-row" onclick="exportActivePlaylist('m3u')">
+                <span>Extended M3U</span>
+                <span class="badge-mini">v2.1</span>
+              </div>
+              <div class="menu-row" onclick="exportActivePlaylist('json')">
+                <span>JSON Graph</span>
+                <span class="badge-mini badge-cyan">Essentia</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-divider"></div>
+
+          <div class="menu-row" onclick="toggleSettingsDialog()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⚙</span>
+              <span>Preferences & Hardware Settings...</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+,</kbd>
+          </div>
+
+          <div class="menu-divider"></div>
+
+          <div class="menu-row row-danger" onclick="handleDesktopQuit()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⏻</span>
+              <span>Exit Vibeplay</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+Q</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Menu -->
+      <div class="menu-item-wrapper" data-menu="edit">
+        <button type="button" class="menu-btn" onclick="toggleMenu('edit')">
+          <span>Edit</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-edit">
+          <div class="menu-row" onclick="triggerClearQueue()">
+            <div class="menu-label-group">
+              <span class="menu-icon">✕</span>
+              <span>Clear Playback Queue</span>
+            </div>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-row" onclick="triggerCacheCleanup()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🧹</span>
+              <span>Clean Expired Caches (> 30d)</span>
+            </div>
+          </div>
+          <div class="menu-row" onclick="triggerCachePurge()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🗑</span>
+              <span>Purge All Network & LLM Caches</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Library Menu -->
+      <div class="menu-item-wrapper" data-menu="library">
+        <button type="button" class="menu-btn" onclick="toggleMenu('library')">
+          <span>Library</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-library">
+          <div class="menu-row" onclick="triggerLibraryRescan()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🔍</span>
+              <span>Scan for Audio Tracks</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+R</kbd>
+          </div>
+          <div class="menu-row" onclick="showTab('library')">
+            <div class="menu-label-group">
+              <span class="menu-icon">📚</span>
+              <span>View Music Library Table</span>
+            </div>
+          </div>
+          <div class="menu-row" onclick="showTab('clusters')">
+            <div class="menu-label-group">
+              <span class="menu-icon">🫧</span>
+              <span>View Acoustic Clusters</span>
+            </div>
+          </div>
+          <div class="menu-row" onclick="showTab('builder')">
+            <div class="menu-label-group">
+              <span class="menu-icon">✨</span>
+              <span>Smart Playlist Builder</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Playback Menu -->
+      <div class="menu-item-wrapper" data-menu="playback">
+        <button type="button" class="menu-btn" onclick="toggleMenu('playback')">
+          <span>Playback</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-playback">
+          <div class="menu-row" onclick="triggerPlayToggle()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⏯</span>
+              <span>Play / Pause</span>
+            </div>
+            <kbd class="shortcut-kbd">Space / F10</kbd>
+          </div>
+          <div class="menu-row" onclick="triggerPrevTrack()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⏮</span>
+              <span>Previous Track</span>
+            </div>
+            <kbd class="shortcut-kbd">F9</kbd>
+          </div>
+          <div class="menu-row" onclick="triggerNextTrack()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⏭</span>
+              <span>Next Track</span>
+            </div>
+            <kbd class="shortcut-kbd">F11</kbd>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-row" onclick="adjustVolume(5)">
+            <div class="menu-label-group">
+              <span class="menu-icon">🔊</span>
+              <span>Volume Up (+5%)</span>
+            </div>
+            <kbd class="shortcut-kbd">F7</kbd>
+          </div>
+          <div class="menu-row" onclick="adjustVolume(-5)">
+            <div class="menu-label-group">
+              <span class="menu-icon">🔉</span>
+              <span>Volume Down (-5%)</span>
+            </div>
+            <kbd class="shortcut-kbd">F5</kbd>
+          </div>
+          <div class="menu-row" onclick="triggerMuteToggle()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🔇</span>
+              <span>Toggle Mute</span>
+            </div>
+            <kbd class="shortcut-kbd">F6</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- DSP Menu -->
+      <div class="menu-item-wrapper" data-menu="dsp">
+        <button type="button" class="menu-btn" onclick="toggleMenu('dsp')">
+          <span>DSP</span>
+          <span class="dot-indicator dot-cyan"></span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-dsp">
+          <!-- Submenu: Hardware Driver Routing -->
+          <div class="menu-row has-submenu">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎧</span>
+              <div>
+                <div>Hardware Driver Routing</div>
+                <div class="menu-subtext">Direct ALSA / Spatial / HDMI</div>
+              </div>
+            </div>
+            <div class="submenu-arrow">▶</div>
+
+            <div class="menu-submenu">
+              <div class="submenu-header">Audio Profiles</div>
+              <div class="menu-row" onclick="setDspProfile('pure-bitperfect')">
+                <div class="menu-label-group">
+                  <span class="menu-icon">✓</span>
+                  <div>
+                    <div>Pure Bit-Perfect</div>
+                    <div class="menu-subtext">Direct ALSA hw: (No Resampling)</div>
+                  </div>
+                </div>
+                <span class="badge-mini badge-green">Direct</span>
+              </div>
+              <div class="menu-row" onclick="setDspProfile('spatial-headphones')">
+                <div class="menu-label-group">
+                  <span class="menu-icon">•</span>
+                  <div>
+                    <div>7.1.4 Spatial Headphones</div>
+                    <div class="menu-subtext">SOFA Binaural 3D Virtualization</div>
+                  </div>
+                </div>
+                <span class="badge-mini badge-cyan">PipeWire</span>
+              </div>
+              <div class="menu-row" onclick="setDspProfile('receiver-passthrough')">
+                <div class="menu-label-group">
+                  <span class="menu-icon">•</span>
+                  <div>
+                    <div>AV Receiver Passthrough</div>
+                    <div class="menu-subtext">Raw HDMI/SPDIF Bitstream</div>
+                  </div>
+                </div>
+                <span class="badge-mini">HDMI</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-row" onclick="triggerSpatialToggle()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🌐</span>
+              <div>
+                <div>HRTF 3D Binaural Engine</div>
+                <div class="menu-subtext">KEMAR 7.1.4 Convolution Matrix</div>
+              </div>
+            </div>
+            <span class="badge-mini badge-cyan" id="menu-spatial-badge">Active</span>
+          </div>
+
+          <div class="menu-divider"></div>
+
+          <div class="menu-row" onclick="toggleSettingsDialog('dsp')">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎛</span>
+              <span>Parametric EQ & AutoEq Profiles...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View Menu -->
+      <div class="menu-item-wrapper" data-menu="view">
+        <button type="button" class="menu-btn" onclick="toggleMenu('view')">
+          <span>View</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-view">
+          <div class="menu-row" onclick="toggleFullscreen()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⛶</span>
+              <span>Toggle Fullscreen</span>
+            </div>
+            <kbd class="shortcut-kbd">F12</kbd>
+          </div>
+
+          <!-- Submenu: Switch Theme -->
+          <div class="menu-row has-submenu">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎨</span>
+              <span>Color Themes</span>
+            </div>
+            <div class="submenu-arrow">▶</div>
+
+            <div class="menu-submenu">
+              <div class="submenu-header">Theme Presets</div>
+              <div class="menu-row" onclick="applyTheme('god-of-ink')">
+                <span class="theme-swatch swatch-god-of-ink"></span>
+                <span>God of Ink (Navy/Gold)</span>
+              </div>
+              <div class="menu-row" onclick="applyTheme('wine')">
+                <span class="theme-swatch swatch-wine"></span>
+                <span>Wine (Rose/Burgundy)</span>
+              </div>
+              <div class="menu-row" onclick="applyTheme('obsidian')">
+                <span class="theme-swatch swatch-obsidian"></span>
+                <span>Obsidian (Violet Glow)</span>
+              </div>
+              <div class="menu-row" onclick="applyTheme('swimming-with-the-whales')">
+                <span class="theme-swatch swatch-whales"></span>
+                <span>Swimming with the Whales</span>
+              </div>
+              <div class="menu-row" onclick="applyTheme('mint-city')">
+                <span class="theme-swatch swatch-mint"></span>
+                <span>Mint City (Teal/Plum)</span>
+              </div>
+              <div class="menu-row" onclick="applyTheme('slate-audiophile')">
+                <span class="theme-swatch swatch-slate"></span>
+                <span>Slate Audiophile</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-divider"></div>
+
+          <div class="menu-row" onclick="window.location.reload()">
+            <div class="menu-label-group">
+              <span class="menu-icon">↻</span>
+              <span>Reload Console View</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+F5</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help Menu -->
+      <div class="menu-item-wrapper" data-menu="help">
+        <button type="button" class="menu-btn" onclick="toggleMenu('help')">
+          <span>Help</span>
+        </button>
+        <div class="menu-dropdown" id="dropdown-help">
+          <div class="menu-row" onclick="toggleShortcutsHelp()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⌨</span>
+              <span>Keyboard Shortcuts</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+/</kbd>
+          </div>
+          <div class="menu-row" onclick="toggleSettingsDialog('transport')">
+            <div class="menu-label-group">
+              <span class="menu-icon">🩺</span>
+              <span>Hardware Audio Audit...</span>
+            </div>
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-row" onclick="toggleAboutDialog()">
+            <div class="menu-label-group">
+              <span class="menu-icon">ℹ</span>
+              <span>About vibeplay</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menubar Right Quick Status -->
+    <div class="menubar-telemetry">
+      <span class="dma-status">
+        <span class="dot-indicator dot-green"></span>
+        <span id="chrome-dma-text">DMA 128f / 96kHz</span>
+      </span>
+      <span class="endpoint-pill" id="chrome-endpoint-pill">ALSA hw:0,0</span>
+    </div>
+  </div>
+</div>

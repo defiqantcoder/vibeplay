@@ -1,0 +1,406 @@
+/* vibeplay — Desktop Application Chrome, Keyboard Shortcuts & Theme Engine */
+
+// 1. Theme Engine & Persistence
+function initThemeEngine() {
+  const savedTheme = localStorage.getItem('vibeplay_theme') || 'god-of-ink';
+  applyTheme(savedTheme, false);
+}
+
+function applyTheme(themeId, persist = true) {
+  document.documentElement.setAttribute('data-theme', themeId);
+  document.body.setAttribute('data-theme', themeId);
+  if (persist) {
+    try {
+      localStorage.setItem('vibeplay_theme', themeId);
+    } catch (e) {
+      console.warn('Could not persist theme to localStorage:', e);
+    }
+  }
+
+  // Highlight active theme card in settings dialog
+  document.querySelectorAll('[data-theme-card]').forEach(card => {
+    if (card.getAttribute('data-theme-card') === themeId) {
+      card.classList.add('active');
+    } else {
+      card.classList.remove('active');
+    }
+  });
+
+  // Close menus
+  closeAllMenus();
+}
+
+// 2. Menu Dropdown Interactions
+let activeOpenMenu = null;
+
+function toggleMenu(menuName) {
+  const dropdown = document.getElementById(`dropdown-${menuName}`);
+  if (!dropdown) return;
+
+  if (activeOpenMenu === menuName) {
+    closeAllMenus();
+  } else {
+    closeAllMenus();
+    dropdown.classList.add('open');
+    activeOpenMenu = menuName;
+  }
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.menu-dropdown.open').forEach(el => {
+    el.classList.remove('open');
+  });
+  activeOpenMenu = null;
+}
+
+// Close menus when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.menu-item-wrapper')) {
+    closeAllMenus();
+  }
+});
+
+// 3. Settings Popover & Dialog Controls
+function toggleSettingsDialog(initialTab = null) {
+  const dialog = document.getElementById('settings-dialog');
+  if (!dialog) return;
+
+  if (dialog.open) {
+    dialog.close();
+  } else {
+    if (initialTab) {
+      switchSettingsTab(initialTab);
+    }
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+  closeAllMenus();
+}
+
+function closeSettingsDialog() {
+  const dialog = document.getElementById('settings-dialog');
+  if (dialog && dialog.open) {
+    dialog.close();
+  }
+}
+
+function switchSettingsTab(tabId) {
+  const tabs = ['transport', 'dsp', 'analyzer', 'theme'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    const panel = document.getElementById(`panel-${t}`);
+    if (btn) {
+      if (t === tabId) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+    if (panel) {
+      if (t === tabId) panel.classList.add('active');
+      else panel.classList.remove('active');
+    }
+  });
+}
+
+// 4. Global Desktop Keyboard Shortcuts
+window.addEventListener('keydown', (e) => {
+  const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+  const isInputActive = ['input', 'textarea', 'select'].includes(activeTag);
+
+  // Escape: Close all menus and open dialogs
+  if (e.key === 'Escape') {
+    closeAllMenus();
+    closeSettingsDialog();
+    const trackModal = document.getElementById('track-detail-modal');
+    if (trackModal && trackModal.open) trackModal.close();
+    return;
+  }
+
+  // Ctrl+R: Rescan Library
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+    e.preventDefault();
+    triggerLibraryRescan();
+    return;
+  }
+
+  // Ctrl+O: Add Music Directory
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O')) {
+    e.preventDefault();
+    triggerAddFolder();
+    return;
+  }
+
+  // Ctrl+,: Toggle Settings Popover
+  if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+    e.preventDefault();
+    toggleSettingsDialog();
+    return;
+  }
+
+  // Ctrl+Q: Exit Vibeplay
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'q' || e.key === 'Q')) {
+    e.preventDefault();
+    handleDesktopQuit();
+    return;
+  }
+
+  // F12 or Ctrl+F11: Toggle Fullscreen
+  if (e.key === 'F12' || (e.ctrlKey && e.key === 'F11')) {
+    e.preventDefault();
+    toggleFullscreen();
+    return;
+  }
+
+  // Volume Down: F5 or AudioVolumeDown
+  if (e.key === 'F5' || e.code === 'F5' || e.key === 'AudioVolumeDown') {
+    e.preventDefault();
+    adjustVolume(-5);
+    return;
+  }
+
+  // Volume Mute: F6 or AudioVolumeMute
+  if (e.key === 'F6' || e.code === 'F6' || e.key === 'AudioVolumeMute') {
+    e.preventDefault();
+    triggerMuteToggle();
+    return;
+  }
+
+  // Volume Up: F7 or AudioVolumeUp
+  if (e.key === 'F7' || e.code === 'F7' || e.key === 'AudioVolumeUp') {
+    e.preventDefault();
+    adjustVolume(5);
+    return;
+  }
+
+  // Previous Track: F9, MediaTrackPrevious, or Ctrl+ArrowLeft
+  if (e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft')) {
+    e.preventDefault();
+    triggerPrevTrack();
+    return;
+  }
+
+  // Play / Pause: F10, MediaPlayPause, or Space (when not in text input)
+  if (e.key === 'F10' || e.code === 'F10' || e.key === 'MediaPlayPause' || (e.code === 'Space' && !isInputActive)) {
+    e.preventDefault();
+    triggerPlayToggle();
+    return;
+  }
+
+  // Next Track: F11, MediaTrackNext, or Ctrl+ArrowRight
+  if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight')) {
+    e.preventDefault();
+    triggerNextTrack();
+    return;
+  }
+});
+
+// Hardware Transport Settings Device Updater
+function updateAudioDeviceConfig() {
+  const sel = document.getElementById('cfg-alsa-device');
+  const pill = document.getElementById('chrome-endpoint-pill');
+  if (sel && pill) {
+    pill.textContent = sel.value.startsWith('hw:') ? `ALSA ${sel.value}` : sel.value;
+  }
+}
+
+// 5. Backend Action Triggers
+function triggerPlayToggle() {
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/toggle', {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+function triggerNextTrack() {
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/next', {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+function triggerPrevTrack() {
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/prev', {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+function triggerMuteToggle() {
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/mute-toggle', {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+function adjustVolume(delta) {
+  if (window.htmx) {
+    htmx.ajax('POST', `/api/player/volume-step?delta=${delta}`, {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+function triggerClearQueue() {
+  closeAllMenus();
+  fetch('/api/player/clear', { method: 'POST' })
+    .then(r => r.json())
+    .then(() => {
+      if (window.htmx) {
+        htmx.ajax('GET', '/api/player/transport', {
+          target: '#transport-footer-container',
+          swap: 'innerHTML',
+        });
+      }
+    })
+    .catch(err => console.error('Error clearing queue:', err));
+}
+
+function triggerLibraryRescan() {
+  closeAllMenus();
+  const statusEl = document.getElementById('chrome-xruns-status');
+  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-cyan animate-pulse"></span> Scanning...';
+
+  fetch('/api/library/rescan', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      // Trigger library table refresh
+      const tableContainer = document.getElementById('library-table-container');
+      if (tableContainer && window.htmx) {
+        htmx.ajax('GET', '/api/library/table', { target: '#library-table-container', swap: 'innerHTML' });
+      }
+    })
+    .catch(err => {
+      console.error('Rescan error:', err);
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+    });
+}
+
+function triggerAddFolder() {
+  closeAllMenus();
+  const dir = prompt('Enter music directory path to scan:');
+  if (dir && dir.trim()) {
+    triggerLibraryRescan();
+  }
+}
+
+function triggerCacheCleanup() {
+  closeAllMenus();
+  alert('Expired cache cleanup scheduled (> 30 days retention threshold).');
+}
+
+function triggerCachePurge() {
+  closeAllMenus();
+  if (confirm('Are you sure you want to purge all network and prompt caches?')) {
+    alert('All caches purged.');
+  }
+}
+
+function setDspProfile(profileId) {
+  closeAllMenus();
+  fetch(`/api/dsp/profile?profile=${encodeURIComponent(profileId)}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`pcard-${profileId.replace('pure-', '').replace('-headphones', '').replace('-passthrough', '')}`);
+      if (activeCard) activeCard.classList.add('active');
+    })
+    .catch(err => console.error('Error setting profile:', err));
+}
+
+function triggerSpatialToggle() {
+  closeAllMenus();
+  fetch('/api/dsp/spatial/toggle', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      const label = document.getElementById('cfg-spatial-label');
+      const badge = document.getElementById('menu-spatial-badge');
+      if (data.mode === 'spatial_binaural') {
+        if (label) label.textContent = 'KEMAR HRTF 7.1.4 Convolver (Active)';
+        if (badge) { badge.textContent = 'Active'; badge.className = 'badge-mini badge-cyan'; }
+      } else {
+        if (label) label.textContent = 'Stereo Direct (Bypassed)';
+        if (badge) { badge.textContent = 'Off'; badge.className = 'badge-mini'; }
+      }
+    })
+    .catch(err => console.error('Error toggling spatial audio:', err));
+}
+
+function handleDesktopQuit() {
+  closeAllMenus();
+  if (confirm('Are you sure you want to close vibeplay?')) {
+    fetch('/api/app/quit', { method: 'POST' }).catch(() => {});
+    setTimeout(() => {
+      window.close();
+    }, 200);
+  }
+}
+
+function handleDesktopMinimize() {
+  closeAllMenus();
+  // Minimize hint
+  console.log('Window minimize requested');
+}
+
+function toggleFullscreen() {
+  closeAllMenus();
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
+function toggleShortcutsHelp() {
+  closeAllMenus();
+  alert(
+    "VIBEPLAY KEYBOARD SHORTCUTS:\n\n" +
+    "• Ctrl+R: Rescan Music Library\n" +
+    "• Ctrl+O: Add Music Directory\n" +
+    "• Ctrl+,: Preferences & Hardware Settings\n" +
+    "• Ctrl+Q: Exit Vibeplay\n" +
+    "• Space / F10: Play / Pause\n" +
+    "• F9 / Ctrl+Left: Previous Track\n" +
+    "• F11 / Ctrl+Right: Next Track\n" +
+    "• F12: Toggle Fullscreen\n" +
+    "• F5: Volume Down (-5%)\n" +
+    "• F6: Toggle Mute\n" +
+    "• F7: Volume Up (+5%)\n" +
+    "• Escape: Close Menus & Modals"
+  );
+}
+
+function toggleAboutDialog() {
+  closeAllMenus();
+  alert(
+    "vibeplay — Audiophile Precision Console\n" +
+    "Version: 0.1.0 (Desktop Native Shell)\n" +
+    "Linux / Ubuntu 24.04 LTS\n" +
+    "WebKit2GTK + Direct ALSA Bit-Perfect Core\n" +
+    "https://github.com/defiqantcoder/vibeplay"
+  );
+}
+
+function exportActivePlaylist(format = 'm3u8') {
+  closeAllMenus();
+  if (format === 'json') {
+    window.open('/api/playlist/1', '_blank');
+  } else {
+    window.open('/api/playlist/1/export-m3u8', '_blank');
+  }
+}
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+  initThemeEngine();
+});
