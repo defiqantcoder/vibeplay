@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from pathlib import Path
 from typing import Annotated
 
@@ -21,6 +23,16 @@ from vibe_dsp.backup import create_backup, execute_rollback, find_latest_backup
 from vibe_dsp.hardware import scan_hardware
 from vibe_dsp.latency import audit_latency
 from vibe_dsp.models import AudioEndpoint, CardType, LatencyHealthRating
+from vibe_dsp.peq import (
+    DEFAULT_EASYEFFECTS_OUTPUT_DIR,
+    PEQProfile,
+    apply_peq_preset,
+    export_easyeffects_preset,
+    get_active_peq_state,
+    ingest_peq_source,
+    list_available_presets,
+    lookup_autoeq_model,
+)
 from vibe_dsp.pipewire import (
     DEFAULT_PIPEWIRE_CONF_DIR,
     generate_pipewire_dropin_config,
@@ -57,6 +69,13 @@ latency_app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(latency_app, name="latency")
+
+peq_app = typer.Typer(
+    name="peq",
+    help="Transducer-specific parametric EQ engine, anti-clipping gain staging, and EasyEffects presets.",
+    no_args_is_help=True,
+)
+app.add_typer(peq_app, name="peq")
 
 
 @hardware_app.command(name="audit")
@@ -528,3 +547,378 @@ def latency_monitor(
                 f"(Peak Jitter: {anom.jitter_us:.1f} µs, Load: {anom.system_load:.2f})"
             )
     console.print()
+
+
+@peq_app.command(name="generate")
+def peq_generate(
+    input_source: Annotated[
+        str | None,
+        typer.Option(
+            "--input",
+            "-i",
+            help="Path to AutoEq text file, JSON filter file, or raw string/stdin.",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option(
+            "--model",
+            "-m",
+            help="Headphone or IEM model name to lookup in AutoEq database / bundled targets.",
+        ),
+    ] = None,
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            "-n",
+            help="Custom name for the generated PEQ preset.",
+        ),
+    ] = None,
+    safety_margin: Annotated[
+        float,
+        typer.Option(
+            "--safety-margin",
+            help="Headroom safety margin in dB added to peak gain (default 0.3 dB).",
+        ),
+    ] = 0.3,
+    export_easyeffects: Annotated[
+        bool,
+        typer.Option(
+            "--export-easyeffects/--no-export-easyeffects",
+            help="Export preset directly to EasyEffects output presets directory.",
+        ),
+    ] = True,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-dir",
+            "-o",
+            help="Destination directory for EasyEffects preset JSON (defaults to ~/.local/share/easyeffects/output).",
+        ),
+    ] = None,
+    backup: Annotated[
+        bool,
+        typer.Option(
+            "--backup/--no-backup",
+            help="Generate automatic backup and rollback script before writing preset.",
+        ),
+    ] = True,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output generated profile and gain staging in JSON format."),
+    ] = False,
+) -> None:
+    """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging."""
+    profile: PEQProfile | None = None
+
+    if input_source:
+        profile = ingest_peq_source(input_source, name=name)
+    elif model:
+        profile = lookup_autoeq_model(model)
+        if not profile:
+            console.print(
+                f"[bold red]Error:[/bold red] Could not locate AutoEq profile for model '[yellow]{model}[/yellow]'.\n"
+                "Please check the model spelling, specify an AutoEq file with --input, or use 'vibe-dsp peq list'."
+            )
+            raise typer.Exit(code=1)
+        if name:
+            profile.name = name
+    else:
+        # Default to bundled reference profile if nothing specified
+        profile = lookup_autoeq_model("Moondrop Blessing 2")
+        if not profile:
+            console.print("[bold red]Error:[/bold red] Must provide either --input or --model.")
+            raise typer.Exit(code=1)
+
+    # Re-apply headroom calculation with specified safety margin
+    from vibe_dsp.peq import apply_headroom_calculation
+
+    profile = apply_headroom_calculation(profile, safety_margin_db=safety_margin)
+
+    preset_path: Path | None = None
+    rollback_script: Path | None = None
+
+    if export_easyeffects:
+        preset_path, rollback_script = export_easyeffects_preset(
+            profile=profile,
+            target_dir=output_dir,
+            backup=backup,
+        )
+
+    if json_output:
+        out_dict = profile.model_dump()
+        if preset_path:
+            out_dict["preset_path"] = str(preset_path)
+        if rollback_script:
+            out_dict["rollback_script"] = str(rollback_script)
+        print(json.dumps(out_dict, indent=2))
+        return
+
+    console.print()
+    console.print(
+        Panel.fit(
+            f"[bold cyan]vibe-dsp[/bold cyan] [bold white]Parametric EQ Engine & Anti-Clipping Gain Staging[/bold white]\n"
+            f"Profile: [bold yellow]{profile.name}[/bold yellow] • Source: [dim]{profile.source}[/dim]",
+            border_style="cyan",
+        )
+    )
+
+    # Headroom Gain Staging Banner
+    gain_color = "bold green" if profile.calculated_preamp >= 0 else "bold red"
+    preamp_str = f"[{gain_color}]{profile.calculated_preamp:+.2f} dB[/{gain_color}]"
+    peak_str = f"[bold yellow]{profile.peak_positive_gain:+.2f} dB[/bold yellow]"
+    margin_str = f"[dim]{profile.safety_margin_db:.2f} dB[/dim]"
+
+    headroom_panel = Panel.fit(
+        f"[bold]Inter-Sample Clipping Headroom Protection:[/bold]\n"
+        f" • Continuous Peak Positive Boost: {peak_str}\n"
+        f" • Anti-Clipping Safety Margin:    {margin_str}\n"
+        f" • Digital Pre-Amplification:       {preamp_str} [dim](Applied to prevent 32-bit float ISP clipping)[/dim]",
+        border_style="green" if profile.calculated_preamp == 0 else "yellow",
+    )
+    console.print(headroom_panel)
+    console.print()
+
+    # Filters Table
+    table = Table(
+        title=f"Calibrated Biquad Filter Stages ({len(profile.filters)} bands)",
+        header_style="bold magenta",
+        show_lines=True,
+    )
+    table.add_column("#", justify="center", style="dim", width=4)
+    table.add_column("Status", justify="center", width=8)
+    table.add_column("Filter Type", style="cyan", width=14)
+    table.add_column("Frequency", justify="right", style="bold green", width=12)
+    table.add_column("Gain (dB)", justify="right", style="bold", width=11)
+    table.add_column("Q Factor", justify="right", style="dim", width=10)
+    table.add_column("EasyEffects Mapping", style="yellow", width=20)
+
+    for flt in profile.filters:
+        status_lbl = "[green]ON[/green]" if flt.enabled else "[dim red]OFF[/dim red]"
+        gain_styled = f"[green]+{flt.gain:.1f}[/green]" if flt.gain > 0 else (f"[red]{flt.gain:.1f}[/red]" if flt.gain < 0 else "0.0")
+        table.add_row(
+            str(flt.filter_index),
+            status_lbl,
+            flt.filter_type.value,
+            f"{flt.frequency:.1f} Hz",
+            gain_styled,
+            f"{flt.q:.2f}",
+            flt.filter_type.to_easyeffects_type(),
+        )
+
+    console.print(table)
+    console.print()
+
+    if preset_path:
+        console.print(f"[bold green]✓ EasyEffects Output Preset Exported:[/bold green] [cyan]{preset_path}[/cyan]")
+    if rollback_script:
+        console.print(f"[dim]Automatic Rollback Script:[/dim] [dim cyan]{rollback_script}[/dim cyan]")
+    console.print()
+
+
+@peq_app.command(name="apply")
+def peq_apply(
+    profile: Annotated[
+        str,
+        typer.Argument(help="Name of EasyEffects preset, bundled model, or file path to apply."),
+    ] = "moondrop_blessing_2",
+    toggle: Annotated[
+        bool,
+        typer.Option(
+            "--toggle",
+            "-t",
+            help="Toggle preset: if currently active, unload to bypass; if inactive, load.",
+        ),
+    ] = False,
+    unload: Annotated[
+        bool,
+        typer.Option(
+            "--unload",
+            "-u",
+            help="Unload current PEQ preset and reset EasyEffects equalizer to flat bypass.",
+        ),
+    ] = False,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-dir",
+            help="Directory containing EasyEffects presets.",
+        ),
+    ] = None,
+    easyeffects_bin: Annotated[
+        str,
+        typer.Option(
+            "--easyeffects-bin",
+            help="Name or path of easyeffects executable.",
+        ),
+    ] = "easyeffects",
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output apply status and state in JSON format."),
+    ] = False,
+) -> None:
+    """Dynamically load or unload calibrated PEQ profiles via the EasyEffects CLI."""
+    ee_dir = output_dir or DEFAULT_EASYEFFECTS_OUTPUT_DIR
+    clean_target = Path(profile).stem
+
+    # If not unloading and target preset file doesn't exist, check if we can auto-generate it
+    if not unload and not (ee_dir / f"{clean_target}.json").exists():
+        found = lookup_autoeq_model(profile)
+        if found:
+            export_easyeffects_preset(found, target_dir=ee_dir, backup=True)
+            clean_target = Path(re.sub(r"[^\w\-_]", "_", found.name.lower().strip())).stem
+
+    success, message, state = apply_peq_preset(
+        preset_name_or_path=clean_target,
+        toggle=toggle,
+        unload=unload,
+        presets_dir=ee_dir,
+        easyeffects_bin=easyeffects_bin,
+    )
+
+    if json_output:
+        print(json.dumps({"success": success, "message": message, "state": state}, indent=2))
+        return
+
+    console.print()
+    if success:
+        if state.get("is_active"):
+            console.print(
+                Panel.fit(
+                    f"[bold green]PEQ PROFILE LOADED[/bold green]\n"
+                    f"Active Profile: [bold yellow]{state.get('active_profile')}[/bold yellow]\n"
+                    f"Digital Preamp: [bold cyan]{state.get('preamp_db'):.2f} dB[/bold cyan] (Inter-sample clipping protection active)\n"
+                    f"Filter Bands:   [dim]{state.get('filter_count')} bands active[/dim]",
+                    border_style="green",
+                )
+            )
+        else:
+            console.print(
+                Panel.fit(
+                    "[bold yellow]PEQ EQUALIZER UNLOADED[/bold yellow]\n"
+                    "[white]EasyEffects equalizer reset to bypass. Signal passing uncolored.[/white]",
+                    border_style="yellow",
+                )
+            )
+    else:
+        console.print(
+            Panel.fit(
+                f"[bold red]PEQ Load Warning[/bold red]\n{message}",
+                border_style="red",
+            )
+        )
+    console.print()
+
+
+@peq_app.command(name="list")
+def peq_list(
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-dir",
+            help="Directory containing EasyEffects presets.",
+        ),
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output presets list in JSON format."),
+    ] = False,
+) -> None:
+    """List available EasyEffects presets and bundled transducer calibration profiles."""
+    presets = list_available_presets(target_dir=output_dir)
+
+    if json_output:
+        print(json.dumps(presets, indent=2))
+        return
+
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]vibe-dsp[/bold cyan] [bold white]Transducer PEQ Profiles & EasyEffects Presets[/bold white]",
+            border_style="cyan",
+        )
+    )
+
+    if not presets:
+        console.print("[yellow]No PEQ presets found in EasyEffects output directory or bundled catalog.[/yellow]")
+        return
+
+    table = Table(
+        title=f"Discovered PEQ Calibration Presets ({len(presets)})",
+        header_style="bold magenta",
+        show_lines=True,
+    )
+    table.add_column("Status", justify="center", width=10)
+    table.add_column("Preset Name", style="bold cyan", width=26)
+    table.add_column("Category", style="dim", width=18)
+    table.add_column("Bands", justify="right", width=8)
+    table.add_column("Digital Preamp", justify="right", style="bold yellow", width=16)
+    table.add_column("Preset Path", style="dim", max_width=40)
+
+    for p in presets:
+        status_lbl = "[bold green]ACTIVE[/bold green]" if p.get("is_active") else "[dim]Standby[/dim]"
+        preamp_val = p.get("preamp_db", 0.0)
+        p_styled = f"{preamp_val:+.2f} dB"
+        table.add_row(
+            status_lbl,
+            p["name"],
+            p["type"],
+            str(p["bands"]),
+            p_styled,
+            p["path"],
+        )
+
+    console.print(table)
+    console.print()
+
+
+@peq_app.command(name="show")
+def peq_show(
+    profile: Annotated[
+        str,
+        typer.Argument(help="Name, model, or file path of PEQ profile to inspect."),
+    ] = "moondrop_blessing_2",
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output profile in JSON format."),
+    ] = False,
+) -> None:
+    """Inspect the frequency curves, filter biquad parameters, and headroom of a profile."""
+    prof = lookup_autoeq_model(profile)
+    if not prof:
+        prof = ingest_peq_source(profile)
+
+    if json_output:
+        print(prof.model_dump_json(indent=2))
+        return
+
+    console.print()
+    console.print(
+        Panel.fit(
+            f"[bold cyan]vibe-dsp[/bold cyan] [bold white]Profile Inspection: {prof.name}[/bold white]\n"
+            f"Peak Boost: [yellow]{prof.peak_positive_gain:+.2f} dB[/yellow] • Anti-Clipping Preamp: [red]{prof.calculated_preamp:+.2f} dB[/red]",
+            border_style="cyan",
+        )
+    )
+
+    table = Table(title="Filter Parameters", header_style="bold magenta", show_lines=True)
+    table.add_column("#", justify="center", style="dim", width=4)
+    table.add_column("Type", style="cyan", width=14)
+    table.add_column("Frequency", justify="right", style="bold green", width=12)
+    table.add_column("Gain (dB)", justify="right", width=11)
+    table.add_column("Q Factor", justify="right", width=10)
+
+    for flt in prof.filters:
+        gain_str = f"+{flt.gain:.1f}" if flt.gain > 0 else f"{flt.gain:.1f}"
+        table.add_row(
+            str(flt.filter_index),
+            flt.filter_type.value,
+            f"{flt.frequency:.1f} Hz",
+            gain_str,
+            f"{flt.q:.2f}",
+        )
+
+    console.print(table)
+    console.print()
+

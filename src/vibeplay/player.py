@@ -438,10 +438,16 @@ def previous_song(settings: Settings | None = None) -> dict[str, Any]:
         return {"state": "stopped", "error": str(err)}
 
 
+_LAST_NONZERO_VOLUME: int = 80
+
+
 def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str, Any]:
     """Set playback volume level [0-100]."""
+    global _LAST_NONZERO_VOLUME
     cfg = settings or get_settings()
     vol = max(0, min(100, volume))
+    if vol > 0:
+        _LAST_NONZERO_VOLUME = vol
     try:
         with get_mpd_transport(cfg) as transport:
             if transport.client:
@@ -450,6 +456,60 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
     except Exception as err:
         logger.debug("MPD setvol unavailable: %s", err)
         return {"volume": str(vol), "error": str(err)}
+
+
+def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str, Any]:
+    """Adjust current playback volume by delta (positive or negative) within [0, 100]."""
+    global _LAST_NONZERO_VOLUME
+    cfg = settings or get_settings()
+    try:
+        with get_mpd_transport(cfg) as transport:
+            cur_vol = 80
+            if transport.client:
+                st = transport.status()
+                v_str = st.get("volume", "80")
+                if v_str and v_str != "-1":
+                    try:
+                        cur_vol = int(v_str)
+                    except ValueError:
+                        cur_vol = 80
+            new_vol = max(0, min(100, cur_vol + delta))
+            if new_vol > 0:
+                _LAST_NONZERO_VOLUME = new_vol
+            if transport.client:
+                transport.client.setvol(new_vol)
+            return transport.status()
+    except Exception as err:
+        logger.debug("MPD volume adjustment unavailable: %s", err)
+        return {"error": str(err)}
+
+
+def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
+    """Toggle mute state: if volume > 0, set to 0; if volume == 0, restore previous volume."""
+    global _LAST_NONZERO_VOLUME
+    cfg = settings or get_settings()
+    try:
+        with get_mpd_transport(cfg) as transport:
+            cur_vol = 80
+            if transport.client:
+                st = transport.status()
+                v_str = st.get("volume", "80")
+                if v_str and v_str != "-1":
+                    try:
+                        cur_vol = int(v_str)
+                    except ValueError:
+                        cur_vol = 80
+            if cur_vol > 0:
+                _LAST_NONZERO_VOLUME = cur_vol
+                target_vol = 0
+            else:
+                target_vol = _LAST_NONZERO_VOLUME if _LAST_NONZERO_VOLUME > 0 else 80
+            if transport.client:
+                transport.client.setvol(target_vol)
+            return transport.status()
+    except Exception as err:
+        logger.debug("MPD mute toggle unavailable: %s", err)
+        return {"error": str(err)}
 
 
 def get_playback_status(
