@@ -1,20 +1,38 @@
-/* vibeplay — Desktop Application Chrome, Keyboard Shortcuts & Theme Engine */
+/* vibeplay — Desktop Application Chrome, Keyboard Shortcuts, Hardware Settings & Theme Engine */
 
-// 1. Theme Engine & Persistence
+// 1. Theme Engine, Custom Accent & Contrast Persistence
 function initThemeEngine() {
   const savedTheme = localStorage.getItem('vibeplay_theme') || 'god-of-ink';
   applyTheme(savedTheme, false);
+
+  const savedContrast = localStorage.getItem('vibeplay_contrast') || 'standard';
+  applyContrastMode(savedContrast, false);
+
+  const savedAccent = localStorage.getItem('vibeplay_custom_accent');
+  if (savedAccent && /^#[0-9a-fA-F]{6}$/.test(savedAccent)) {
+    applyCustomAccent(savedAccent, false);
+  }
 }
 
 function applyTheme(themeId, persist = true) {
   document.documentElement.setAttribute('data-theme', themeId);
   document.body.setAttribute('data-theme', themeId);
+
   if (persist) {
+    // Clear inline custom accent override when switching preset themes unless explicitly re-set
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--accent');
     try {
       localStorage.setItem('vibeplay_theme', themeId);
+      localStorage.removeItem('vibeplay_custom_accent');
     } catch (e) {
       console.warn('Could not persist theme to localStorage:', e);
     }
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme_id: themeId }),
+    }).catch(() => {});
   }
 
   // Highlight active theme card in settings dialog
@@ -28,6 +46,52 @@ function applyTheme(themeId, persist = true) {
 
   // Close menus
   closeAllMenus();
+}
+
+function syncAccentHexInput(hexVal) {
+  const textInput = document.getElementById('cfg-custom-accent');
+  if (textInput && /^#[0-9a-fA-F]{6}$/.test(hexVal)) {
+    textInput.value = hexVal.toLowerCase();
+  }
+}
+
+function applyCustomAccent(hexColor, persist = true) {
+  const cleaned = (hexColor || '').trim().toLowerCase();
+  if (!/^#[0-9a-fA-F]{6}$/.test(cleaned)) {
+    setSettingsStatus('Invalid hex color format (#RRGGBB)', true);
+    return;
+  }
+
+  document.documentElement.style.setProperty('--primary', cleaned);
+  document.documentElement.style.setProperty('--accent', cleaned);
+
+  const picker = document.getElementById('cfg-custom-accent-picker');
+  if (picker) picker.value = cleaned;
+  const textInput = document.getElementById('cfg-custom-accent');
+  if (textInput) textInput.value = cleaned;
+
+  if (persist) {
+    try {
+      localStorage.setItem('vibeplay_custom_accent', cleaned);
+    } catch (e) {}
+    saveDesktopSettings();
+  }
+}
+
+function applyContrastMode(mode, persist = true) {
+  const cleaned = mode === 'high-contrast' ? 'high-contrast' : 'standard';
+  document.documentElement.setAttribute('data-contrast', cleaned);
+  document.body.setAttribute('data-contrast', cleaned);
+
+  const sel = document.getElementById('cfg-contrast-mode');
+  if (sel) sel.value = cleaned;
+
+  if (persist) {
+    try {
+      localStorage.setItem('vibeplay_contrast', cleaned);
+    } catch (e) {}
+    saveDesktopSettings();
+  }
 }
 
 // 2. Menu Dropdown Interactions
@@ -68,6 +132,7 @@ function toggleSettingsDialog(initialTab = null) {
   if (dialog.open) {
     dialog.close();
   } else {
+    loadDesktopSettingsFromServer();
     if (initialTab) {
       switchSettingsTab(initialTab);
     }
@@ -101,6 +166,172 @@ function switchSettingsTab(tabId) {
       else panel.classList.remove('active');
     }
   });
+}
+
+function setSettingsStatus(msg, isError = false) {
+  const el = document.getElementById('settings-save-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--error, #ffb4ab)' : 'var(--text-muted)';
+}
+
+function gatherSettingsFormPayload() {
+  const getVal = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el ? el.value : fallback;
+  };
+  const getChecked = (id, fallback) => {
+    const el = document.getElementById(id);
+    return el ? Boolean(el.checked) : fallback;
+  };
+
+  let activeDspProfile = 'pure-bitperfect';
+  if (document.getElementById('pcard-spatial')?.classList.contains('active')) {
+    activeDspProfile = 'spatial-headphones';
+  } else if (document.getElementById('pcard-receiver')?.classList.contains('active')) {
+    activeDspProfile = 'receiver-passthrough';
+  }
+
+  const activeTheme = document.documentElement.getAttribute('data-theme') || 'god-of-ink';
+  const spatialEnabled = getChecked('cfg-spatial-toggle', false);
+
+  return {
+    alsa_device: getVal('cfg-alsa-device', 'hw:0,0'),
+    alsa_exclusive_lock: getChecked('cfg-exclusive-lock', true),
+    alsa_buffer_frames: parseInt(getVal('cfg-buffer-size', '128'), 10),
+    alsa_period_count: parseInt(getVal('cfg-period-count', '2'), 10),
+    alsa_sample_rate_lock: getVal('cfg-sample-rate', 'auto'),
+    dpc_watchdog_enabled: getChecked('cfg-dpc-watchdog', true),
+    dsp_profile: activeDspProfile,
+    peq_profile: getVal('cfg-peq-profile', 'none'),
+    peq_preamp_auto: getChecked('cfg-preamp-toggle', true),
+    spatial_enabled: spatialEnabled,
+    spatial_mode: spatialEnabled ? '3d_binaural' : 'stereo_direct',
+    analyzer_backend: getVal('cfg-analyzer-backend', 'essentia'),
+    analyzer_workers: parseInt(getVal('cfg-workers', '4'), 10),
+    analyzer_window_seconds: parseFloat(getVal('cfg-window-sec', '60')),
+    analyzer_fallback_enabled: getChecked('cfg-analyzer-fallback', true),
+    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '0.50')),
+    theme_id: activeTheme,
+    custom_accent_color: getVal('cfg-custom-accent', '#6874a6'),
+    contrast_mode: getVal('cfg-contrast-mode', 'standard'),
+  };
+}
+
+function syncDomWithSettings(s) {
+  if (!s) return;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = String(val);
+  };
+  const setCheck = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.checked = Boolean(val);
+  };
+
+  setVal('cfg-alsa-device', s.alsa_device);
+  setCheck('cfg-exclusive-lock', s.alsa_exclusive_lock);
+  setVal('cfg-buffer-size', s.alsa_buffer_frames);
+  setVal('cfg-period-count', s.alsa_period_count);
+  setVal('cfg-sample-rate', s.alsa_sample_rate_lock);
+  setCheck('cfg-dpc-watchdog', s.dpc_watchdog_enabled);
+
+  setVal('cfg-peq-profile', s.peq_profile);
+  setCheck('cfg-preamp-toggle', s.peq_preamp_auto);
+  const preampValEl = document.getElementById('cfg-preamp-db-val');
+  if (preampValEl && s.peq_preamp_db !== undefined) {
+    preampValEl.textContent = Number(s.peq_preamp_db).toFixed(1);
+  }
+  setCheck('cfg-spatial-toggle', s.spatial_enabled);
+  const spatialLabel = document.getElementById('cfg-spatial-label');
+  if (spatialLabel && s.spatial_enabled !== undefined) {
+    spatialLabel.textContent = s.spatial_enabled
+      ? 'KEMAR HRTF 7.1.4 Convolver (Active)'
+      : 'KEMAR HRTF 7.1.4 Convolver';
+  }
+  if (s.dsp_profile) {
+    document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('active'));
+    const cardKey = s.dsp_profile.replace('pure-', '').replace('-headphones', '').replace('-passthrough', '');
+    const activeCard = document.getElementById(`pcard-${cardKey}`);
+    if (activeCard) activeCard.classList.add('active');
+  }
+
+  setVal('cfg-analyzer-backend', s.analyzer_backend);
+  setVal('cfg-workers', s.analyzer_workers);
+  setVal('cfg-window-sec', s.analyzer_window_seconds);
+  const winLabel = document.getElementById('label-window-sec');
+  if (winLabel && s.analyzer_window_seconds !== undefined) {
+    winLabel.textContent = Math.round(s.analyzer_window_seconds) + 's';
+  }
+  setVal('cfg-mood-threshold', s.mood_confidence_threshold);
+  const moodLabel = document.getElementById('label-mood-threshold');
+  if (moodLabel && s.mood_confidence_threshold !== undefined) {
+    moodLabel.textContent = Math.round(s.mood_confidence_threshold * 100) + '%';
+  }
+  setCheck('cfg-analyzer-fallback', s.analyzer_fallback_enabled);
+
+  setVal('cfg-custom-accent', s.custom_accent_color);
+  setVal('cfg-custom-accent-picker', s.custom_accent_color);
+  setVal('cfg-contrast-mode', s.contrast_mode);
+
+  updateAudioDeviceConfig();
+}
+
+function loadDesktopSettingsFromServer() {
+  fetch('/api/settings')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.settings) {
+        syncDomWithSettings(data.settings);
+      }
+    })
+    .catch(err => console.debug('Could not fetch settings:', err));
+}
+
+function saveDesktopSettings(closeAfter = false) {
+  const payload = gatherSettingsFormPayload();
+  setSettingsStatus('Saving configuration...');
+
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(async r => {
+      const data = await r.json();
+      if (!r.ok) {
+        setSettingsStatus('Validation error: check highlighted fields.', true);
+        return;
+      }
+      if (data.settings) {
+        syncDomWithSettings(data.settings);
+      }
+      setSettingsStatus('Settings synced to disk without reload.');
+      if (closeAfter) {
+        closeSettingsDialog();
+      }
+    })
+    .catch(err => {
+      console.error('Error saving desktop settings:', err);
+      setSettingsStatus('Error persisting settings.', true);
+    });
+}
+
+function applyPeqProfile(presetId) {
+  fetch('/api/dsp/peq/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preset: presetId }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.peq_preamp_db !== undefined) {
+        const preampValEl = document.getElementById('cfg-preamp-db-val');
+        if (preampValEl) preampValEl.textContent = Number(data.peq_preamp_db).toFixed(1);
+        setSettingsStatus(`Loaded PEQ profile: ${data.peq_profile} (${data.peq_preamp_db} dB headroom)`);
+      }
+    })
+    .catch(err => console.error('Error applying PEQ profile:', err));
 }
 
 // 4. Global Desktop Keyboard Shortcuts
@@ -314,6 +545,7 @@ function setDspProfile(profileId) {
       document.querySelectorAll('.profile-card').forEach(c => c.classList.remove('active'));
       const activeCard = document.getElementById(`pcard-${profileId.replace('pure-', '').replace('-headphones', '').replace('-passthrough', '')}`);
       if (activeCard) activeCard.classList.add('active');
+      setSettingsStatus(`Active routing profile: ${profileId}`);
     })
     .catch(err => console.error('Error setting profile:', err));
 }
@@ -325,7 +557,10 @@ function triggerSpatialToggle() {
     .then(data => {
       const label = document.getElementById('cfg-spatial-label');
       const badge = document.getElementById('menu-spatial-badge');
-      if (data.mode === 'spatial_binaural') {
+      const toggle = document.getElementById('cfg-spatial-toggle');
+      const isSpatial = data.mode === 'spatial_binaural' || data.mode === '3d_binaural';
+      if (toggle) toggle.checked = isSpatial;
+      if (isSpatial) {
         if (label) label.textContent = 'KEMAR HRTF 7.1.4 Convolver (Active)';
         if (badge) { badge.textContent = 'Active'; badge.className = 'badge-mini badge-cyan'; }
       } else {
@@ -348,7 +583,6 @@ function handleDesktopQuit() {
 
 function handleDesktopMinimize() {
   closeAllMenus();
-  // Minimize hint
   console.log('Window minimize requested');
 }
 
@@ -400,7 +634,24 @@ function exportActivePlaylist(format = 'm3u8') {
   }
 }
 
+// Sync aria-invalid with CSS :user-invalid state for accessible validation feedback
+const syncAriaInvalid = (el) => {
+  if (el && typeof el.matches === 'function') {
+    try {
+      el.setAttribute('aria-invalid', el.matches(':user-invalid') ? 'true' : 'false');
+    } catch (e) {}
+  }
+};
+
+document.addEventListener('blur', (e) => syncAriaInvalid(e.target), true);
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.hasAttribute && e.target.hasAttribute('aria-invalid')) {
+    syncAriaInvalid(e.target);
+  }
+});
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   initThemeEngine();
+  loadDesktopSettingsFromServer();
 });

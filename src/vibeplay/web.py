@@ -73,6 +73,7 @@ def get_filtered_tracks(
     bpm_min: float | None = None,
     bpm_max: float | None = None,
     sort: str = "id_asc",
+    mood_threshold: float = 0.50,
 ) -> list[dict[str, Any]]:
     """Retrieve and filter tracks with features from the SQLite database."""
     query = """
@@ -154,7 +155,7 @@ def get_filtered_tracks(
             if key_filter != track_key and key_filter != track_cam:
                 continue
 
-        # Filter by mood if requested (>= 50%)
+        # Filter by mood if requested (>= mood_threshold)
         if mood_filter:
             mood_scores = {}
             if row_dict.get("mood_scores"):
@@ -162,7 +163,7 @@ def get_filtered_tracks(
                     mood_scores = json.loads(row_dict["mood_scores"])
                 except Exception:
                     pass
-            if mood_scores.get(mood_filter, 0.0) < 0.50:
+            if mood_scores.get(mood_filter, 0.0) < mood_threshold:
                 continue
 
         tracks.append(row_dict)
@@ -269,6 +270,24 @@ def create_app(
     cfg = settings or get_settings()
     resolved_db_path = db_path or cfg.db_path
     effective_api_key = api_key if api_key is not None else cfg.api_key
+    settings_file_path = cfg.get_desktop_settings_path(resolved_db_path)
+
+    from vibeplay.desktop.settings import (
+        DesktopSettings,
+        load_desktop_settings,
+        save_desktop_settings,
+        update_desktop_settings,
+    )
+
+    def _sync_runtime_cfg(ds: DesktopSettings) -> None:
+        cfg.analyzer_backend = ds.analyzer_backend
+        cfg.analyzer_workers = ds.analyzer_workers
+        cfg.analyzer_window_seconds = ds.analyzer_window_seconds
+        cfg.analyzer_fallback_enabled = ds.analyzer_fallback_enabled
+        cfg.mood_confidence_threshold = ds.mood_confidence_threshold
+
+    if settings_file_path.exists():
+        _sync_runtime_cfg(load_desktop_settings(settings_file_path))
 
     app = FastAPI(
         title="vibeplay",
@@ -340,6 +359,7 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     async def index_page(request: Request) -> Response:
         """Render the main console dashboard shell."""
+        active_desktop_settings = load_desktop_settings(settings_file_path)
         with get_connection(resolved_db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -359,7 +379,9 @@ def create_app(
                 """
             )
             artists = [r[0] for r in cursor.fetchall() if r[0]]
-            tracks = get_filtered_tracks(conn)
+            tracks = get_filtered_tracks(
+                conn, mood_threshold=cfg.mood_confidence_threshold
+            )
 
             cursor.execute("SELECT id FROM playlists ORDER BY id DESC LIMIT 1")
             recent_pl = cursor.fetchone()
@@ -386,6 +408,7 @@ def create_app(
                 "clusters": clusters,
                 "playlist": latest_playlist,
                 "playback": playback,
+                "desktop_settings": active_desktop_settings,
             },
         )
 
@@ -411,6 +434,7 @@ def create_app(
                 bpm_min=bpm_min,
                 bpm_max=bpm_max,
                 sort=sort,
+                mood_threshold=cfg.mood_confidence_threshold,
             )
 
         playback = get_playback_status(resolved_db_path, cfg)
@@ -878,20 +902,21 @@ def create_app(
     @app.post("/api/dsp/profile")
     async def api_dsp_set_profile(request: Request) -> Response:
         """Switch audio routing profile on the fly (pure-bitperfect, spatial-headphones, receiver-passthrough)."""
-        target_profile: str | None = None
-        content_type = request.headers.get("content-type", "")
-        if "application/json" in content_type:
-            try:
-                body = await request.json()
-                target_profile = body.get("profile")
-            except Exception:
-                pass
-        else:
-            try:
-                form = await request.form()
-                target_profile = str(form.get("profile", "")) or None
-            except Exception:
-                pass
+        target_profile: str | None = request.query_params.get("profile")
+        if not target_profile:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                try:
+                    body = await request.json()
+                    target_profile = body.get("profile")
+                except Exception:
+                    pass
+            else:
+                try:
+                    form = await request.form()
+                    target_profile = str(form.get("profile", "")) or None
+                except Exception:
+                    pass
 
         if not target_profile:
             return JSONResponse(
@@ -905,6 +930,12 @@ def create_app(
             client = DSPClient()
             res = client.set_profile(str(target_profile))
             set_output_profile(str(target_profile))
+            try:
+                update_desktop_settings(
+                    {"dsp_profile": str(target_profile)}, settings_file_path
+                )
+            except Exception:
+                pass
             return JSONResponse(content=res)
         except Exception as err:
             logger.warning("Error switching DSP profile: %s", err)
@@ -982,6 +1013,228 @@ def create_app(
             ]
         )
 
+    @app.get("/api/settings")
+    async def api_get_settings() -> JSONResponse:
+        """Return persisted desktop & hardware settings and available PEQ presets."""
+        current = load_desktop_settings(settings_file_path)
+        peq_presets: list[str] = []
+        try:
+            from vibe_dsp.peq import list_available_presets
+
+            raw_presets = list_available_presets()
+            peq_presets = [
+                (p["name"] if isinstance(p, dict) else str(p))
+                for p in raw_presets
+            ]
+        except Exception:
+            peq_presets = [
+                "7hz_zero_2",
+                "apple_airpods_pro_2",
+                "moondrop_blessing_2",
+                "sennheiser_hd600",
+            ]
+        return JSONResponse(
+            content={
+                "settings": current.model_dump(mode="json"),
+                "peq_presets": peq_presets,
+                "settings_path": str(settings_file_path),
+            }
+        )
+
+    @app.post("/api/settings")
+    @app.put("/api/settings")
+    async def api_update_settings(request: Request) -> JSONResponse:
+        """Validate, apply, and persist partial or full desktop settings updates without reload."""
+        from pydantic import ValidationError
+
+        payload: dict[str, Any] = {}
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                raw_body = await request.json()
+                if not isinstance(raw_body, dict):
+                    return JSONResponse(
+                        status_code=422,
+                        content={"detail": "Settings payload must be a JSON object."},
+                    )
+                payload = raw_body
+            except Exception as err:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": f"Invalid JSON body: {err}"},
+                )
+        else:
+            try:
+                form = await request.form()
+                payload = dict(form)
+            except Exception:
+                payload = dict(request.query_params)
+
+        current = load_desktop_settings(settings_file_path)
+        merged = current.model_dump()
+        merged.update(payload)
+
+        # Synchronize spatial_enabled <-> spatial_mode when only one is supplied
+        if "spatial_enabled" in payload and "spatial_mode" not in payload:
+            merged["spatial_mode"] = (
+                "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
+            )
+        elif "spatial_mode" in payload and "spatial_enabled" not in payload:
+            merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
+                "3d_binaural",
+                "spatial_binaural",
+            }
+
+        try:
+            validated = DesktopSettings.model_validate(merged)
+        except ValidationError as val_err:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": val_err.errors(include_context=False)},
+            )
+
+        # Auto-compute negative headroom preamp when peq_profile changes or peq_preamp_auto is enabled
+        if (
+            ("peq_profile" in payload or "peq_preamp_auto" in payload)
+            and "peq_preamp_db" not in payload
+            and validated.peq_preamp_auto
+        ):
+            if validated.peq_profile == "none":
+                validated.peq_preamp_db = 0.0
+            else:
+                try:
+                    from vibe_dsp.peq import lookup_autoeq_model
+
+                    prof = lookup_autoeq_model(
+                        validated.peq_profile, allow_network=False
+                    )
+                    if prof is not None:
+                        validated.peq_preamp_db = round(
+                            float(prof.calculated_preamp), 2
+                        )
+                    else:
+                        validated.peq_preamp_db = -5.5
+                except Exception:
+                    validated.peq_preamp_db = -5.5
+
+        save_desktop_settings(validated, settings_file_path)
+        _sync_runtime_cfg(validated)
+
+        # Best-effort live application to DSP / audio transport
+        if "dsp_profile" in payload:
+            try:
+                from vibe_dsp.ipc import DSPClient
+
+                DSPClient().set_profile(validated.dsp_profile)
+                set_output_profile(validated.dsp_profile)
+            except Exception:
+                set_output_profile(validated.dsp_profile)
+
+        return JSONResponse(
+            content={
+                "status": "saved",
+                "settings": validated.model_dump(mode="json"),
+            }
+        )
+
+    @app.get("/api/dsp/peq/presets")
+    async def api_dsp_peq_presets() -> JSONResponse:
+        """List available Parametric EQ transducer presets and their headroom attenuation."""
+        presets_info: list[dict[str, Any]] = [
+            {
+                "id": "none",
+                "name": "Bypass / Flat (0.0 dB)",
+                "preamp_db": 0.0,
+                "filters_count": 0,
+            }
+        ]
+        try:
+            from vibe_dsp.peq import list_available_presets
+
+            for p in list_available_presets():
+                if isinstance(p, dict):
+                    preset_id = str(p.get("name", ""))
+                    preamp = round(float(p.get("preamp_db", -5.5)), 2)
+                    filters_count = int(p.get("bands", 0))
+                else:
+                    preset_id = str(p)
+                    preamp = -5.5
+                    filters_count = 0
+                presets_info.append(
+                    {
+                        "id": preset_id,
+                        "name": preset_id.replace("_", " ").title(),
+                        "preamp_db": preamp,
+                        "filters_count": filters_count,
+                    }
+                )
+        except Exception as err:
+            logger.warning("Could not enumerate PEQ presets: %s", err)
+
+        return JSONResponse(content={"presets": presets_info})
+
+    @app.post("/api/dsp/peq/apply")
+    async def api_dsp_peq_apply(request: Request) -> JSONResponse:
+        """Load and apply a Parametric EQ preset with automatic headroom calculation."""
+        from pydantic import ValidationError
+
+        preset_id: str | None = request.query_params.get("preset")
+        if not preset_id:
+            try:
+                body = await request.json()
+                if isinstance(body, dict):
+                    preset_id = body.get("preset") or body.get("peq_profile")
+            except Exception:
+                pass
+
+        if not preset_id:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Missing 'preset' parameter."},
+            )
+
+        try:
+            updated = update_desktop_settings(
+                {"peq_profile": str(preset_id)}, settings_file_path
+            )
+            filters_count = 0
+            if updated.peq_profile == "none":
+                if updated.peq_preamp_auto:
+                    updated = update_desktop_settings(
+                        {"peq_preamp_db": 0.0}, settings_file_path
+                    )
+            else:
+                try:
+                    from vibe_dsp.peq import lookup_autoeq_model
+
+                    prof = lookup_autoeq_model(
+                        updated.peq_profile, allow_network=False
+                    )
+                    if prof is not None:
+                        filters_count = len(prof.filters)
+                        if updated.peq_preamp_auto:
+                            preamp = round(float(prof.calculated_preamp), 2)
+                            updated = update_desktop_settings(
+                                {"peq_preamp_db": preamp}, settings_file_path
+                            )
+                except Exception:
+                    pass
+
+            return JSONResponse(
+                content={
+                    "status": "applied",
+                    "peq_profile": updated.peq_profile,
+                    "peq_preamp_db": updated.peq_preamp_db,
+                    "peq_preamp_auto": updated.peq_preamp_auto,
+                    "filters_count": filters_count,
+                }
+            )
+        except ValidationError as val_err:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": val_err.errors(include_context=False)},
+            )
+
     @app.post("/api/player/clear")
     async def api_player_clear() -> JSONResponse:
         """Clear the active MPD playback queue."""
@@ -1018,14 +1271,29 @@ def create_app(
     @app.get("/api/dsp/telemetry")
     async def api_dsp_telemetry() -> JSONResponse:
         """Return real-time hardware latency, xruns, and buffer telemetry."""
+        ds = load_desktop_settings(settings_file_path)
+        hw_label = (
+            f"ALSA {ds.alsa_device}"
+            if ds.alsa_device.startswith("hw:")
+            else ds.alsa_device
+        )
         telemetry = {
             "xruns": 0,
             "jitter_ppm": 0.02,
-            "buffer_health": "100% Bit-Perfect Locked",
-            "pipewire_active": False,
-            "active_profile": "pure-bitperfect",
-            "spatial_mode": "stereo_direct",
-            "hardware_device": "ALSA hw:0,0",
+            "buffer_health": "100% Bit-Perfect Locked"
+            if ds.alsa_exclusive_lock
+            else "Shared Mixer Active",
+            "pipewire_active": ds.alsa_device == "pipewire",
+            "active_profile": ds.dsp_profile,
+            "peq_profile": ds.peq_profile,
+            "peq_preamp_db": ds.peq_preamp_db,
+            "spatial_mode": ds.spatial_mode,
+            "hardware_device": hw_label,
+            "buffer_frames": ds.alsa_buffer_frames,
+            "period_count": ds.alsa_period_count,
+            "sample_rate_lock": ds.alsa_sample_rate_lock,
+            "exclusive_lock": ds.alsa_exclusive_lock,
+            "dpc_watchdog_enabled": ds.dpc_watchdog_enabled,
         }
         try:
             from vibe_dsp.ipc import DSPClient
@@ -1034,12 +1302,13 @@ def create_app(
             telemetry["active_profile"] = client.get_profile()
         except Exception:
             pass
-        try:
-            from vibe_dsp.spatial import get_spatial_virtualization_status
+        if not settings_file_path.exists():
+            try:
+                from vibe_dsp.spatial import get_spatial_virtualization_status
 
-            telemetry["spatial_mode"] = get_spatial_virtualization_status()
-        except Exception:
-            pass
+                telemetry["spatial_mode"] = get_spatial_virtualization_status()
+            except Exception:
+                pass
         return JSONResponse(content=telemetry)
 
     @app.post("/api/dsp/spatial/toggle")
@@ -1052,9 +1321,37 @@ def create_app(
             )
 
             cur = get_spatial_virtualization_status()
-            target = "stereo_direct" if cur == "spatial_binaural" else "spatial_binaural"
+            if isinstance(cur, dict):
+                if cur.get("installed"):
+                    cur_mode = str(cur.get("mode", "stereo_direct"))
+                else:
+                    ds = load_desktop_settings(settings_file_path)
+                    cur_mode = ds.spatial_mode if ds.spatial_enabled else "stereo_direct"
+            else:
+                cur_mode = str(cur)
+            is_binaural = cur_mode in {"spatial_binaural", "3d_binaural"}
+            target = "stereo_direct" if is_binaural else "spatial_binaural"
             status = set_spatial_virtualization_mode(target)
-            return JSONResponse(content=status)
+            if isinstance(status, dict):
+                result_payload = status
+            else:
+                result_payload = {
+                    "mode": target,
+                    "status": "active" if target != "stereo_direct" else "bypassed",
+                    "applied": bool(status),
+                }
+            try:
+                update_desktop_settings(
+                    {
+                        "spatial_mode": result_payload.get("mode", target),
+                        "spatial_enabled": result_payload.get("mode", target)
+                        != "stereo_direct",
+                    },
+                    settings_file_path,
+                )
+            except Exception:
+                pass
+            return JSONResponse(content=result_payload)
         except Exception as err:
             return JSONResponse(status_code=500, content={"error": str(err)})
 
