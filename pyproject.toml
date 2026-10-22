@@ -30,6 +30,7 @@ dependencies = [
 
 [project.scripts]
 vibeplay = "vibeplay.cli:app"
+vibeplay-desktop = "vibeplay.desktop.__main__:main"
 vibe-dsp = "vibe_dsp.cli:app"
 
 [build-system]
