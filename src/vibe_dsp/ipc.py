@@ -79,10 +79,14 @@ def load_persistent_state() -> dict[str, Any]:
 
 
 def save_persistent_state(state: dict[str, Any]) -> None:
-    """Save persistent DSP state to disk."""
+    """Save persistent DSP state to disk with restricted permissions (0600)."""
     try:
-        DEFAULT_IPC_DIR.mkdir(parents=True, exist_ok=True)
+        DEFAULT_IPC_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
         DEFAULT_STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        try:
+            DEFAULT_STATE_FILE.chmod(0o600)
+        except OSError:
+            pass
     except Exception as err:
         logger.warning("Failed to save DSP persistent state: %s", err)
 
@@ -253,7 +257,7 @@ async def handle_ipc_client(
 async def start_ipc_server(socket_path: Path | None = None) -> asyncio.Server:
     """Start the asynchronous UNIX domain socket server."""
     sock_path = socket_path or DEFAULT_IPC_SOCKET_PATH
-    sock_path.parent.mkdir(parents=True, exist_ok=True)
+    sock_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     if sock_path.exists():
         try:
@@ -262,6 +266,10 @@ async def start_ipc_server(socket_path: Path | None = None) -> asyncio.Server:
             pass
 
     server = await asyncio.start_unix_server(handle_ipc_client, path=str(sock_path))
+    try:
+        sock_path.chmod(0o600)
+    except OSError:
+        pass
     logger.info("DSP IPC server listening on UNIX socket: %s", sock_path)
     return server
 
