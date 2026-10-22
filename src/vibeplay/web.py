@@ -413,11 +413,13 @@ def create_app(
                 sort=sort,
             )
 
+        playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,
             name="components/library_table.html",
             context={
                 "tracks": tracks,
+                "playback": playback,
             },
         )
 

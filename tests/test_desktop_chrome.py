@@ -183,3 +183,13 @@ class TestDesktopShellRendering:
         assert "applyTheme" in html
         assert "switchSettingsTab" in html
         assert "toggleSettingsDialog" in html
+
+        # 6. Stitch HUD Micro-Visualizers (Screen 3)
+        assert "telemetry-oscilloscope" in html
+        assert "segmented-meter-well" in html
+        assert "harmonic-chips-row" in html
+        assert "histogram-bars-row" in html
+        assert "table-footnote" in html
+        assert "I²S SYNC" in html
+        assert "DR14+ MASTER" in html
+        assert "DMA Ring Buffer: 128 frames" in html
