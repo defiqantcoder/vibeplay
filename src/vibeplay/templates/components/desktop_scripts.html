@@ -2,10 +2,12 @@
 
 // 1. Theme Engine, Custom Accent & Contrast Persistence
 function initThemeEngine() {
-  const savedTheme = localStorage.getItem('vibeplay_theme') || 'god-of-ink';
+  const ssrTheme = document.documentElement.getAttribute('data-theme');
+  const savedTheme = localStorage.getItem('vibeplay_theme') || ssrTheme || 'god-of-ink';
   applyTheme(savedTheme, false);
 
-  const savedContrast = localStorage.getItem('vibeplay_contrast') || 'standard';
+  const ssrContrast = document.documentElement.getAttribute('data-contrast');
+  const savedContrast = localStorage.getItem('vibeplay_contrast') || ssrContrast || 'standard';
   applyContrastMode(savedContrast, false);
 
   const savedAccent = localStorage.getItem('vibeplay_custom_accent');
@@ -14,14 +16,24 @@ function initThemeEngine() {
   }
 }
 
+function computeHexLuminance(hexColor) {
+  const h = hexColor.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16) / 255;
+  const g = parseInt(h.substring(2, 4), 16) / 255;
+  const b = parseInt(h.substring(4, 6), 16) / 255;
+  const toLinear = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
 function applyTheme(themeId, persist = true) {
   document.documentElement.setAttribute('data-theme', themeId);
   document.body.setAttribute('data-theme', themeId);
 
   if (persist) {
-    // Clear inline custom accent override when switching preset themes unless explicitly re-set
+    // Clear inline custom accent overrides when switching preset themes
     document.documentElement.style.removeProperty('--primary');
     document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--on-primary');
     try {
       localStorage.setItem('vibeplay_theme', themeId);
       localStorage.removeItem('vibeplay_custom_accent');
@@ -35,12 +47,19 @@ function applyTheme(themeId, persist = true) {
     }).catch(() => {});
   }
 
-  // Highlight active theme card in settings dialog
+  // Highlight active theme card in settings dialog and menu item
   document.querySelectorAll('[data-theme-card]').forEach(card => {
     if (card.getAttribute('data-theme-card') === themeId) {
       card.classList.add('active');
     } else {
       card.classList.remove('active');
+    }
+  });
+  document.querySelectorAll('[data-theme-menu]').forEach(row => {
+    if (row.getAttribute('data-theme-menu') === themeId) {
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
     }
   });
 
@@ -62,8 +81,12 @@ function applyCustomAccent(hexColor, persist = true) {
     return;
   }
 
+  const lum = computeHexLuminance(cleaned);
+  const onPrimaryToken = lum > 0.179 ? 'var(--contrast-dark)' : 'var(--contrast-light)';
+
   document.documentElement.style.setProperty('--primary', cleaned);
   document.documentElement.style.setProperty('--accent', cleaned);
+  document.documentElement.style.setProperty('--on-primary', onPrimaryToken);
 
   const picker = document.getElementById('cfg-custom-accent-picker');
   if (picker) picker.value = cleaned;
@@ -172,7 +195,7 @@ function setSettingsStatus(msg, isError = false) {
   const el = document.getElementById('settings-save-status');
   if (!el) return;
   el.textContent = msg;
-  el.style.color = isError ? 'var(--error, #ffb4ab)' : 'var(--text-muted)';
+  el.style.color = isError ? 'var(--error)' : 'var(--text-muted)';
 }
 
 function gatherSettingsFormPayload() {

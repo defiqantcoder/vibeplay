@@ -1007,6 +1007,7 @@ def create_app(
                     "id": t.id,
                     "name": t.name,
                     "description": t.description,
+                    "swatches": t.swatches,
                     "variables": t.variables,
                 }
                 for t in themes
