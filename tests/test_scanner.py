@@ -13,7 +13,6 @@ from vibeplay.cli import app
 from vibeplay.db import get_connection
 from vibeplay.scanner import is_audio_file, scan_directory
 
-
 runner = CliRunner()
 
 

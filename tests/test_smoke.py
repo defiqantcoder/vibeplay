@@ -3,6 +3,7 @@
 import sqlite3
 from pathlib import Path
 from typing import Any
+
 from typer.testing import CliRunner
 
 import vibeplay

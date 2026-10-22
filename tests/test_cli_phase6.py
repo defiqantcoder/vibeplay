@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
 from unittest.mock import MagicMock, patch
 
-from typing import Callable
 from typer.testing import CliRunner
 
 from vibeplay.cli import app

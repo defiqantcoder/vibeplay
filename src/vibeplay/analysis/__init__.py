@@ -2,7 +2,6 @@
 
 import json
 import logging
-
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass

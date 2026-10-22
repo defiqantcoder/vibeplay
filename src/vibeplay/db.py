@@ -6,7 +6,6 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-
 logger = logging.getLogger(__name__)
 
 MIGRATIONS: list[tuple[int, str, str]] = [

@@ -943,3 +943,54 @@ def serve(
 
 if __name__ == "__main__":
     app()
+
+
+@app.command()
+def duplicates(
+    db: Path | None = typer.Option(
+        None, "--db", help="Path to SQLite database (overrides env)."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Output results in JSON format."
+    ),
+) -> None:
+    """Find likely duplicate tracks in the library."""
+    from vibeplay.duplicates import find_duplicates
+
+    cfg = get_settings()
+    db_path = db or cfg.db_path
+
+    try:
+        groups = find_duplicates(str(db_path))
+
+        if json_output:
+            import json
+
+            print(json.dumps([g.to_dict() for g in groups], indent=2))
+        else:
+            if not groups:
+                console.print("[green]No duplicates found![/green]")
+                return
+
+            console.print(f"[bold]Found {len(groups)} likely duplicate groups:[/bold]")
+            for g in groups:
+                console.print(f"\n[cyan]Group: {g.reason}[/cyan]")
+                for t in g.tracks:
+                    mark = (
+                        "[bold green]* KEEP[/bold green]"
+                        if t["id"] == g.keep_track_id
+                        else "  [red]DUP[/red] "
+                    )
+                    title = t.get("title") or "Unknown Title"
+                    artist = t.get("artist") or "Unknown Artist"
+                    bitrate = (
+                        f"{t.get('bitrate', 0) // 1000}kbps"
+                        if t.get("bitrate")
+                        else "unknown"
+                    )
+                    path = t.get("path")
+                    console.print(f"  {mark} {artist} - {title} [{bitrate}] -> {path}")
+
+    except Exception as e:
+        console.print(f"[bold red]Error finding duplicates:[/bold red] {e}")
+        raise typer.Exit(code=1)

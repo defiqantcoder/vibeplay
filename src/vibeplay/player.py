@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any, Generator
 
 try:
-    from mpd import ConnectionError as MPDConnectionError, MPDClient, MPDError
+    from mpd import ConnectionError as MPDConnectionError
+    from mpd import MPDClient, MPDError
 except ImportError:  # pragma: no cover
     MPDClient = Any  # type: ignore
     MPDError = Exception  # type: ignore
