@@ -143,20 +143,152 @@ def _seed_test_database(db_file: Path) -> list[int]:
 
     tracks_meta = [
         # (id, title, artist, album, duration, bpm, key, scale, energy, danceability, genre)
-        (1, "Summer Breeze", "Solaris", "Heatwave", 200.0, 120.0, "C", "major", 0.3, 0.4, "Ambient"),
-        (2, "Sunset Chill", "Solaris", "Heatwave", 210.0, 122.0, "G", "major", 0.4, 0.5, "Ambient"),
-        (3, "Overdrive", "Solaris", "Heatwave", 180.0, 128.0, "D", "major", 0.5, 0.6, "Rock"),
-        (4, "Nightfall", "Lunar", "Orbit", 240.0, 124.0, "A", "minor", 0.6, 0.7, "Electronic"),
-        (5, "Starlight", "Lunar", "Orbit", 195.0, 126.0, "E", "minor", 0.7, 0.8, "Electronic"),
-        (6, "Cosmic Pulse", "Apex", "Peak Time", 220.0, 130.0, "B", "minor", 0.8, 0.9, "Techno"),
-        (7, "Final Rush", "Apex", "Peak Time", 210.0, 132.0, "F#", "minor", 0.9, 0.85, "Techno"),
-        (8, "Acoustic Morning", "Echo Valley", "Roots", 175.0, 95.0, "C", "major", 0.25, 0.3, "Folk"),
-        (9, "Rustic Strings", "Echo Valley", "Roots", 190.0, 100.0, "G", "major", 0.35, 0.35, "Folk"),
-        (10, "Party Rock", "The Dynamos", "Groove", 185.0, 125.0, "F", "major", 0.85, 0.8, "Dance"),
+        (
+            1,
+            "Summer Breeze",
+            "Solaris",
+            "Heatwave",
+            200.0,
+            120.0,
+            "C",
+            "major",
+            0.3,
+            0.4,
+            "Ambient",
+        ),
+        (
+            2,
+            "Sunset Chill",
+            "Solaris",
+            "Heatwave",
+            210.0,
+            122.0,
+            "G",
+            "major",
+            0.4,
+            0.5,
+            "Ambient",
+        ),
+        (
+            3,
+            "Overdrive",
+            "Solaris",
+            "Heatwave",
+            180.0,
+            128.0,
+            "D",
+            "major",
+            0.5,
+            0.6,
+            "Rock",
+        ),
+        (
+            4,
+            "Nightfall",
+            "Lunar",
+            "Orbit",
+            240.0,
+            124.0,
+            "A",
+            "minor",
+            0.6,
+            0.7,
+            "Electronic",
+        ),
+        (
+            5,
+            "Starlight",
+            "Lunar",
+            "Orbit",
+            195.0,
+            126.0,
+            "E",
+            "minor",
+            0.7,
+            0.8,
+            "Electronic",
+        ),
+        (
+            6,
+            "Cosmic Pulse",
+            "Apex",
+            "Peak Time",
+            220.0,
+            130.0,
+            "B",
+            "minor",
+            0.8,
+            0.9,
+            "Techno",
+        ),
+        (
+            7,
+            "Final Rush",
+            "Apex",
+            "Peak Time",
+            210.0,
+            132.0,
+            "F#",
+            "minor",
+            0.9,
+            0.85,
+            "Techno",
+        ),
+        (
+            8,
+            "Acoustic Morning",
+            "Echo Valley",
+            "Roots",
+            175.0,
+            95.0,
+            "C",
+            "major",
+            0.25,
+            0.3,
+            "Folk",
+        ),
+        (
+            9,
+            "Rustic Strings",
+            "Echo Valley",
+            "Roots",
+            190.0,
+            100.0,
+            "G",
+            "major",
+            0.35,
+            0.35,
+            "Folk",
+        ),
+        (
+            10,
+            "Party Rock",
+            "The Dynamos",
+            "Groove",
+            185.0,
+            125.0,
+            "F",
+            "major",
+            0.85,
+            0.8,
+            "Dance",
+        ),
     ]
 
     with get_connection(db_file) as conn:
-        for tid, title, artist, album, dur, bpm, key, scale, energy, dance, genre in tracks_meta:
+        for (
+            tid,
+            title,
+            artist,
+            album,
+            dur,
+            bpm,
+            key,
+            scale,
+            energy,
+            dance,
+            genre,
+        ) in tracks_meta:
             insert_track(
                 conn,
                 path=f"/music/{artist}/{album}/{title}.flac",
@@ -178,7 +310,9 @@ def _seed_test_database(db_file: Path) -> list[int]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.9 if "Party" in title else 0.2,
                 "acoustic": 0.9 if "Acoustic" in title or "Rustic" in title else 0.1,
-                "electronic": 0.9 if genre == "Electronic" or genre == "Techno" else 0.1,
+                "electronic": 0.9
+                if genre == "Electronic" or genre == "Techno"
+                else 0.1,
             }
             emb = np.sin(np.linspace(0, tid, 128)).astype(np.float32)
             insert_or_replace_features(
@@ -241,7 +375,7 @@ def test_max_artist_tracks_constraint(playlist_settings: Settings) -> None:
         settings=playlist_settings,
     )
 
-    artist_counts = {}
+    artist_counts: dict[str, int] = {}
     for t in playlist.tracks:
         artist_counts[t.artist] = artist_counts.get(t.artist, 0) + 1
 
@@ -286,7 +420,7 @@ def test_rules_filter_and_vibe_presets(playlist_settings: Settings) -> None:
     assert len(playlist.tracks) > 0
     for t in playlist.tracks:
         # Acoustic tracks in dataset are Echo Valley
-        assert t.energy <= 0.65
+        assert t.energy is not None and t.energy <= 0.65
 
 
 def test_minutes_target_duration(playlist_settings: Settings) -> None:

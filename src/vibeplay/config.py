@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     )
 
     db_path: Path = Field(
-        default_factory=lambda: Path("~/.local/share/vibeplay/vibeplay.db").expanduser(),
+        default_factory=lambda: Path(
+            "~/.local/share/vibeplay/vibeplay.db"
+        ).expanduser(),
         description="Path to SQLite database file",
     )
     acoustid_api_key: str | None = Field(

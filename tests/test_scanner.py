@@ -275,4 +275,3 @@ def test_compute_file_hash(tmp_path: Path) -> None:
     # Test small chunk size
     result_small_chunk = compute_file_hash(test_file, chunk_size=2)
     assert result_small_chunk == expected_hash
-

@@ -8,7 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from vibeplay.db import add_tracks_to_playlist, create_playlist, get_connection, init_db, insert_track
+from vibeplay.db import (
+    add_tracks_to_playlist,
+    create_playlist,
+    get_connection,
+    init_db,
+    insert_track,
+)
 from vibeplay.exporter import export_playlist_to_file
 
 
@@ -140,7 +146,9 @@ def test_export_csv(populated_db: tuple[Path, int], tmp_path: Path) -> None:
         assert reader[0]["position"] == "1"
 
 
-def test_export_nonexistent_playlist_raises(populated_db: tuple[Path, int], tmp_path: Path) -> None:
+def test_export_nonexistent_playlist_raises(
+    populated_db: tuple[Path, int], tmp_path: Path
+) -> None:
     """Verify ValueError is raised when exporting an unknown playlist ID."""
     db_file, _ = populated_db
     out_file = tmp_path / "export" / "missing.m3u8"
@@ -153,7 +161,9 @@ def test_export_nonexistent_playlist_raises(populated_db: tuple[Path, int], tmp_
         )
 
 
-def test_export_unsupported_format_raises(populated_db: tuple[Path, int], tmp_path: Path) -> None:
+def test_export_unsupported_format_raises(
+    populated_db: tuple[Path, int], tmp_path: Path
+) -> None:
     """Verify ValueError is raised for unsupported export formats."""
     db_file, pid = populated_db
     out_file = tmp_path / "export" / "bad.txt"

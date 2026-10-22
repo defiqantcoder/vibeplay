@@ -1,7 +1,6 @@
 """Unit tests for metadata enrichment with mocked network calls."""
 
 import json
-import sqlite3
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,9 +12,7 @@ from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db, insert_track
 from vibeplay.enrichment import (
     cached_acoustid_lookup,
-    cached_musicbrainz_recording,
     enrich_tracks,
-    get_report_data,
     resolve_track_enrichment,
 )
 
@@ -52,7 +49,9 @@ def test_db_with_track(tmp_path: Path) -> Path:
             year=2020,
             genre="Rock",
             has_cover=False,
-            tags_json=json.dumps({"title": ["Original Title"], "artist": ["Original Artist"]}),
+            tags_json=json.dumps(
+                {"title": ["Original Title"], "artist": ["Original Artist"]}
+            ),
         )
 
     return db_path
@@ -258,6 +257,7 @@ def test_enrich_tracks_batch(
         enrichment_confidence_threshold=0.8,
     )
     from vibeplay.enrichment import EnrichmentResult
+
     mock_resolve.return_value = EnrichmentResult(
         track_id=1,
         mb_recording_id="rec-1",
@@ -290,7 +290,9 @@ def test_enrich_tracks_batch(
     # Verify best value view
     with get_connection(test_db_with_track) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT title, artist, original_title, canonical_title FROM v_tracks_best_value WHERE track_id = 1")
+        cursor.execute(
+            "SELECT title, artist, original_title, canonical_title FROM v_tracks_best_value WHERE track_id = 1"
+        )
         row = cursor.fetchone()
         assert row["title"] == "Batch Title"
         assert row["artist"] == "Batch Artist"

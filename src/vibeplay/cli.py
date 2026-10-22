@@ -22,9 +22,9 @@ from vibeplay.config import get_settings
 from vibeplay.enrichment import enrich_tracks, get_report_data
 from vibeplay.exporter import export_playlist_to_file
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
+from vibeplay.playlist import generate_playlist
 from vibeplay.scanner import scan_directory
-from vibeplay.vectors import compute_clusters, similar_to
+from vibeplay.vectors import compute_clusters
 
 logger = logging.getLogger("vibeplay")
 console = Console()
@@ -54,11 +54,15 @@ def scan(
     """Scan music directory recursively, index audio files, and extract tags."""
     resolved_path = path.expanduser().resolve()
     if not resolved_path.exists() or not resolved_path.is_dir():
-        console.print(f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory.")
+        console.print(
+            f"[bold red]Error:[/bold red] '{resolved_path}' is not a directory."
+        )
         raise typer.Exit(code=1)
 
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     console.print(f"[bold]Scanning library:[/bold] [cyan]{resolved_path}[/cyan]")
     console.print(f"[bold]Target database:[/bold]  [cyan]{db_path}[/cyan]")
@@ -134,7 +138,9 @@ def enrich(
 ) -> None:
     """Fingerprint audio tracks and query MusicBrainz for canonical metadata."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     if report:
         report_rows = get_report_data(db_path)
@@ -159,7 +165,11 @@ def enrich(
             orig = f"{row.get('original_artist') or 'Unknown'} - {row.get('original_title') or 'Unknown'}"
             canon_artist = row.get("canonical_artist")
             canon_title = row.get("canonical_title")
-            canon = f"{canon_artist} - {canon_title}" if canon_artist and canon_title else "[dim]None[/dim]"
+            canon = (
+                f"{canon_artist} - {canon_title}"
+                if canon_artist and canon_title
+                else "[dim]None[/dim]"
+            )
 
             status = row.get("enrichment_status") or "not_enriched"
             if status == "matched":
@@ -230,7 +240,9 @@ def enrich(
     table.add_row("Matched (High Confidence)", f"[green]{summary.matched}[/green]")
     table.add_row("Needs Review", f"[yellow]{summary.needs_review}[/yellow]")
     table.add_row("Unmatched", f"[blue]{summary.unmatched}[/blue]")
-    table.add_row("Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0")
+    table.add_row(
+        "Errors", f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0"
+    )
     table.add_section()
     table.add_row("Total Processed", str(summary.total))
 
@@ -283,7 +295,9 @@ def analyze(
 ) -> None:
     """Analyze audio files to extract acoustic features, rhythm, and embeddings."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     selected_backend = (
         "librosa" if fallback_librosa else (backend or settings.analyzer_backend)
@@ -291,7 +305,9 @@ def analyze(
 
     console.print(f"[bold]Target database:[/bold]   [cyan]{db_path}[/cyan]")
     console.print(f"[bold]Analysis engine:[/bold]   [cyan]{selected_backend}[/cyan]")
-    console.print(f"[bold]Workers:[/bold]           [cyan]{workers or settings.analyzer_workers}[/cyan]")
+    console.print(
+        f"[bold]Workers:[/bold]           [cyan]{workers or settings.analyzer_workers}[/cyan]"
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -304,7 +320,9 @@ def analyze(
     ) as progress:
         task_id = progress.add_task("Analyzing audio features...", total=None)
 
-        def progress_callback(current: int, total: int, track_name: str, elapsed: float) -> None:
+        def progress_callback(
+            current: int, total: int, track_name: str, elapsed: float
+        ) -> None:
             if progress.tasks[task_id].total != total:
                 progress.update(task_id, total=total)
             progress.update(
@@ -335,7 +353,10 @@ def analyze(
     table.add_column("Value", justify="right")
 
     table.add_row("Tracks Analyzed", f"[green]{summary.analyzed}[/green]")
-    table.add_row("Failures / Errors", f"[magenta]{summary.failed}[/magenta]" if summary.failed else "0")
+    table.add_row(
+        "Failures / Errors",
+        f"[magenta]{summary.failed}[/magenta]" if summary.failed else "0",
+    )
     table.add_row("Total Time Taken", format_time(summary.total_seconds))
     table.add_row("Average Speed", f"{summary.avg_seconds_per_track:.2f} s/track")
     table.add_section()
@@ -406,15 +427,23 @@ def clusters(
         raise typer.Exit(code=1)
 
     if not result.clusters or result.total_tracks == 0:
-        console.print("[yellow]No analyzed tracks found to cluster. Run 'vibeplay analyze' first.[/yellow]")
+        console.print(
+            "[yellow]No analyzed tracks found to cluster. Run 'vibeplay analyze' first.[/yellow]"
+        )
         return
 
     for cluster in result.clusters:
         # Format dominant moods
-        moods_str = ", ".join(f"{mood} ({score:.2f})" for mood, score in cluster.dominant_moods) or "N/A"
+        moods_str = (
+            ", ".join(f"{mood} ({score:.2f})" for mood, score in cluster.dominant_moods)
+            or "N/A"
+        )
 
         # Format top artists
-        artists_str = ", ".join(f"{artist} ({count})" for artist, count in cluster.top_artists) or "None"
+        artists_str = (
+            ", ".join(f"{artist} ({count})" for artist, count in cluster.top_artists)
+            or "None"
+        )
 
         table = Table(
             title=f"{cluster.label} — {cluster.size} tracks | Avg BPM: {cluster.avg_bpm:.1f}",
@@ -429,7 +458,11 @@ def clusters(
         table.add_column("Match", justify="right", style="green")
 
         for rep in cluster.representative_tracks:
-            sim_pct = f"{rep['similarity_to_centroid']:.1%}" if rep["similarity_to_centroid"] > 0 else "N/A"
+            sim_pct = (
+                f"{rep['similarity_to_centroid']:.1%}"
+                if rep["similarity_to_centroid"] > 0
+                else "N/A"
+            )
             bpm_str = f"{rep['bpm']:.1f}" if rep.get("bpm") is not None else "N/A"
             table.add_row(
                 str(rep["track_id"]),
@@ -459,7 +492,9 @@ def playlist(
     ] = "Vibe Playlist",
     seed: Annotated[
         str | None,
-        typer.Option(help="Single track ID or comma-separated track IDs for similarity matching"),
+        typer.Option(
+            help="Single track ID or comma-separated track IDs for similarity matching"
+        ),
     ] = None,
     cluster: Annotated[
         int | None,
@@ -467,7 +502,9 @@ def playlist(
     ] = None,
     vibe: Annotated[
         str | None,
-        typer.Option(help="Target vibe preset (chill, party, acoustic, electronic, workout, melancholy)"),
+        typer.Option(
+            help="Target vibe preset (chill, party, acoustic, electronic, workout, melancholy)"
+        ),
     ] = None,
     arc: Annotated[
         str | None,
@@ -487,15 +524,21 @@ def playlist(
     ] = 2,
     export_m3u8: Annotated[
         Path | None,
-        typer.Option(help="Destination path to immediately export an M3U8 playlist file"),
+        typer.Option(
+            help="Destination path to immediately export an M3U8 playlist file"
+        ),
     ] = None,
     relative: Annotated[
         bool,
-        typer.Option(help="Use relative paths in exported M3U8 instead of absolute paths"),
+        typer.Option(
+            help="Use relative paths in exported M3U8 instead of absolute paths"
+        ),
     ] = False,
     play: Annotated[
         bool,
-        typer.Option(help="Immediately queue and initiate playback on local MPD daemon"),
+        typer.Option(
+            help="Immediately queue and initiate playback on local MPD daemon"
+        ),
     ] = False,
     db: Annotated[
         Path | None,
@@ -504,14 +547,18 @@ def playlist(
 ) -> None:
     """Generate a cohesive smart playlist based on seeds, vibe, cluster, or energy arc."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     seed_ids: list[int] = []
     if seed:
         try:
             seed_ids = [int(s.strip()) for s in seed.split(",") if s.strip()]
         except ValueError:
-            console.print(f"[bold red]Error:[/bold red] Invalid seed track ID format: '{seed}'. Expected integer(s).")
+            console.print(
+                f"[bold red]Error:[/bold red] Invalid seed track ID format: '{seed}'. Expected integer(s)."
+            )
             raise typer.Exit(code=1)
 
     try:
@@ -595,13 +642,17 @@ def playlist(
                 export_format="m3u8",
                 relative=relative,
             )
-            console.print(f"[bold green]Exported M3U8:[/bold green] [cyan]{exported_file}[/cyan]")
+            console.print(
+                f"[bold green]Exported M3U8:[/bold green] [cyan]{exported_file}[/cyan]"
+            )
         except Exception as err:
             console.print(f"[bold red]M3U8 Export Failed:[/bold red] {err}")
 
     if play:
         try:
-            play_res = play_playlist(db_path=db_path, playlist_id=gen.playlist_id, settings=settings)
+            play_res = play_playlist(
+                db_path=db_path, playlist_id=gen.playlist_id, settings=settings
+            )
             console.print(
                 f"[bold green]MPD Playback Started:[/bold green] Queued {play_res['queued_tracks']} tracks. "
                 f"Now playing: [cyan]{play_res['first_track']['artist']} - {play_res['first_track']['title']}[/cyan]"
@@ -637,7 +688,9 @@ def export(
 ) -> None:
     """Export a saved playlist to an M3U, M3U8, JSON, or CSV file."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     try:
         exported_path = export_playlist_to_file(
@@ -677,31 +730,43 @@ def play(
 ) -> None:
     """Queue a playlist or seed track into local Music Player Daemon (MPD) for bit-perfect playback."""
     settings = get_settings()
-    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
 
     if playlist_id is None and seed is None:
-        console.print("[bold red]Error:[/bold red] Must specify either --playlist-id or --seed.")
+        console.print(
+            "[bold red]Error:[/bold red] Must specify either --playlist-id or --seed."
+        )
         raise typer.Exit(code=1)
 
     try:
         if playlist_id is not None:
-            res = play_playlist(db_path=db_path, playlist_id=playlist_id, settings=settings)
+            res = play_playlist(
+                db_path=db_path, playlist_id=playlist_id, settings=settings
+            )
             console.print(
                 f"[bold green]Playing Playlist:[/bold green] '{res['playlist_name']}' "
                 f"({res['queued_tracks']} tracks queued to MPD daemon)"
             )
             first = res.get("first_track")
             if first:
-                console.print(f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}")
+                console.print(
+                    f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}"
+                )
         elif seed is not None:
-            res = play_seed(db_path=db_path, seed_track_id=seed, limit=limit, settings=settings)
+            res = play_seed(
+                db_path=db_path, seed_track_id=seed, limit=limit, settings=settings
+            )
             console.print(
                 f"[bold green]Playing Vibe Seed:[/bold green] '{res['playlist_name']}' "
                 f"({res['queued_tracks']} tracks queued to MPD daemon)"
             )
             first = res.get("first_track")
             if first:
-                console.print(f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}")
+                console.print(
+                    f"[bold cyan]Now Playing:[/bold cyan] {first['artist']} - {first['title']}"
+                )
     except PlaybackError as err:
         console.print(f"[bold red]MPD Playback Error:[/bold red] {err}")
         raise typer.Exit(code=1)
