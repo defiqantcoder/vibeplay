@@ -814,8 +814,25 @@ def create_app(
 
     @app.post("/api/player/output", response_class=HTMLResponse)
     async def api_player_output(request: Request, profile: str = Form(...)) -> Response:
-        """Switch audio hardware output profile."""
+        """Switch audio hardware output profile and notify vibe-dsp IPC engine."""
         set_output_profile(profile)
+        try:
+            from vibe_dsp.ipc import DSPClient
+
+            prof_map = {
+                "Pure Bit-Perfect (Direct ALSA)": "pure-bitperfect",
+                "7.1.4 Spatial Headphones (SOFA 3D)": "spatial-headphones",
+                "AV Receiver Passthrough (HDMI)": "receiver-passthrough",
+                "USB DAC (Bit-Perfect)": "pure-bitperfect",
+                "Direct ALSA (hw:0,0)": "pure-bitperfect",
+                "Headphones": "spatial-headphones",
+            }
+            target_id = prof_map.get(profile, profile)
+            client = DSPClient()
+            client.set_profile(target_id)
+        except Exception as err:
+            logger.debug("Could not dispatch profile switch to vibe-dsp IPC: %s", err)
+
         playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,
@@ -837,6 +854,60 @@ def create_app(
             },
         )
 
+    @app.get("/api/dsp/profile")
+    async def api_dsp_get_profile() -> Response:
+        """Return active DSP routing profile, spatial status, and available profile targets."""
+        try:
+            from vibe_dsp.ipc import DSPClient
+
+            client = DSPClient()
+            status = client.get_status()
+            return JSONResponse(content={"status": "ok", "data": status})
+        except Exception as err:
+            logger.warning("Error fetching DSP status: %s", err)
+            return JSONResponse(
+                content={"status": "error", "message": str(err)},
+                status_code=500,
+            )
+
+    @app.post("/api/dsp/profile")
+    async def api_dsp_set_profile(request: Request) -> Response:
+        """Switch audio routing profile on the fly (pure-bitperfect, spatial-headphones, receiver-passthrough)."""
+        target_profile: str | None = None
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = await request.json()
+                target_profile = body.get("profile")
+            except Exception:
+                pass
+        else:
+            try:
+                form = await request.form()
+                target_profile = str(form.get("profile", "")) or None
+            except Exception:
+                pass
+
+        if not target_profile:
+            return JSONResponse(
+                content={"status": "error", "message": "Missing 'profile' parameter"},
+                status_code=400,
+            )
+
+        try:
+            from vibe_dsp.ipc import DSPClient
+
+            client = DSPClient()
+            res = client.set_profile(str(target_profile))
+            set_output_profile(str(target_profile))
+            return JSONResponse(content=res)
+        except Exception as err:
+            logger.warning("Error switching DSP profile: %s", err)
+            return JSONResponse(
+                content={"status": "error", "message": str(err)},
+                status_code=500,
+            )
+
     @app.get("/api/player/status")
     async def api_player_status() -> Response:
         """Return raw JSON playback state, hardware sample rate, DAC buffer health, and service operational status."""
@@ -847,6 +918,17 @@ def create_app(
             "acoustid": "configured" if cfg.acoustid_api_key else "unconfigured",
             "llm": cfg.llm_provider,
         }
+        try:
+            from vibe_dsp.ipc import DSPClient
+
+            client = DSPClient()
+            playback["dsp"] = {
+                "active_profile": client.get_profile(),
+            }
+        except Exception:
+            playback["dsp"] = {
+                "active_profile": playback.get("output_profile"),
+            }
         return JSONResponse(content=playback)
 
     return app

@@ -178,7 +178,7 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
     }
 
 
-def scan_hardware(procfs_root: Path = Path("/proc/asound")) -> AuditReport:
+def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
     """Dynamically scan ALSA procfs and hardware endpoints.
 
     Prioritizes connected USB Audio Class 1.0/2.0 DACs, identifies HDMI and
@@ -190,9 +190,10 @@ def scan_hardware(procfs_root: Path = Path("/proc/asound")) -> AuditReport:
     Returns:
         AuditReport: Complete hardware inventory and recommended bit-perfect endpoint.
     """
+    resolved_root = procfs_root or Path("/proc/asound")
     endpoints: list[AudioEndpoint] = []
-    cards_file = procfs_root / "cards"
-    pcm_file = procfs_root / "pcm"
+    cards_file = resolved_root / "cards"
+    pcm_file = resolved_root / "pcm"
 
     if not cards_file.exists():
         logger.warning(
@@ -222,7 +223,7 @@ def scan_hardware(procfs_root: Path = Path("/proc/asound")) -> AuditReport:
         c_id = card["card_id"]
         c_driver = card["driver"]
         c_name = card["card_name"]
-        card_dir = procfs_root / f"card{c_idx}"
+        card_dir = resolved_root / f"card{c_idx}"
 
         # Probe USB identifiers
         usb_id_file = card_dir / "usbid"
