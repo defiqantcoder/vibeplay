@@ -34,6 +34,22 @@ class Settings(BaseSettings):
         default=None,
         description="API key for optional Gemini LLM integration",
     )
+    llm_provider: str = Field(
+        default="off",
+        description="LLM provider: 'off', 'gemini', or 'ollama'",
+    )
+    llm_model: str = Field(
+        default="gemini-3.8-flash",
+        description="Model name for Gemini provider",
+    )
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Base URL for local Ollama API instance",
+    )
+    ollama_model: str = Field(
+        default="llama3.2",
+        description="Default model name for Ollama provider",
+    )
     vibeplay_env: str = Field(
         default="development",
         description="Environment name (development, testing, production)",
