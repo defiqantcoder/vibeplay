@@ -134,3 +134,40 @@ def test_play_playlist_nonexistent_raises(player_test_db: tuple[Path, int]) -> N
     db_file, _ = player_test_db
     with pytest.raises(ValueError, match="Playlist with ID 999 not found"):
         play_playlist(db_file, 999)
+
+
+def test_adjust_volume_step_and_mute() -> None:
+    """Verify volume stepping and mute toggle behavior with MPDClient."""
+    from vibeplay.player import adjust_volume_step, set_volume_level, toggle_mute
+
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        vol_state = {"volume": "75"}
+        mock_client.status.side_effect = lambda: dict(vol_state)
+
+        def fake_setvol(v: int) -> None:
+            vol_state["volume"] = str(v)
+
+        mock_client.setvol.side_effect = fake_setvol
+
+        # Set initial volume
+        set_volume_level(75)
+        assert vol_state["volume"] == "75"
+
+        # Step up by 5
+        adjust_volume_step(5)
+        assert vol_state["volume"] == "80"
+
+        # Step down by 10
+        adjust_volume_step(-10)
+        assert vol_state["volume"] == "70"
+
+        # Toggle mute: should set to 0
+        toggle_mute()
+        assert vol_state["volume"] == "0"
+
+        # Toggle unmute: should restore last volume (70)
+        toggle_mute()
+        assert vol_state["volume"] == "70"
+

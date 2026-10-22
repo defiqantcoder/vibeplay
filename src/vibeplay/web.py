@@ -22,6 +22,7 @@ from vibeplay.db import (
     get_playlist_tracks,
 )
 from vibeplay.player import (
+    adjust_volume_step,
     get_audio_file_technical_info,
     get_playback_status,
     next_song,
@@ -31,6 +32,7 @@ from vibeplay.player import (
     seek_playback,
     set_output_profile,
     set_volume_level,
+    toggle_mute,
     toggle_pause,
 )
 from vibeplay.playlist import (
@@ -721,6 +723,32 @@ def create_app(
     async def api_player_volume(request: Request, volume: int = Form(...)) -> Response:
         """Set volume level [0-100]."""
         set_volume_level(volume, cfg)
+        playback = get_playback_status(resolved_db_path, cfg)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/transport_bar.html",
+            context={
+                "playback": playback,
+            },
+        )
+
+    @app.post("/api/player/volume-step", response_class=HTMLResponse)
+    async def api_player_volume_step(request: Request, delta: int = Form(5)) -> Response:
+        """Adjust volume level by delta (positive or negative) within [0, 100]."""
+        adjust_volume_step(delta, cfg)
+        playback = get_playback_status(resolved_db_path, cfg)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/transport_bar.html",
+            context={
+                "playback": playback,
+            },
+        )
+
+    @app.post("/api/player/mute-toggle", response_class=HTMLResponse)
+    async def api_player_mute_toggle(request: Request) -> Response:
+        """Toggle mute/unmute state."""
+        toggle_mute(cfg)
         playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,

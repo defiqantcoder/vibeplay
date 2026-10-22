@@ -479,6 +479,20 @@ def test_player_controls_and_telemetry(
     vol_res = client.post("/api/player/volume", data={"volume": "75"})
     assert vol_res.status_code == 200
 
+    # Volume step adjustments (e.g. F5 / F7 keybindings)
+    step_res = client.post("/api/player/volume-step", data={"delta": "5"})
+    assert step_res.status_code == 200
+    assert "transport-footer" in step_res.text
+
+    step_down = client.post("/api/player/volume-step", data={"delta": "-5"})
+    assert step_down.status_code == 200
+    assert "transport-footer" in step_down.text
+
+    # Mute toggle (e.g. F6 keybinding)
+    mute_res = client.post("/api/player/mute-toggle")
+    assert mute_res.status_code == 200
+    assert "transport-footer" in mute_res.text
+
     # Output profile switch
     out_res = client.post("/api/player/output", data={"profile": "Headphones"})
     assert out_res.status_code == 200
