@@ -16,6 +16,9 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+  <!-- Desktop Application Chrome: Simulated Titlebar + Native-Style Menubar -->
+  {% include "components/desktop_chrome.html" %}
+
   <!-- Header -->
   <header class="app-header">
     <div class="brand">
@@ -64,9 +67,13 @@
     </div>
   </dialog>
 
+  <!-- Settings Popover & Hardware Controls Floating Panel -->
+  {% include "components/settings_dialog.html" %}
+
   <!-- Inlined & Linked Client Scripts -->
   <script>
     {% include "components/scripts.html" %}
+    {% include "components/desktop_scripts.html" %}
   </script>
   <script src="/static/app.js"></script>
   {% block scripts %}{% endblock %}

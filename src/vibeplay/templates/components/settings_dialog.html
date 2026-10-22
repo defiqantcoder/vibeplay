@@ -1,0 +1,256 @@
+<!-- Settings Popover & Hardware Controls Floating Panel (Stitch Design Specification) -->
+<dialog id="settings-dialog" class="settings-dialog" closedby="any" aria-labelledby="settings-dialog-title">
+  <div class="settings-container">
+    <!-- Header -->
+    <div class="settings-header">
+      <div class="settings-title-group">
+        <div class="settings-icon-badge">⚙</div>
+        <div>
+          <h2 id="settings-dialog-title" class="settings-title">Preferences & Hardware Controls</h2>
+          <div class="settings-subtitle">vibeplay Engine & Audio Hardware Architecture</div>
+        </div>
+      </div>
+      <button type="button" class="btn-close-modal" onclick="closeSettingsDialog()" title="Close (Esc)">✕</button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="settings-tabs-bar" role="tablist">
+      <button type="button" class="settings-tab-btn active" id="tab-btn-transport" onclick="switchSettingsTab('transport')">
+        <span class="tab-icon">🔌</span>
+        <span>ALSA Transport</span>
+      </button>
+      <button type="button" class="settings-tab-btn" id="tab-btn-dsp" onclick="switchSettingsTab('dsp')">
+        <span class="tab-icon">🎛</span>
+        <span>DSP & Profiles</span>
+      </button>
+      <button type="button" class="settings-tab-btn" id="tab-btn-analyzer" onclick="switchSettingsTab('analyzer')">
+        <span class="tab-icon">🧠</span>
+        <span>Feature Engine</span>
+      </button>
+      <button type="button" class="settings-tab-btn" id="tab-btn-theme" onclick="switchSettingsTab('theme')">
+        <span class="tab-icon">🎨</span>
+        <span>Theme Engine</span>
+      </button>
+    </div>
+
+    <!-- Tab Panels Body -->
+    <div class="settings-body">
+      <!-- 1. ALSA Hardware Transport Tab -->
+      <div class="settings-panel active" id="panel-transport">
+        <div class="panel-section">
+          <label class="section-label">Direct ALSA Hardware Device (Exclusive Mode)</label>
+          <div class="select-wrapper">
+            <select id="cfg-alsa-device" class="settings-select" onchange="updateAudioDeviceConfig()">
+              <option value="hw:0,0" selected>hw:0,0 — Intel/Realtek High Definition Audio (Analog Speaker)</option>
+              <option value="hw:0,3">hw:0,3 — HDMI/DP Digital Bitstream Out (Endpoint 1)</option>
+              <option value="hw:0,4">hw:0,4 — HDMI/DP Digital Bitstream Out (Endpoint 2)</option>
+              <option value="plughw:0,0">plughw:0,0 — Transparent ALSA Format Converter Fallback</option>
+              <option value="pipewire">PipeWire Sound Server (Shared Desktop Mixer)</option>
+            </select>
+          </div>
+          <p class="section-help">Direct hardware exclusive mode strictly bypasses pulse/pipewire mixers and software resampling.</p>
+        </div>
+
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label">DMA Period Buffer Tuning</label>
+            <select id="cfg-buffer-size" class="settings-select">
+              <option value="64">64 frames (0.67ms @ 96kHz - Ultra Low Latency)</option>
+              <option value="128" selected>128 frames (1.33ms @ 96kHz - Recommended)</option>
+              <option value="256">256 frames (2.67ms @ 96kHz - Safe Studio)</option>
+              <option value="512">512 frames (5.33ms @ 96kHz - Relaxed)</option>
+            </select>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label">Master Clock Sample Rate Lock</label>
+            <select id="cfg-sample-rate" class="settings-select">
+              <option value="auto" selected>Auto-Follow Source Track (Strict Bit-Perfect)</option>
+              <option value="44100">Lock to 44.1 kHz (Redbook CD)</option>
+              <option value="48000">Lock to 48.0 kHz (Broadcast Standard)</option>
+              <option value="96000">Lock to 96.0 kHz (Studio Master High-Res)</option>
+              <option value="192000">Lock to 192.0 kHz (Reference Audiophile)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel-section telemetry-box">
+          <div class="telemetry-box-header">
+            <span>Real-time Kernel Latency & DPC Watchdog</span>
+            <span class="badge-mini badge-green" id="cfg-xrun-badge">Healthy</span>
+          </div>
+          <div class="telemetry-box-grid">
+            <div>
+              <div class="box-stat-label">Buffer Underruns:</div>
+              <div class="box-stat-value text-green" id="cfg-xruns-val">0 xruns</div>
+            </div>
+            <div>
+              <div class="box-stat-label">Clock Jitter:</div>
+              <div class="box-stat-value text-cyan">±0.02 ppm</div>
+            </div>
+            <div>
+              <div class="box-stat-label">Scheduling Mode:</div>
+              <div class="box-stat-value">SCHED_FIFO (rtkit)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. DSP & Signal Chain Tab -->
+      <div class="settings-panel" id="panel-dsp">
+        <div class="panel-section">
+          <label class="section-label">Audio Transport Routing Profile</label>
+          <div class="profile-cards-grid">
+            <div class="profile-card active" id="pcard-bitperfect" onclick="setDspProfile('pure-bitperfect')">
+              <div class="pcard-header">
+                <span class="pcard-title">Pure Bit-Perfect</span>
+                <span class="pcard-badge badge-green">Direct ALSA</span>
+              </div>
+              <p class="pcard-desc">Bypasses all software mixers, resamplers, and OS audio routing. Strictly outputs bit-perfect PCM/DSD.</p>
+            </div>
+
+            <div class="profile-card" id="pcard-spatial" onclick="setDspProfile('spatial-headphones')">
+              <div class="pcard-header">
+                <span class="pcard-title">7.1.4 Spatial Audio</span>
+                <span class="pcard-badge badge-cyan">PipeWire SOFA</span>
+              </div>
+              <p class="pcard-desc">Virtualizes multi-channel audio via KEMAR HRTF impulse response files with transducer-specific PEQ.</p>
+            </div>
+
+            <div class="profile-card" id="pcard-receiver" onclick="setDspProfile('receiver-passthrough')">
+              <div class="pcard-header">
+                <span class="pcard-title">Receiver Passthrough</span>
+                <span class="pcard-badge">HDMI Bitstream</span>
+              </div>
+              <p class="pcard-desc">Sends compressed AC3, EAC3, TrueHD, and DTS-HD streams directly to connected AV receivers for hardware decoding.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label">3D Binaural Virtualization</label>
+            <div class="toggle-row">
+              <label class="switch">
+                <input type="checkbox" id="cfg-spatial-toggle" onchange="triggerSpatialToggle()">
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label" id="cfg-spatial-label">KEMAR HRTF 7.1.4 Convolver</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label">Anti-Clipping Negative Pre-Amp</label>
+            <div class="toggle-row">
+              <label class="switch">
+                <input type="checkbox" id="cfg-preamp-toggle" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label">Auto-Attenuate Headroom (-5.5 dB)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Feature Extraction Engine Tab -->
+      <div class="settings-panel" id="panel-analyzer">
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label">Analyzer Architecture</label>
+            <select id="cfg-analyzer-backend" class="settings-select">
+              <option value="essentia" selected>Essentia TensorFlow (Default)</option>
+              <option value="librosa">Librosa Multiprocessing (Pure Python Fallback)</option>
+            </select>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label">Parallel Extraction Workers</label>
+            <select id="cfg-workers" class="settings-select">
+              <option value="2">2 Worker Cores</option>
+              <option value="4" selected>4 Worker Cores (Recommended)</option>
+              <option value="8">8 Worker Cores (High Throughput)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">Analysis Center Window Duration: <span id="label-window-sec" class="text-primary">60s</span></label>
+          <input type="range" class="settings-range" id="cfg-window-sec" min="15" max="120" value="60" oninput="document.getElementById('label-window-sec').textContent = this.value + 's';">
+          <p class="section-help">Extracts spectral features and harmonic vectors from the middle segment of tracks.</p>
+        </div>
+      </div>
+
+      <!-- 4. Theme Engine Tab -->
+      <div class="settings-panel" id="panel-theme">
+        <label class="section-label">Console Palette Presets</label>
+        <div class="theme-cards-grid">
+          <div class="theme-card" onclick="applyTheme('god-of-ink')" data-theme-card="god-of-ink">
+            <div class="theme-card-preview theme-bg-ink">
+              <span class="theme-swatch-dot swatch-ink-pri"></span>
+              <span class="theme-swatch-dot swatch-ink-sec"></span>
+              <span class="theme-swatch-dot swatch-ink-gold"></span>
+            </div>
+            <div class="theme-card-title">God of Ink</div>
+            <div class="theme-card-sub">Midnight Navy, Slate & Gold</div>
+          </div>
+
+          <div class="theme-card" onclick="applyTheme('wine')" data-theme-card="wine">
+            <div class="theme-card-preview theme-bg-wine">
+              <span class="theme-swatch-dot swatch-wine-pri"></span>
+              <span class="theme-swatch-dot swatch-wine-sec"></span>
+              <span class="theme-swatch-dot swatch-wine-rose"></span>
+            </div>
+            <div class="theme-card-title">Wine</div>
+            <div class="theme-card-sub">Deep Burgundy & Velvet Rose</div>
+          </div>
+
+          <div class="theme-card" onclick="applyTheme('obsidian')" data-theme-card="obsidian">
+            <div class="theme-card-preview theme-bg-obsidian">
+              <span class="theme-swatch-dot swatch-obs-pri"></span>
+              <span class="theme-swatch-dot swatch-obs-sec"></span>
+              <span class="theme-swatch-dot swatch-obs-glow"></span>
+            </div>
+            <div class="theme-card-title">Obsidian</div>
+            <div class="theme-card-sub">Jet Charcoal & Royal Violet</div>
+          </div>
+
+          <div class="theme-card" onclick="applyTheme('swimming-with-the-whales')" data-theme-card="swimming-with-the-whales">
+            <div class="theme-card-preview theme-bg-whales">
+              <span class="theme-swatch-dot swatch-whale-pri"></span>
+              <span class="theme-swatch-dot swatch-whale-sec"></span>
+              <span class="theme-swatch-dot swatch-whale-aqua"></span>
+            </div>
+            <div class="theme-card-title">Swimming with the Whales</div>
+            <div class="theme-card-sub">Abyssal Ocean & Turquoise</div>
+          </div>
+
+          <div class="theme-card" onclick="applyTheme('mint-city')" data-theme-card="mint-city">
+            <div class="theme-card-preview theme-bg-mint">
+              <span class="theme-swatch-dot swatch-mint-pri"></span>
+              <span class="theme-swatch-dot swatch-mint-sec"></span>
+              <span class="theme-swatch-dot swatch-mint-glow"></span>
+            </div>
+            <div class="theme-card-title">Mint City</div>
+            <div class="theme-card-sub">Dark Plum, Teal & Neon Mint</div>
+          </div>
+
+          <div class="theme-card" onclick="applyTheme('slate-audiophile')" data-theme-card="slate-audiophile">
+            <div class="theme-card-preview theme-bg-slate">
+              <span class="theme-swatch-dot swatch-slate-pri"></span>
+              <span class="theme-swatch-dot swatch-slate-sec"></span>
+              <span class="theme-swatch-dot swatch-slate-green"></span>
+            </div>
+            <div class="theme-card-title">Slate Audiophile</div>
+            <div class="theme-card-sub">Studio Neutral & Emerald</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="settings-footer">
+      <span class="text-muted text-xs">Settings apply instantly and persist to local storage.</span>
+      <button type="button" class="btn-primary" onclick="closeSettingsDialog()">Done</button>
+    </div>
+  </div>
+</dialog>

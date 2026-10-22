@@ -117,7 +117,7 @@ THEME_PRESETS: list[ThemePreset] = [
         },
     ),
     ThemePreset(
-        id="slate-classic",
+        id="slate-audiophile",
         name="Slate Audiophile",
         description="Classic high-contrast dark console with emerald status indicators",
         variables={
@@ -147,6 +147,8 @@ def get_available_themes() -> list[ThemePreset]:
 def get_theme_by_id(theme_id: str) -> ThemePreset:
     """Retrieve theme preset by identifier, defaulting to 'god-of-ink' if not found."""
     clean_id = theme_id.lower().strip()
+    if clean_id == "slate-classic":
+        clean_id = "slate-audiophile"
     for preset in THEME_PRESETS:
         if preset.id == clean_id:
             return preset
@@ -157,4 +159,24 @@ def get_theme_css_variables(theme_id: str = "god-of-ink") -> str:
     """Generate CSS variable declarations string for a target theme."""
     theme = get_theme_by_id(theme_id)
     declarations = [f"  {k}: {v};" for k, v in theme.variables.items()]
-    return f":root[data-theme='{theme.id}'], :root {{\n" + "\n".join(declarations) + "\n}"
+    # Add mapped aliases for styles.html compatibility
+    declarations.extend([
+        f"  --bg-canvas: {theme.variables.get('--bg-base', '#070b14')};",
+        f"  --bg-container-lowest: {theme.variables.get('--bg-base', '#070b14')};",
+        f"  --bg-container-low: {theme.variables.get('--bg-surface', '#0f172a')};",
+        f"  --bg-container: {theme.variables.get('--bg-card', '#1e293b')};",
+        f"  --bg-container-high: {theme.variables.get('--border', '#334155')};",
+        f"  --text-primary: {theme.variables.get('--text', '#f8fafc')};",
+        f"  --secondary: {theme.variables.get('--accent', '#38bdf8')};",
+        f"  --tertiary: {theme.variables.get('--status-ok', '#22c55e')};",
+    ])
+    return f":root[data-theme='{theme.id}'], html[data-theme='{theme.id}'], body[data-theme='{theme.id}'] {{\n" + "\n".join(declarations) + "\n}"
+
+
+def generate_all_themes_css() -> str:
+    """Generate complete CSS stylesheet declaring custom properties for all presets."""
+    blocks = [get_theme_css_variables("god-of-ink")]
+    for preset in THEME_PRESETS:
+        blocks.append(get_theme_css_variables(preset.id))
+    return "\n\n".join(blocks)
+
