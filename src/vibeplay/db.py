@@ -1,5 +1,6 @@
 """Database access and schema management for vibeplay with versioned migrations."""
 
+import json
 import logging
 import sqlite3
 from dataclasses import dataclass
@@ -1105,3 +1106,92 @@ def delete_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     cursor = conn.cursor()
     cursor.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
     return cursor.rowcount > 0
+
+
+def get_llm_cache(conn: sqlite3.Connection, prompt_hash: str) -> str | None:
+    """Retrieve cached LLM response for a given SHA256 prompt hash.
+
+    Args:
+        conn: Open SQLite connection.
+        prompt_hash: Hexadecimal SHA256 hash string.
+
+    Returns:
+        str | None: Cached JSON/text response, or None if not found.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,)
+    )
+    row = cursor.fetchone()
+    return row["response"] if row else None
+
+
+def set_llm_cache(
+    conn: sqlite3.Connection, prompt_hash: str, prompt: str, response: str, model: str
+) -> None:
+    """Insert or replace a cached LLM response.
+
+    Args:
+        conn: Open SQLite connection.
+        prompt_hash: Hexadecimal SHA256 hash string.
+        prompt: Raw prompt text sent to LLM.
+        response: Response text received from LLM.
+        model: Model identifier used for generation.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO llm_cache (prompt_hash, prompt, response, model, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """,
+        (prompt_hash, prompt, response, model),
+    )
+
+
+def update_track_vibe_tags(
+    conn: sqlite3.Connection,
+    track_id: int,
+    mood_tags: list[str],
+    genre_tags: list[str],
+) -> None:
+    """Persist generated mood and genre tags for a track.
+
+    Args:
+        conn: Open SQLite connection.
+        track_id: Database ID of the track.
+        mood_tags: List of descriptive mood tags.
+        genre_tags: List of descriptive genre tags.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT track_id, tags, genres FROM enrichment WHERE track_id = ?",
+        (track_id,),
+    )
+    row = cursor.fetchone()
+
+    combined_tags_json = json.dumps(mood_tags)
+    combined_genres_json = json.dumps(genre_tags)
+
+    if row:
+        cursor.execute(
+            """
+            UPDATE enrichment
+            SET tags = ?, genres = ?, fetched_at = CURRENT_TIMESTAMP
+            WHERE track_id = ?
+            """,
+            (combined_tags_json, combined_genres_json, track_id),
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO enrichment (track_id, source, tags, genres, status, confidence, fetched_at)
+            VALUES (?, 'llm', ?, ?, 'matched', 1.0, CURRENT_TIMESTAMP)
+            """,
+            (track_id, combined_tags_json, combined_genres_json),
+        )
+
+    # Also update tracks.tags for quick reference
+    cursor.execute(
+        "UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (combined_tags_json, track_id),
+    )

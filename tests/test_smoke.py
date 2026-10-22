@@ -30,6 +30,7 @@ def test_cli_help() -> None:
         "analyze",
         "clusters",
         "playlist",
+        "tag",
         "export",
         "play",
         "serve",

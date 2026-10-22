@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -19,10 +19,12 @@ from rich.table import Table
 
 from vibeplay.analysis import analyze_tracks
 from vibeplay.config import get_settings
+from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.enrichment import enrich_tracks, get_report_data
 from vibeplay.exporter import export_playlist_to_file
+from vibeplay.llm import batch_vibe_tag_tracks, parse_prompt_to_plan
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import generate_playlist
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.scanner import scan_directory
 from vibeplay.vectors import compute_clusters
 
@@ -490,6 +492,14 @@ def playlist(
         str,
         typer.Option(help="Name of the generated playlist"),
     ] = "Vibe Playlist",
+    prompt: Annotated[
+        str | None,
+        typer.Option(
+            "--prompt",
+            "-p",
+            help="Natural language prompt for playlist vibe (e.g. 'rainy night focus, no vocals')",
+        ),
+    ] = None,
     seed: Annotated[
         str | None,
         typer.Option(
@@ -545,7 +555,7 @@ def playlist(
         typer.Option(help="Path to SQLite database (defaults to configured path)"),
     ] = None,
 ) -> None:
-    """Generate a cohesive smart playlist based on seeds, vibe, cluster, or energy arc."""
+    """Generate a cohesive smart playlist based on seeds, vibe, cluster, energy arc, or AI prompt."""
     settings = get_settings()
     db_path = (
         db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
@@ -561,6 +571,44 @@ def playlist(
             )
             raise typer.Exit(code=1)
 
+    description: str | None = None
+    custom_rules: PlaylistRuleConfig | None = None
+
+    if prompt:
+        console.print(
+            f'[bold cyan]AI Vibe Planner:[/bold cyan] Translating prompt: [italic]"{prompt}"[/italic]'
+        )
+        plan = parse_prompt_to_plan(prompt, db_path=db_path, settings=settings)
+        console.print(
+            f"[bold green]Thematic Concept:[/bold green] [bold]{plan.name}[/bold]"
+        )
+        console.print(f"[bold dim]Vibe Summary:[/bold dim]     {plan.description}")
+
+        if name == "Vibe Playlist":
+            name = plan.name
+        description = plan.description
+        if vibe is None and plan.vibe:
+            vibe = plan.vibe
+        if arc is None and plan.arc:
+            arc = plan.arc
+
+        custom_rules = PlaylistRuleConfig(
+            mode=plan.mode,
+            arc=plan.arc,
+            vibe=plan.vibe,
+            bpm_min=plan.bpm_min,
+            bpm_max=plan.bpm_max,
+            energy_min=plan.energy_min,
+            energy_max=plan.energy_max,
+            danceability_min=plan.danceability_min,
+            danceability_max=plan.danceability_max,
+            mood_min=plan.mood_min,
+            genre_include=plan.genre_include,
+            genre_exclude=plan.genre_exclude,
+            limit=plan.limit if limit == 25 else limit,
+            max_artist_tracks=max_artist_tracks,
+        )
+
     try:
         gen = generate_playlist(
             db_path=db_path,
@@ -572,6 +620,8 @@ def playlist(
             limit=limit,
             minutes=minutes,
             max_artist_tracks=max_artist_tracks,
+            rules=custom_rules,
+            description=description,
             settings=settings,
         )
     except Exception as err:
@@ -661,6 +711,98 @@ def playlist(
             console.print(f"[bold yellow]MPD Daemon Notice:[/bold yellow] {err}")
         except Exception as err:
             console.print(f"[bold red]Playback Error:[/bold red] {err}")
+
+
+@app.command()
+def tag(
+    track_ids: Annotated[
+        list[int] | None,
+        typer.Argument(help="Specific track IDs to tag (optional)"),
+    ] = None,
+    all_tracks: Annotated[
+        bool,
+        typer.Option("--all", "-a", help="Tag all tracks in the database"),
+    ] = False,
+    batch_size: Annotated[
+        int,
+        typer.Option(help="Batch size for LLM requests"),
+    ] = 20,
+    limit: Annotated[
+        int | None,
+        typer.Option(help="Maximum number of tracks to process"),
+    ] = None,
+    db: Annotated[
+        Path | None,
+        typer.Option(help="Path to SQLite database (defaults to configured path)"),
+    ] = None,
+) -> None:
+    """Batch-tag audio tracks with mood and genre descriptors using an LLM."""
+    settings = get_settings()
+    db_path = (
+        db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
+    )
+
+    with get_connection(db_path) as conn:
+        all_tracks_rows = get_tracks_with_features(conn)
+
+    target_tracks: list[dict[str, Any]] = []
+    id_set = set(track_ids) if track_ids else None
+
+    for r in all_tracks_rows:
+        tid = int(r["track_id"])
+        if id_set is not None and tid not in id_set:
+            continue
+        target_tracks.append(
+            {
+                "track_id": tid,
+                "title": r["title"] or "Unknown Title",
+                "artist": r["artist"] or "Unknown Artist",
+                "bpm": r["bpm"],
+                "energy": r["energy"],
+                "danceability": r["danceability"],
+                "loudness": r["loudness"],
+                "key": r["key"],
+                "scale": r["scale"],
+            }
+        )
+        if limit is not None and len(target_tracks) >= limit:
+            break
+
+    if not target_tracks:
+        console.print("[yellow]No eligible analyzed tracks found to tag.[/yellow]")
+        return
+
+    console.print(
+        f"[bold cyan]Batch Vibe Tagging:[/bold cyan] Processing {len(target_tracks)} tracks "
+        f"(batch size: {batch_size}, provider: {settings.llm_provider})..."
+    )
+
+    results = batch_vibe_tag_tracks(
+        tracks=target_tracks,
+        db_path=db_path,
+        settings=settings,
+        batch_size=batch_size,
+    )
+
+    table = Table(
+        title=f"Vibe Tagging Results ({len(results)} tracks updated)",
+        show_header=True,
+    )
+    table.add_column("ID", style="dim", width=5)
+    table.add_column("Mood Tags", style="cyan")
+    table.add_column("Genre Tags", style="magenta")
+
+    for item in results:
+        table.add_row(
+            str(item.track_id),
+            ", ".join(item.mood_tags) or "-",
+            ", ".join(item.genre_tags) or "-",
+        )
+
+    console.print(table)
+    console.print(
+        f"[bold green]Successfully tagged {len(results)} tracks in database.[/bold green]"
+    )
 
 
 @app.command()

@@ -28,6 +28,7 @@ from vibeplay.player import (
     play_playlist,
     play_track,
     previous_song,
+    seek_playback,
     set_output_profile,
     set_volume_level,
     toggle_pause,
@@ -40,6 +41,7 @@ from vibeplay.playlist import (
     generate_playlist,
     key_to_camelot,
 )
+from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.vectors import ClusterSummary, compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
@@ -456,6 +458,7 @@ def create_app(
     async def api_generate_playlist(
         request: Request,
         name: str = Form("Audiophile Vibe Session"),
+        prompt: str | None = Form(None),
         seed_track_id: str | None = Form(None),
         cluster_id: str | None = Form(None),
         vibe: str | None = Form(None),
@@ -479,8 +482,38 @@ def create_app(
         parsed_vibe = vibe.strip() if vibe and vibe.strip() else None
         parsed_arc = arc.strip() if arc and arc.strip() else None
 
+        desc = None
         rules = None
-        if energy is not None or danceability is not None:
+
+        if prompt and prompt.strip():
+            try:
+                plan = parse_prompt_to_plan(
+                    prompt.strip(), db_path=resolved_db_path, settings=cfg
+                )
+                name = plan.name
+                desc = plan.description
+                parsed_vibe = plan.vibe or parsed_vibe
+                parsed_arc = plan.arc or parsed_arc
+                rules = PlaylistRuleConfig(
+                    mode=plan.mode,
+                    arc=plan.arc,
+                    vibe=plan.vibe,
+                    bpm_min=plan.bpm_min,
+                    bpm_max=plan.bpm_max,
+                    energy_min=plan.energy_min,
+                    energy_max=plan.energy_max,
+                    danceability_min=plan.danceability_min,
+                    danceability_max=plan.danceability_max,
+                    mood_min=plan.mood_min,
+                    genre_include=plan.genre_include,
+                    genre_exclude=plan.genre_exclude,
+                    limit=plan.limit or limit,
+                    max_artist_tracks=max_artist_tracks,
+                )
+            except Exception as plan_err:
+                logger.warning("Prompt planning error: %s", plan_err)
+
+        if rules is None and (energy is not None or danceability is not None):
             rules = PlaylistRuleConfig(
                 energy_min=max(0.0, energy - 0.25) if energy is not None else None,
                 energy_max=min(1.0, energy + 0.25) if energy is not None else None,
@@ -503,6 +536,7 @@ def create_app(
                 limit=limit,
                 max_artist_tracks=max_artist_tracks,
                 rules=rules,
+                description=desc,
                 settings=cfg,
             )
         except Exception as err:
@@ -519,6 +553,7 @@ def create_app(
                 arc=parsed_arc,
                 limit=limit,
                 max_artist_tracks=max_artist_tracks,
+                description=desc,
                 settings=cfg,
             )
 
@@ -633,7 +668,20 @@ def create_app(
     @app.post("/api/player/toggle", response_class=HTMLResponse)
     async def api_player_toggle(request: Request) -> Response:
         """Toggle play/pause state in MPD."""
-        toggle_pause(cfg)
+        toggle_pause(db_path=resolved_db_path, settings=cfg)
+        playback = get_playback_status(resolved_db_path, cfg)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/transport_bar.html",
+            context={
+                "playback": playback,
+            },
+        )
+
+    @app.post("/api/player/seek", response_class=HTMLResponse)
+    async def api_player_seek(request: Request, seconds: float = Form(0.0)) -> Response:
+        """Seek active track in MPD to target time offset."""
+        seek_playback(seconds, settings=cfg)
         playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,
