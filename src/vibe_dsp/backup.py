@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 from datetime import datetime
@@ -35,7 +36,7 @@ def create_backup(
     root = backup_root or DEFAULT_BACKUP_ROOT
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = root / timestamp
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     manifest_items: list[dict[str, Any]] = []
     rollback_commands: list[str] = [
@@ -51,10 +52,12 @@ def create_backup(
         target_path = target.expanduser().resolve()
         target_name = target_path.name
         existed = target_path.exists()
+        quoted_target = shlex.quote(str(target_path))
 
         if existed:
             backup_file = backup_dir / target_name
             shutil.copy2(target_path, backup_file)
+            quoted_backup = shlex.quote(str(backup_file))
             manifest_items.append(
                 {
                     "target": str(target_path),
@@ -62,8 +65,8 @@ def create_backup(
                     "backup_file": str(backup_file),
                 }
             )
-            rollback_commands.append(f'echo "Restoring {target_path}..."')
-            rollback_commands.append(f'cp -f "{backup_file}" "{target_path}"')
+            rollback_commands.append(f'echo "Restoring {quoted_target}..."')
+            rollback_commands.append(f"cp -f {quoted_backup} {quoted_target}")
         else:
             manifest_items.append(
                 {
@@ -71,8 +74,8 @@ def create_backup(
                     "action": "delete",
                 }
             )
-            rollback_commands.append(f'echo "Removing newly created {target_path}..."')
-            rollback_commands.append(f'rm -f "{target_path}"')
+            rollback_commands.append(f'echo "Removing newly created {quoted_target}..."')
+            rollback_commands.append(f"rm -f {quoted_target}")
 
     # Add service restart commands to rollback
     rollback_commands.extend(
@@ -96,10 +99,10 @@ def create_backup(
     }
     manifest_file.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
 
-    # Write rollback.sh and make executable
+    # Write rollback.sh and make executable by owner only (0700)
     rollback_script = backup_dir / "rollback.sh"
     rollback_script.write_text("\n".join(rollback_commands) + "\n", encoding="utf-8")
-    os.chmod(rollback_script, 0o755)
+    os.chmod(rollback_script, 0o700)
 
     logger.info("Created configuration backup and rollback script at %s", backup_dir)
     return backup_dir, rollback_script
