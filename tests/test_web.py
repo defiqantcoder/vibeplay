@@ -44,20 +44,185 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
 
     tracks_data = [
         # (id, title, artist, album, duration, bpm, key, scale, energy, dance, genre, happy, relaxed, acoustic)
-        (1, "Summer Breeze", "Solaris", "Heatwave", 200.0, 120.0, "C", "major", 0.3, 0.4, "Ambient", 0.8, 0.9, 0.2),
-        (2, "Sunset Chill", "Solaris", "Heatwave", 210.0, 122.0, "G", "major", 0.4, 0.5, "Ambient", 0.7, 0.9, 0.3),
-        (3, "Overdrive", "Solaris", "Heatwave", 180.0, 128.0, "D", "major", 0.5, 0.6, "Rock", 0.4, 0.2, 0.1),
-        (4, "Nightfall", "Lunar", "Orbit", 240.0, 124.0, "A", "minor", 0.6, 0.7, "Electronic", 0.3, 0.4, 0.1),
-        (5, "Starlight", "Lunar", "Orbit", 195.0, 126.0, "E", "minor", 0.7, 0.8, "Electronic", 0.4, 0.3, 0.1),
-        (6, "Cosmic Pulse", "Apex", "Peak Time", 220.0, 130.0, "B", "minor", 0.8, 0.9, "Techno", 0.2, 0.1, 0.0),
-        (7, "Final Rush", "Apex", "Peak Time", 210.0, 132.0, "F#", "minor", 0.9, 0.85, "Techno", 0.2, 0.1, 0.0),
-        (8, "Acoustic Morning", "Echo Valley", "Roots", 175.0, 95.0, "C", "major", 0.25, 0.3, "Folk", 0.7, 0.8, 0.95),
-        (9, "Rustic Strings", "Echo Valley", "Roots", 190.0, 100.0, "G", "major", 0.35, 0.35, "Folk", 0.6, 0.8, 0.90),
-        (10, "Party Rock", "The Dynamos", "Groove", 185.0, 125.0, "F", "major", 0.85, 0.8, "Dance", 0.95, 0.1, 0.1),
+        (
+            1,
+            "Summer Breeze",
+            "Solaris",
+            "Heatwave",
+            200.0,
+            120.0,
+            "C",
+            "major",
+            0.3,
+            0.4,
+            "Ambient",
+            0.8,
+            0.9,
+            0.2,
+        ),
+        (
+            2,
+            "Sunset Chill",
+            "Solaris",
+            "Heatwave",
+            210.0,
+            122.0,
+            "G",
+            "major",
+            0.4,
+            0.5,
+            "Ambient",
+            0.7,
+            0.9,
+            0.3,
+        ),
+        (
+            3,
+            "Overdrive",
+            "Solaris",
+            "Heatwave",
+            180.0,
+            128.0,
+            "D",
+            "major",
+            0.5,
+            0.6,
+            "Rock",
+            0.4,
+            0.2,
+            0.1,
+        ),
+        (
+            4,
+            "Nightfall",
+            "Lunar",
+            "Orbit",
+            240.0,
+            124.0,
+            "A",
+            "minor",
+            0.6,
+            0.7,
+            "Electronic",
+            0.3,
+            0.4,
+            0.1,
+        ),
+        (
+            5,
+            "Starlight",
+            "Lunar",
+            "Orbit",
+            195.0,
+            126.0,
+            "E",
+            "minor",
+            0.7,
+            0.8,
+            "Electronic",
+            0.4,
+            0.3,
+            0.1,
+        ),
+        (
+            6,
+            "Cosmic Pulse",
+            "Apex",
+            "Peak Time",
+            220.0,
+            130.0,
+            "B",
+            "minor",
+            0.8,
+            0.9,
+            "Techno",
+            0.2,
+            0.1,
+            0.0,
+        ),
+        (
+            7,
+            "Final Rush",
+            "Apex",
+            "Peak Time",
+            210.0,
+            132.0,
+            "F#",
+            "minor",
+            0.9,
+            0.85,
+            "Techno",
+            0.2,
+            0.1,
+            0.0,
+        ),
+        (
+            8,
+            "Acoustic Morning",
+            "Echo Valley",
+            "Roots",
+            175.0,
+            95.0,
+            "C",
+            "major",
+            0.25,
+            0.3,
+            "Folk",
+            0.7,
+            0.8,
+            0.95,
+        ),
+        (
+            9,
+            "Rustic Strings",
+            "Echo Valley",
+            "Roots",
+            190.0,
+            100.0,
+            "G",
+            "major",
+            0.35,
+            0.35,
+            "Folk",
+            0.6,
+            0.8,
+            0.90,
+        ),
+        (
+            10,
+            "Party Rock",
+            "The Dynamos",
+            "Groove",
+            185.0,
+            125.0,
+            "F",
+            "major",
+            0.85,
+            0.8,
+            "Dance",
+            0.95,
+            0.1,
+            0.1,
+        ),
     ]
 
     with get_connection(db_file) as conn:
-        for tid, title, artist, album, dur, bpm, key, scale, energy, dance, genre, hap, rel, aco in tracks_data:
+        for (
+            tid,
+            title,
+            artist,
+            album,
+            dur,
+            bpm,
+            key,
+            scale,
+            energy,
+            dance,
+            genre,
+            hap,
+            rel,
+            aco,
+        ) in tracks_data:
             insert_track(
                 conn,
                 path=f"/music/{artist}/{album}/{title}.flac",
@@ -79,7 +244,9 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.95 if "Party" in title else 0.2,
                 "acoustic": aco,
-                "electronic": 0.9 if "Techno" in genre or "Electronic" in genre else 0.1,
+                "electronic": 0.9
+                if "Techno" in genre or "Electronic" in genre
+                else 0.1,
             }
             np.random.seed(tid)
             emb = np.random.randn(32).astype(np.float32).tobytes()
@@ -115,7 +282,9 @@ def test_index_page(test_environment: tuple[Path, Settings, TestClient]) -> None
     assert "Track Telemetry" not in response.text  # Modal starts empty/unopened
 
 
-def test_library_table_filtering_and_sorting(test_environment: tuple[Path, Settings, TestClient]) -> None:
+def test_library_table_filtering_and_sorting(
+    test_environment: tuple[Path, Settings, TestClient],
+) -> None:
     """Verify library table filtering by text, artist, Camelot key, mood, tempo, and sort."""
     _, _, client = test_environment
 
@@ -170,7 +339,9 @@ def test_library_table_filtering_and_sorting(test_environment: tuple[Path, Setti
     assert idx_rush < idx_folk
 
 
-def test_track_detail_modal(test_environment: tuple[Path, Settings, TestClient]) -> None:
+def test_track_detail_modal(
+    test_environment: tuple[Path, Settings, TestClient],
+) -> None:
     """Verify track detail partial renders audio specs and neural mood graphs."""
     _, _, client = test_environment
 
@@ -191,7 +362,9 @@ def test_track_detail_modal(test_environment: tuple[Path, Settings, TestClient])
     assert response_404.status_code == 404
 
 
-def test_cluster_cards_endpoint(test_environment: tuple[Path, Settings, TestClient]) -> None:
+def test_cluster_cards_endpoint(
+    test_environment: tuple[Path, Settings, TestClient],
+) -> None:
     """Verify cluster cards HTMX partial computes and displays cluster centroids."""
     _, _, client = test_environment
     response = client.get("/api/clusters/cards")
@@ -200,7 +373,9 @@ def test_cluster_cards_endpoint(test_environment: tuple[Path, Settings, TestClie
     assert "Build Cluster Playlist" in response.text
 
 
-def test_playlist_generation_reorder_and_export(test_environment: tuple[Path, Settings, TestClient]) -> None:
+def test_playlist_generation_reorder_and_export(
+    test_environment: tuple[Path, Settings, TestClient],
+) -> None:
     """Verify playlist creation, drag-and-drop reordering, and M3U8 export."""
     _, _, client = test_environment
 
@@ -250,18 +425,27 @@ def test_playlist_generation_reorder_and_export(test_environment: tuple[Path, Se
         },
     )
     assert reorder_res.status_code == 200
-    new_track_matches = [int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)]
+    new_track_matches = [
+        int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)
+    ]
     assert new_track_matches == reversed_ids
 
     # Reorder validation errors
-    bad_req = client.post("/api/playlist/reorder", data={"playlist_id": str(playlist_id), "track_ids": "not_an_id"})
+    bad_req = client.post(
+        "/api/playlist/reorder",
+        data={"playlist_id": str(playlist_id), "track_ids": "not_an_id"},
+    )
     assert bad_req.status_code == 400
 
-    not_found = client.post("/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"})
+    not_found = client.post(
+        "/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"}
+    )
     assert not_found.status_code == 404
 
 
-def test_player_controls_and_telemetry(test_environment: tuple[Path, Settings, TestClient]) -> None:
+def test_player_controls_and_telemetry(
+    test_environment: tuple[Path, Settings, TestClient],
+) -> None:
     """Verify hardware DAC telemetry status JSON and all player control endpoints."""
     _, _, client = test_environment
 

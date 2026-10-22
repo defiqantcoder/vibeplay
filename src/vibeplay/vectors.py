@@ -608,7 +608,9 @@ def compute_clusters(
             for mood_key in MOOD_KEYS:
                 mood_sums[mood_key] += float(track_moods.get(mood_key, 0.0))
 
-        avg_moods = [(mood_key, mood_sums[mood_key] / member_size) for mood_key in MOOD_KEYS]
+        avg_moods = [
+            (mood_key, mood_sums[mood_key] / member_size) for mood_key in MOOD_KEYS
+        ]
         avg_moods.sort(key=lambda x: x[1], reverse=True)
         dominant_moods = avg_moods[:3]
 

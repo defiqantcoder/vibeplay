@@ -15,7 +15,6 @@ import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from vibe_dsp.models import (
     CpuCorePowerState,
@@ -205,14 +204,10 @@ def detect_cpu_power_profile(
         gov = gov_file.read_text().strip() if gov_file.exists() else "unknown"
         active_governor = gov
         cur_mhz = (
-            float(cur_file.read_text().strip()) / 1000.0
-            if cur_file.exists()
-            else 0.0
+            float(cur_file.read_text().strip()) / 1000.0 if cur_file.exists() else 0.0
         )
         max_mhz = (
-            float(max_file.read_text().strip()) / 1000.0
-            if max_file.exists()
-            else 0.0
+            float(max_file.read_text().strip()) / 1000.0 if max_file.exists() else 0.0
         )
         epp = epp_file.read_text().strip() if epp_file.exists() else None
 
@@ -320,7 +315,9 @@ def request_realtime_scheduling(
                 check=False,
             )
             if res.returncode == 0:
-                logger.info("RealtimeKit granted RT priority %d to PID %d", priority, pid)
+                logger.info(
+                    "RealtimeKit granted RT priority %d to PID %d", priority, pid
+                )
                 return True, f"RealtimeKit: Granted SCHED_RR priority {priority}"
         except Exception as err:
             logger.debug("busctl rtkit call failed: %s", err)
@@ -385,9 +382,13 @@ def evaluate_latency_health(
             f"Elevated DPC jitter: {jitter_metrics.max_jitter_us:.1f} µs (>1.0 ms)"
         )
     if not power_profile.ac_online:
-        diagnostics.append("Battery power active: dynamic frequency scaling may induce jitter")
+        diagnostics.append(
+            "Battery power active: dynamic frequency scaling may induce jitter"
+        )
     if power_profile.active_governor == "powersave":
-        diagnostics.append("CPU governor set to powersave; recommends performance mode for DSD")
+        diagnostics.append(
+            "CPU governor set to powersave; recommends performance mode for DSD"
+        )
     if not rtkit_granted:
         diagnostics.append("RealtimeKit priority not active for thread")
 
