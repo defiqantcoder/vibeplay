@@ -43,11 +43,12 @@ def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
     called: dict[str, Any] = {}
 
     def mock_run_server(
-        db_path: Path, host: str = "127.0.0.1", port: int = 8000
+        db_path: Path, host: str = "127.0.0.1", port: int = 8000, **kwargs: Any
     ) -> None:
         called["db_path"] = db_path
         called["host"] = host
         called["port"] = port
+        called.update(kwargs)
 
     monkeypatch.setattr("vibeplay.web.run_server", mock_run_server)
     result = runner.invoke(app, ["serve", "--port", "8008"])

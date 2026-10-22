@@ -660,7 +660,9 @@ def parse_prompt_to_plan(
 
     # 1. Check cache
     with get_connection(db_path) as conn:
-        cached_json = get_llm_cache(conn, prompt_hash)
+        cached_json = get_llm_cache(
+            conn, prompt_hash, max_age_days=cfg.cache_retention_days
+        )
         if cached_json:
             logger.info(
                 "LLM cache hit for prompt '%s' (hash: %s)",
@@ -861,7 +863,9 @@ def batch_vibe_tag_tracks(
 
         # Check cache
         with get_connection(db_path) as conn:
-            cached = get_llm_cache(conn, prompt_hash)
+            cached = get_llm_cache(
+                conn, prompt_hash, max_age_days=cfg.cache_retention_days
+            )
             if cached:
                 logger.info(
                     "LLM cache hit for vibe tagging batch %d-%d",

@@ -54,6 +54,18 @@ class Settings(BaseSettings):
         default="development",
         description="Environment name (development, testing, production)",
     )
+    api_key: str | None = Field(
+        default=None,
+        description="Optional API key for web UI and API access authentication",
+    )
+    allow_insecure_remote: bool = Field(
+        default=False,
+        description="Explicit flag permitting binding to non-localhost interfaces without API key authentication",
+    )
+    cache_retention_days: int = Field(
+        default=30,
+        description="Retention lifetime in days for cached prompts and external network metadata",
+    )
     log_level: str = Field(
         default="INFO",
         description="Logging level",

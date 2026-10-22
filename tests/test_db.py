@@ -202,3 +202,69 @@ def test_mark_tracks_missing(tmp_path: Path) -> None:
         assert mark_tracks_missing(conn, [id1, id2]) == 0
         # Calling with empty list should update 0
         assert mark_tracks_missing(conn, []) == 0
+
+
+def test_cache_retention_and_cleanup(tmp_path: Path) -> None:
+    """Verify TTL expiration, stale entry pruning, and cleanup_expired_caches."""
+    from vibeplay.db import (
+        cleanup_expired_caches,
+        get_cached_response,
+        get_llm_cache,
+        set_cached_response,
+        set_llm_cache,
+    )
+
+    db_file = tmp_path / "test_cache.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        # 1. Insert recent and old LLM cache
+        set_llm_cache(conn, "recent_llm", "recent prompt", "recent response", "gemini-3.8-flash")
+        set_llm_cache(conn, "old_llm", "old prompt", "old response", "gemini-3.8-flash")
+        conn.execute("UPDATE llm_cache SET created_at = datetime('now', '-45 days') WHERE prompt_hash = 'old_llm'")
+
+        # 2. Insert recent and old network cache
+        set_cached_response(conn, "recent_net", "acoustid", '{"status": "ok"}')
+        set_cached_response(conn, "old_net", "acoustid", '{"status": "old"}')
+        conn.execute("UPDATE network_cache SET created_at = datetime('now', '-45 days') WHERE cache_key = 'old_net'")
+
+        # 3. Test TTL expiration on get
+        assert get_llm_cache(conn, "recent_llm", max_age_days=30) == "recent response"
+        assert get_llm_cache(conn, "old_llm", max_age_days=30) is None
+        assert get_llm_cache(conn, "old_llm") is None
+
+        assert get_cached_response(conn, "recent_net", max_age_days=30) is not None
+        assert get_cached_response(conn, "old_net", max_age_days=30) is None
+
+        # 4. Insert another old record to test batch cleanup_expired_caches
+        set_llm_cache(conn, "batch_old_llm", "prompt", "resp", "model")
+        conn.execute("UPDATE llm_cache SET created_at = datetime('now', '-45 days') WHERE prompt_hash = 'batch_old_llm'")
+        set_cached_response(conn, "batch_old_net", "endpoint", '{"k": "v"}')
+        conn.execute("UPDATE network_cache SET created_at = datetime('now', '-45 days') WHERE cache_key = 'batch_old_net'")
+
+        pruned = cleanup_expired_caches(conn, max_age_days=30)
+        assert pruned["llm_cache"] >= 1
+        assert pruned["network_cache"] >= 1
+
+
+def test_purge_all_caches(tmp_path: Path) -> None:
+    """Verify unconditional purging of LLM and network response caches."""
+    from vibeplay.db import purge_all_caches, set_cached_response, set_llm_cache
+
+    db_file = tmp_path / "test_purge.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        set_llm_cache(conn, "h1", "p1", "r1", "m1")
+        set_cached_response(conn, "k1", "e1", "r1")
+
+        counts = purge_all_caches(conn)
+        assert counts["llm_cache"] == 1
+        assert counts["network_cache"] == 1
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM llm_cache")
+        assert cursor.fetchone()[0] == 0
+        cursor.execute("SELECT COUNT(*) FROM network_cache")
+        assert cursor.fetchone()[0] == 0
+

@@ -252,25 +252,79 @@ def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | 
 
 
 def create_app(
-    db_path: Path | None = None, settings: Settings | None = None
+    db_path: Path | None = None,
+    settings: Settings | None = None,
+    api_key: str | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI web application.
 
     Args:
         db_path: Path to SQLite database file.
         settings: Application settings.
+        api_key: Optional secret API key for web API authentication.
 
     Returns:
         FastAPI: Configured web application instance.
     """
     cfg = settings or get_settings()
     resolved_db_path = db_path or cfg.db_path
+    effective_api_key = api_key if api_key is not None else cfg.api_key
 
     app = FastAPI(
         title="vibeplay",
         description="Audiophile Precision Audio Analysis, Vibe Clustering & Smart Playlist Server",
         version="0.1.0",
     )
+
+    if effective_api_key:
+
+        @app.middleware("http")
+        async def auth_middleware(request: Request, call_next):
+            path = request.url.path
+            if (
+                path.startswith("/static")
+                or path == "/favicon.ico"
+                or path == "/docs"
+                or path == "/openapi.json"
+            ):
+                return await call_next(request)
+
+            header_key = request.headers.get("X-API-Key")
+            auth_header = request.headers.get("Authorization", "")
+            bearer_key = (
+                auth_header.split(" ", 1)[1].strip()
+                if auth_header.startswith("Bearer ")
+                else None
+            )
+            query_key = request.query_params.get("api_key") or request.query_params.get("token")
+            cookie_key = request.cookies.get("vibeplay_api_key")
+
+            provided_key = header_key or bearer_key or query_key or cookie_key
+
+            if provided_key != effective_api_key:
+                if "text/html" in request.headers.get("accept", ""):
+                    return HTMLResponse(
+                        content=(
+                            "<!DOCTYPE html><html><head><title>401 Unauthorized</title></head>"
+                            "<body style='font-family:sans-serif; text-align:center; padding:5rem; background:#111; color:#eee;'>"
+                            "<h1>401 Unauthorized</h1><p>A valid API key is required to access the vibeplay console.</p>"
+                            "<p style='color:#888;'>Provide ?api_key=&lt;key&gt; or 'X-API-Key' header.</p></body></html>"
+                        ),
+                        status_code=401,
+                    )
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or ?api_key=..."
+                    },
+                )
+
+            response = await call_next(request)
+            if query_key == effective_api_key:
+                response.set_cookie(
+                    "vibeplay_api_key", effective_api_key, httponly=True, samesite="lax"
+                )
+            return response
 
     static_dir = Path(__file__).parent / "static"
     templates_dir = Path(__file__).parent / "templates"
@@ -297,8 +351,8 @@ def create_app(
                 SELECT DISTINCT COALESCE(v.artist, t.artist) AS artist_name
                 FROM tracks t
                 LEFT JOIN v_tracks_best_value v ON t.id = v.track_id
-                WHERE t.status = 'active' AND artist_name IS NOT NULL
-                ORDER BY LOWER(artist_name) ASC
+                WHERE t.status = 'active' AND COALESCE(v.artist, t.artist) IS NOT NULL
+                ORDER BY LOWER(COALESCE(v.artist, t.artist)) ASC
                 """
             )
             artists = [r[0] for r in cursor.fetchall() if r[0]]
@@ -785,8 +839,14 @@ def create_app(
 
     @app.get("/api/player/status")
     async def api_player_status() -> Response:
-        """Return raw JSON playback state, hardware sample rate, and DAC buffer health."""
+        """Return raw JSON playback state, hardware sample rate, DAC buffer health, and service operational status."""
         playback = get_playback_status(resolved_db_path, cfg)
+        playback["services"] = {
+            "mpd": "online" if playback.get("daemon_online") else "offline",
+            "database": "connected" if resolved_db_path.exists() else "not_found",
+            "acoustid": "configured" if cfg.acoustid_api_key else "unconfigured",
+            "llm": cfg.llm_provider,
+        }
         return JSONResponse(content=playback)
 
     return app
@@ -796,16 +856,47 @@ def run_server(
     db_path: Path,
     host: str = "127.0.0.1",
     port: int = 8000,
+    api_key: str | None = None,
+    allow_insecure_remote: bool = False,
+    settings: Settings | None = None,
 ) -> None:
-    """Start the local vibeplay web server.
+    """Start the local vibeplay web server with security guardrails.
+
+    Enforces loopback-only binding unless an API key is configured or remote access
+    is explicitly permitted.
 
     Args:
         db_path: Path to the SQLite database.
         host: Host address to bind to (defaults to 127.0.0.1).
         port: Port number to bind to (defaults to 8000).
+        api_key: Optional secret API key for web API authentication.
+        allow_insecure_remote: If True, permit non-localhost bind without an API key.
+        settings: Application settings.
+
+    Raises:
+        ValueError: If attempting to bind to an external interface without authentication or explicit override.
     """
-    logger.info(
-        "Starting web server at http://%s:%d with database %s", host, port, db_path
+    cfg = settings or get_settings()
+    effective_api_key = api_key if api_key is not None else cfg.api_key
+    permit_remote = allow_insecure_remote or cfg.allow_insecure_remote
+
+    is_loopback = (
+        host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
+        or host.startswith("127.")
     )
-    app = create_app(db_path=db_path)
+
+    if not is_loopback and not effective_api_key and not permit_remote:
+        raise ValueError(
+            f"Security Guardrail: Refusing to bind unauthenticated server to external interface '{host}'. "
+            "To permit remote access, set an API key (via --api-key / VIBEPLAY_API_KEY) or explicitly pass --allow-insecure-remote."
+        )
+
+    logger.info(
+        "Starting web server at http://%s:%d with database %s (auth: %s)",
+        host,
+        port,
+        db_path,
+        "enabled" if effective_api_key else "disabled (localhost loopback)",
+    )
+    app = create_app(db_path=db_path, settings=cfg, api_key=effective_api_key)
     uvicorn.run(app, host=host, port=port)
