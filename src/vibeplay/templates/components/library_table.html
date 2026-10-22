@@ -3,26 +3,31 @@
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
-        <th>Track Title</th>
+        <th>Track &amp; Stream Source</th>
         <th>Artist</th>
         <th>Album</th>
-        <th style="text-align: right; width: 80px;">BPM</th>
-        <th style="text-align: center; width: 80px;">Key</th>
-        <th style="text-align: right; width: 90px;">Energy</th>
-        <th style="text-align: right; width: 90px;">Danceability</th>
-        <th style="text-align: right; width: 110px;">Actions</th>
+        <th style="text-align: right; width: 75px;">BPM</th>
+        <th style="text-align: center; width: 85px;">Harmonic</th>
+        <th style="text-align: right; width: 110px;">Energy Vector</th>
+        <th style="text-align: right; width: 110px;">Danceability</th>
+        <th style="text-align: right; width: 115px;">Format</th>
+        <th style="text-align: center; width: 90px;">Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for track in tracks %}
-      <tr>
+      <tr {% if playback and playback.track_id == track.track_id %}class="active-playing-row"{% endif %}>
         <td style="text-align: center; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px;">
-          {{ track.track_id }}
+          {% if playback and playback.track_id == track.track_id %}
+            <span class="dot-indicator dot-cyan animate-pulse"></span>
+          {% else %}
+            {{ track.track_id }}
+          {% endif %}
         </td>
         <td>
           <div style="font-weight: 600; color: var(--text-primary);">{{ track.title }}</div>
-          <div style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
-            {{ track.genre or 'Lossless Audio' }}
+          <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">
+            {{ track.genre or 'Lossless PCM Audio Stream' }}
           </div>
         </td>
         <td style="color: var(--text-secondary);">{{ track.artist }}</td>
@@ -39,32 +44,62 @@
             <span style="color: var(--text-dim);">—</span>
           {% endif %}
         </td>
-        <td style="text-align: right; font-family: var(--font-mono);">
+        <td style="text-align: right;">
           {% if track.energy is not none %}
-            <span style="color: {% if track.energy >= 0.7 %}var(--secondary){% elif track.energy >= 0.4 %}var(--primary){% else %}var(--tertiary){% endif %};">
-              {{ track.energy|round(2) }}
-            </span>
-          {% else %}—{% endif %}
-        </td>
-        <td style="text-align: right; font-family: var(--font-mono);">
-          {% if track.danceability is not none %}
-            {{ track.danceability|round(2) }}
-          {% else %}—{% endif %}
+            <div class="mini-meter-container">
+              <div class="mini-meter-track">
+                <div class="mini-meter-fill" style="width: {{ (track.energy * 100)|round(0) }}%; background: {% if track.energy >= 0.7 %}var(--secondary){% elif track.energy >= 0.4 %}var(--primary){% else %}var(--tertiary){% endif %};"></div>
+              </div>
+              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); min-width: 28px;">
+                {{ track.energy|round(2) }}
+              </span>
+            </div>
+          {% else %}
+            <span style="color: var(--text-dim); font-family: var(--font-mono);">—</span>
+          {% endif %}
         </td>
         <td style="text-align: right;">
-          <div style="display: inline-flex; align-items: center; gap: 4px;">
+          {% if track.danceability is not none %}
+            <div class="mini-meter-container">
+              <div class="mini-meter-track">
+                <div class="mini-meter-fill" style="width: {{ (track.danceability * 100)|round(0) }}%; background: var(--secondary);"></div>
+              </div>
+              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); min-width: 28px;">
+                {{ track.danceability|round(2) }}
+              </span>
+            </div>
+          {% else %}
+            <span style="color: var(--text-dim); font-family: var(--font-mono);">—</span>
+          {% endif %}
+        </td>
+        <td style="text-align: right;">
+          <span class="badge-spec" style="font-size: 9px; padding: 1px 6px;">
+            {% set fpath = track.path or track.file_path or '' %}
+            {% if fpath.endswith('.dsf') or fpath.endswith('.dff') %}
+              DSD256 11.2M
+            {% elif track.sample_rate and track.sample_rate > 48000 %}
+              FLAC {{ (track.sample_rate / 1000)|int }}k/24
+            {% else %}
+              FLAC 44.1k/16
+            {% endif %}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
             <button class="btn-icon"
                     hx-post="/api/player/play-track/{{ track.track_id }}"
                     hx-target="#transport-footer-container"
                     hx-swap="innerHTML"
-                    title="Play Track">
+                    title="Play Track"
+                    aria-label="Play Track">
               <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </button>
             <button class="btn-icon"
                     hx-get="/api/track/{{ track.track_id }}"
                     hx-target="#track-detail-modal"
                     hx-swap="innerHTML"
-                    title="View Audio Details">
+                    title="View Audio Details"
+                    aria-label="View Audio Details">
               <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </button>
           </div>
@@ -72,15 +107,26 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="9" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
           No matching tracks found in library.
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-</div>
-<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0.25rem; font-size: 12px; color: var(--text-muted);">
-  <span>Showing {{ tracks|length }} tracks</span>
-  <span style="font-family: var(--font-mono);">FLAC / DSD / WAV Lossless Stream</span>
+
+  <!-- Table Footnote Bar -->
+  <div class="table-footnote">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span style="display: inline-flex; align-items: center; gap: 5px;">
+        <span class="dot-indicator dot-green"></span>
+        DMA Ring Buffer: 128 frames (1.33ms)
+      </span>
+      <span>FIFO Overrun Protection: ARMED</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span>Showing {{ tracks|length }} tracks</span>
+      <span style="color: var(--text-secondary);">Direct Bit-Perfect ALSA</span>
+    </div>
+  </div>
 </div>

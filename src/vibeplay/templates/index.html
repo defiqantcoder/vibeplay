@@ -1,42 +1,129 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Top Telemetry Banner -->
+<!-- Top Audio Telemetry Strip & HUD Deck (Stitch Specification) -->
 <section class="telemetry-grid">
+  <!-- Card 1: Master Clock // ALSA -->
   <div class="telemetry-card">
     <div class="telemetry-header">
-      <span>Master Clock / Telemetry</span>
-      <span class="badge-spec">0.02 PPM</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="dot-indicator dot-green animate-pulse"></span>
+        <span style="font-weight: 600;">Master Clock // ALSA</span>
+      </div>
+      <span class="badge-spec">0.02 PPM TCXO</span>
     </div>
-    <div class="telemetry-metric">96.0 kHz</div>
-    <div class="telemetry-sub">Ultra-low jitter master audio crystal lock</div>
+    <div class="telemetry-metric-row">
+      <div>
+        <div class="telemetry-metric">96.000 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span></div>
+        <div class="telemetry-sub">Phase Jitter: &lt; 0.18 ps RMS</div>
+      </div>
+      <span class="telemetry-pill-primary">I²S SYNC</span>
+    </div>
+    <!-- Oscilloscope Waveform SVG Widget -->
+    <div class="telemetry-oscilloscope">
+      <svg viewBox="0 0 200 40" fill="none" style="width: 100%; height: 32px; color: var(--primary);">
+        <path d="M0 20 Q 10 5, 20 20 T 40 20 T 60 4 T 80 34 T 100 20 T 120 8 T 140 32 T 160 20 T 180 12 T 200 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+        <path d="M0 20 Q 15 28, 30 20 T 60 20 T 90 26 T 120 14 T 150 20 T 180 22 T 200 20" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.4" vector-effect="non-scaling-stroke"></path>
+      </svg>
+    </div>
   </div>
 
+  <!-- Card 2: Dynamic Range & dBFS Meter -->
   <div class="telemetry-card">
     <div class="telemetry-header">
-      <span>Dynamic Range</span>
-      <span class="badge-spec" style="color: var(--primary); border-color: rgba(88,166,255,0.3);">DR14+</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+        <span style="font-weight: 600;">Dynamic Range</span>
+      </div>
+      <span class="badge-spec" style="color: var(--primary); border-color: rgba(104,116,166,0.35);">DR14+ MASTER</span>
     </div>
-    <div class="telemetry-metric">118.4 dB</div>
-    <div class="telemetry-sub">Zero inter-sample clipping telemetry</div>
+    <div class="telemetry-metric-row">
+      <div>
+        <div class="telemetry-metric">118.4 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span></div>
+        <div class="telemetry-sub">True Peak: -0.32 dBTP</div>
+      </div>
+      <span class="telemetry-pill-secondary">0 CLIPS</span>
+    </div>
+    <!-- Segmented Headroom Meter -->
+    <div class="segmented-meter-well">
+      <div class="meter-labels">
+        <span>-60</span><span>-24</span><span>-12</span><span>-6</span><span>-0.1</span><span style="color: var(--secondary);">CLIP</span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-seg bg-pri"></div>
+        <div class="meter-seg bg-pri"></div>
+        <div class="meter-seg bg-pri"></div>
+        <div class="meter-seg bg-pri"></div>
+        <div class="meter-seg bg-pri"></div>
+        <div class="meter-seg bg-green"></div>
+        <div class="meter-seg bg-green"></div>
+        <div class="meter-seg bg-sec"></div>
+        <div class="meter-seg bg-empty"></div>
+      </div>
+    </div>
   </div>
 
+  <!-- Card 3: Harmonic Key Alignment (Camelot) -->
   <div class="telemetry-card">
     <div class="telemetry-header">
-      <span>Harmonic Key Alignment</span>
-      <span class="badge-camelot">Camelot Sync</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--tertiary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span style="font-weight: 600;">Harmonic Deck</span>
+      </div>
+      <span class="badge-camelot">CAMELOT SYNC</span>
     </div>
-    <div class="telemetry-metric">1A — 12B</div>
-    <div class="telemetry-sub">Harmonic circular pitch wheel active</div>
+    <div class="telemetry-metric-row" style="align-items: center;">
+      <div>
+        <div class="telemetry-metric">10A <span style="font-size: 13px; color: var(--tertiary); font-weight: normal;">→ 11A / 9A</span></div>
+        <div class="telemetry-sub">B Minor / D Major Wheel</div>
+      </div>
+      <!-- Mini Camelot Ring SVG graphic -->
+      <div style="width: 36px; height: 36px; position: relative; flex-shrink: 0;">
+        <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-45deg);">
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-container-high)" stroke-width="3.5"></path>
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--tertiary)" stroke-width="4" stroke-dasharray="25, 100" stroke-linecap="round"></path>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">10A</div>
+      </div>
+    </div>
+    <!-- Adjacent Harmonic Chips -->
+    <div class="harmonic-chips-row">
+      <span class="chip-alt">9A (74%)</span>
+      <span class="chip-active">10A (Active)</span>
+      <span class="chip-alt">11A (88%)</span>
+      <span class="chip-alt">10B (Match)</span>
+    </div>
   </div>
 
+  <!-- Card 4: Audio Features / Cluster Histogram -->
   <div class="telemetry-card">
     <div class="telemetry-header">
-      <span>Library Audio Features</span>
-      <span class="badge-spec" style="color: var(--secondary); border-color: rgba(188,140,255,0.3);">{{ total_clusters }} Clusters</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+        <span style="font-weight: 600;">Vector Distribution</span>
+      </div>
+      <span class="badge-spec" style="color: var(--secondary); border-color: rgba(188,140,255,0.35);">{{ total_clusters }} CLUSTERS</span>
     </div>
-    <div class="telemetry-metric">{{ total_tracks }} Tracks</div>
-    <div class="telemetry-sub">{{ (total_duration // 3600)|int }}h {{ "%02d"|format(((total_duration % 3600) // 60)|int) }}m total analyzed audio</div>
+    <div class="telemetry-metric-row">
+      <div>
+        <div class="telemetry-metric">{{ total_tracks }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">FLAC/DSD</span></div>
+        <div class="telemetry-sub">Mean Tempo: 114.2 BPM</div>
+      </div>
+      <span class="telemetry-pill-dim">0.78 ENERGY</span>
+    </div>
+    <!-- BPM / Energy Mini Histogram Bars -->
+    <div class="histogram-bars-row">
+      <div class="hist-bar" style="height: 30%;"></div>
+      <div class="hist-bar hist-pri" style="height: 55%;"></div>
+      <div class="hist-bar hist-pri" style="height: 40%;"></div>
+      <div class="hist-bar hist-bright" style="height: 85%;"></div>
+      <div class="hist-bar hist-bright" style="height: 100%;"></div>
+      <div class="hist-bar hist-pri" style="height: 70%;"></div>
+      <div class="hist-bar hist-green" style="height: 60%;"></div>
+      <div class="hist-bar hist-green" style="height: 45%;"></div>
+      <div class="hist-bar" style="height: 20%;"></div>
+      <div class="hist-bar" style="height: 15%;"></div>
+    </div>
   </div>
 </section>
 
