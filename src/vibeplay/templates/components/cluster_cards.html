@@ -16,7 +16,7 @@
       <!-- Dominant Moods -->
       <div class="cluster-tags">
         {% for mood_name, mood_score in cluster.dominant_moods %}
-          <span class="cluster-tag" style="border-color: rgba(88, 166, 255, 0.3);">
+          <span class="cluster-tag" style="border-color: var(--primary-border);">
             {{ mood_name }} ({{ (mood_score * 100)|round(0)|int }}%)
           </span>
         {% endfor %}

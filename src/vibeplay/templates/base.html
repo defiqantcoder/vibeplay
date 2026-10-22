@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ desktop_settings.theme_id if desktop_settings else 'god-of-ink' }}" data-contrast="{{ desktop_settings.contrast_mode if desktop_settings else 'standard' }}">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="color-scheme" content="dark"/>
   <title>{% block title %}vibeplay — Audiophile Precision Console{% endblock %}</title>
   
   <!-- Inlined Core CSS (Zero FOUC, 100% Offline Resilient) -->
@@ -15,7 +16,7 @@
   <script src="/static/htmx.min.js"></script>
   {% block head %}{% endblock %}
 </head>
-<body>
+<body data-theme="{{ desktop_settings.theme_id if desktop_settings else 'god-of-ink' }}" data-contrast="{{ desktop_settings.contrast_mode if desktop_settings else 'standard' }}">
   <!-- Desktop Application Chrome: Simulated Titlebar + Native-Style Menubar -->
   {% include "components/desktop_chrome.html" %}
 
