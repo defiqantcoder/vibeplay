@@ -51,7 +51,9 @@ class MPDTransport:
             # UNIX socket path detection
             if self.host.startswith("/") or self.host.startswith("~"):
                 socket_path = str(Path(self.host).expanduser())
-                logger.debug("Connecting to MPD via UNIX domain socket: %s", socket_path)
+                logger.debug(
+                    "Connecting to MPD via UNIX domain socket: %s", socket_path
+                )
                 client.connect(socket_path)
             else:
                 logger.debug("Connecting to MPD via TCP: %s:%d", self.host, self.port)
@@ -96,14 +98,19 @@ class MPDTransport:
             self.client.add(uri_or_path)
         except Exception as err:
             # Fall back to file:// URI if direct path fails
-            if not uri_or_path.startswith("file://") and Path(uri_or_path).is_absolute():
+            if (
+                not uri_or_path.startswith("file://")
+                and Path(uri_or_path).is_absolute()
+            ):
                 file_uri = Path(uri_or_path).as_uri()
                 try:
                     self.client.add(file_uri)
                     return
                 except Exception:
                     pass
-            raise PlaybackError(f"Failed to add '{uri_or_path}' to MPD queue: {err}") from err
+            raise PlaybackError(
+                f"Failed to add '{uri_or_path}' to MPD queue: {err}"
+            ) from err
 
     def add_tracks(self, paths: list[str]) -> int:
         """Queue multiple track paths in order."""
@@ -146,7 +153,9 @@ class MPDTransport:
 
 
 @contextmanager
-def get_mpd_transport(settings: Settings | None = None) -> Generator[MPDTransport, None, None]:
+def get_mpd_transport(
+    settings: Settings | None = None,
+) -> Generator[MPDTransport, None, None]:
     """Context manager for acquiring a connected MPDTransport."""
     cfg = settings or get_settings()
     transport = MPDTransport(

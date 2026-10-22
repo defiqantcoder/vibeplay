@@ -675,6 +675,8 @@ def run_server(
         host: Host address to bind to (defaults to 127.0.0.1).
         port: Port number to bind to (defaults to 8000).
     """
-    logger.info("Starting web server at http://%s:%d with database %s", host, port, db_path)
+    logger.info(
+        "Starting web server at http://%s:%d with database %s", host, port, db_path
+    )
     app = create_app(db_path=db_path)
     uvicorn.run(app, host=host, port=port)

@@ -7,9 +7,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from vibeplay.config import Settings
-from vibeplay.db import add_tracks_to_playlist, create_playlist, get_connection, init_db, insert_track
-from vibeplay.player import MPDTransport, PlaybackError, play_playlist, play_seed
+from vibeplay.db import (
+    add_tracks_to_playlist,
+    create_playlist,
+    get_connection,
+    init_db,
+    insert_track,
+)
+from vibeplay.player import MPDTransport, PlaybackError, play_playlist
 
 
 @pytest.fixture
@@ -100,7 +105,9 @@ def test_mpd_transport_connection_failure() -> None:
         mock_client.connect.side_effect = ConnectionRefusedError("Connection refused")
 
         transport = MPDTransport(host="localhost", port=6600)
-        with pytest.raises(PlaybackError, match="Could not connect to Music Player Daemon"):
+        with pytest.raises(
+            PlaybackError, match="Could not connect to Music Player Daemon"
+        ):
             transport.connect()
 
 

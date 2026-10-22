@@ -23,13 +23,22 @@ def test_cli_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "vibeplay [OPTIONS] COMMAND [ARGS]" in result.stdout
-    for cmd in ["scan", "enrich", "analyze", "clusters", "playlist", "export", "play", "serve"]:
+    for cmd in [
+        "scan",
+        "enrich",
+        "analyze",
+        "clusters",
+        "playlist",
+        "export",
+        "play",
+        "serve",
+    ]:
         assert cmd in result.stdout
 
 
 def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
     """Verify that vibeplay serve invokes run_server with default arguments."""
-    called = {}
+    called: dict[str, Any] = {}
 
     def mock_run_server(db_path: Path, host: str = "127.0.0.1", port: int = 8000) -> None:
         called["db_path"] = db_path

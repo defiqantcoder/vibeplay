@@ -113,6 +113,7 @@ def test_insert_track(tmp_path: Path):
 def test_update_track(tmp_path: Path) -> None:
     """Verify that update_track correctly modifies an existing track record."""
     import json
+
     db_file = tmp_path / "test_update.db"
     init_db(db_file)
 
@@ -176,9 +177,15 @@ def test_mark_tracks_missing(tmp_path: Path) -> None:
     init_db(db_file)
 
     with get_connection(db_file) as conn:
-        id1 = insert_track(conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1")
-        id2 = insert_track(conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2")
-        id3 = insert_track(conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3")
+        id1 = insert_track(
+            conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1"
+        )
+        id2 = insert_track(
+            conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2"
+        )
+        insert_track(
+            conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3"
+        )
 
         updated = mark_tracks_missing(conn, [id1, id2])
         assert updated == 2
@@ -195,4 +202,3 @@ def test_mark_tracks_missing(tmp_path: Path) -> None:
         assert mark_tracks_missing(conn, [id1, id2]) == 0
         # Calling with empty list should update 0
         assert mark_tracks_missing(conn, []) == 0
-
