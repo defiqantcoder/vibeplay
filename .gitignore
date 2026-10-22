@@ -63,3 +63,4 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+coverage.xml

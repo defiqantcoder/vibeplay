@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any, Generator
 
 try:
-    from mpd import ConnectionError as MPDConnectionError, MPDClient, MPDError
+    from mpd import ConnectionError as MPDConnectionError
+    from mpd import MPDClient, MPDError
 except ImportError:  # pragma: no cover
     MPDClient = Any  # type: ignore
     MPDError = Exception  # type: ignore
@@ -391,7 +392,9 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
         return {"volume": str(vol), "error": str(err)}
 
 
-def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+def get_playback_status(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> dict[str, Any]:
     """Retrieve real-time player telemetry, DAC buffer health, and active track."""
     cfg = settings or get_settings()
     try:
@@ -411,7 +414,12 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
             return {
                 "state": st.get("state", "stop"),
                 "song_id": cur.get("id"),
-                "title": cur.get("title") or (Path(cur.get("file", "")).stem if cur.get("file") else "vibeplay Ready"),
+                "title": cur.get("title")
+                or (
+                    Path(cur.get("file", "")).stem
+                    if cur.get("file")
+                    else "vibeplay Ready"
+                ),
                 "artist": cur.get("artist") or "Audiophile Precision",
                 "album": cur.get("album") or "Studio Master",
                 "file": cur.get("file", ""),
@@ -419,7 +427,9 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 "duration": duration,
                 "volume": int(st.get("volume", "80")),
                 "audio_spec": audio_spec,
-                "sample_rate": f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz",
+                "sample_rate": f"{rate_hz / 1000:.1f}kHz"
+                if rate_hz >= 1000
+                else f"{rate_hz}Hz",
                 "bit_depth": f"{depth_bits}-bit",
                 "codec": "FLAC",
                 "bit_perfect": True,
@@ -506,11 +516,14 @@ def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     return {
         "codec": codec,
         "sample_rate": sample_rate,
-        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz" if sample_rate >= 1000 else f"{sample_rate} Hz",
+        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz"
+        if sample_rate >= 1000
+        else f"{sample_rate} Hz",
         "bits_per_sample": bits_per_sample,
         "bit_depth_str": f"{bits_per_sample}-bit",
         "channels": channels,
-        "channels_str": "Stereo" if channels == 2 else ("Mono" if channels == 1 else f"{channels} Ch"),
+        "channels_str": "Stereo"
+        if channels == 2
+        else ("Mono" if channels == 1 else f"{channels} Ch"),
         "bitrate_kbps": f"{int(bitrate / 1000)} kbps" if bitrate else "Lossless VBR",
     }
-
