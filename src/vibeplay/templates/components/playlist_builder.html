@@ -17,22 +17,22 @@
     <!-- Actions -->
     <div style="display: flex; gap: 0.5rem; align-items: center;">
       <a href="/api/playlist/{{ playlist.playlist_id }}/export-m3u8" class="btn-secondary" download>
-        <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
-        Export M3U8
+        <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        <span>Export M3U8</span>
       </a>
       <button class="btn-primary"
               hx-post="/api/player/play-playlist/{{ playlist.playlist_id }}"
               hx-target="#transport-footer-container"
               hx-swap="innerHTML">
-        <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
-        Play in MPD
+        <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span>Play in MPD</span>
       </button>
     </div>
   </div>
 
   <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
-    <span class="material-symbols-outlined" style="font-size: 14px;">drag_indicator</span>
-    Drag and drop tracks to reorder playlist sequence
+    <svg class="icon" style="width: 14px; height: 14px; fill: var(--text-dim);" viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    <span>Drag and drop tracks to reorder playlist sequence</span>
   </div>
 
   <!-- Draggable Track Rows -->
@@ -47,7 +47,7 @@
       
       <!-- Left side: Drag handle + title/artist -->
       <div style="display: flex; align-items: center;">
-        <span class="material-symbols-outlined drag-handle">drag_indicator</span>
+        <svg class="icon drag-handle" style="width: 16px; height: 16px; cursor: grab; fill: var(--text-dim); margin-right: 4px;" viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
         <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 24px;">
           {{ item.position }}
         </span>
@@ -93,9 +93,7 @@
 </div>
 {% else %}
 <div class="builder-tracks-container" style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
-  <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-dim); margin-bottom: 0.5rem;">
-    queue_music
-  </span>
+  <svg class="icon" style="width: 48px; height: 48px; fill: var(--text-dim); margin: 0 auto 0.75rem auto;" viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
   <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
     No Playlist Generated Yet
   </h3>

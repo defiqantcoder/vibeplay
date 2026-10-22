@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}vibeplay — Audiophile Precision Console{% endblock %}</title>
   
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-  
-  <!-- HTMX & Styles -->
-  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <!-- Inlined Core CSS (Zero FOUC, 100% Offline Resilient) -->
+  <style>
+    {% include "components/styles.html" %}
+  </style>
   <link rel="stylesheet" href="/static/style.css"/>
+
+  <!-- Local HTMX Library -->
+  <script src="/static/htmx.min.js"></script>
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -26,16 +25,16 @@
     
     <nav class="nav-tabs">
       <button id="nav-btn-library" class="nav-tab-btn active" onclick="showTab('library')">
-        <span class="material-symbols-outlined" style="font-size: 18px;">library_music</span>
-        Library
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4v2zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/></svg>
+        <span>Library</span>
       </button>
       <button id="nav-btn-clusters" class="nav-tab-btn" onclick="showTab('clusters')">
-        <span class="material-symbols-outlined" style="font-size: 18px;">hub</span>
-        Clusters
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3c0 .35.06.69.17 1H6.5A2.5 2.5 0 0 0 4 8.5v5A2.5 2.5 0 0 0 6.5 16h2.67c-.11.31-.17.65-.17 1a3 3 0 1 0 6 0c0-.35-.06-.69-.17-1h2.67A2.5 2.5 0 0 0 20 13.5v-5A2.5 2.5 0 0 0 17.5 6h-2.67c.11-.31.17-.65.17-1a3 3 0 0 0-3-3z"/></svg>
+        <span>Clusters</span>
       </button>
       <button id="nav-btn-builder" class="nav-tab-btn" onclick="showTab('builder')">
-        <span class="material-symbols-outlined" style="font-size: 18px;">queue_music</span>
-        Playlist Builder
+        <svg class="icon" viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+        <span>Playlist Builder</span>
       </button>
     </nav>
     
@@ -65,6 +64,10 @@
     </div>
   </dialog>
 
+  <!-- Inlined & Linked Client Scripts -->
+  <script>
+    {% include "components/scripts.html" %}
+  </script>
   <script src="/static/app.js"></script>
   {% block scripts %}{% endblock %}
 </body>
