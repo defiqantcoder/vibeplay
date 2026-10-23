@@ -6,6 +6,7 @@ function showTab(tabId) {
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const btn = document.getElementById(`nav-btn-${t}`);
+    const sideBtn = document.getElementById(`side-nav-${t}`);
     if (section) {
       if (t === tabId) {
         section.style.display = 'block';
@@ -18,6 +19,13 @@ function showTab(tabId) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
+      }
+    }
+    if (sideBtn) {
+      if (t === tabId) {
+        sideBtn.classList.add('active');
+      } else {
+        sideBtn.classList.remove('active');
       }
     }
   });

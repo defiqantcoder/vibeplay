@@ -673,6 +673,68 @@ document.addEventListener('input', (e) => {
   }
 });
 
+// 8. Studio Workspace & Micro-Interactions (Harmonic Grid, Mood Chips, Inspector Selection)
+function selectTrackRow(rowEl, trackId) {
+  document.querySelectorAll('.data-table tbody tr').forEach(r => r.classList.remove('selected-inspector-row'));
+  if (rowEl) rowEl.classList.add('selected-inspector-row');
+}
+
+function selectMoodChip(mood) {
+  document.querySelectorAll('.mood-chip').forEach(chip => {
+    if (chip.getAttribute('data-mood') === mood) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+
+  const moodSelect = document.querySelector('form.filter-bar select[name="mood"]');
+  if (moodSelect) {
+    moodSelect.value = mood;
+    moodSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+function filterByHarmonicKey(key) {
+  const currentKeySelect = document.querySelector('form.filter-bar select[name="key"]');
+  const buttons = document.querySelectorAll('.harmonic-zone-btn');
+  
+  let newKey = key;
+  if (currentKeySelect && currentKeySelect.value === key) {
+    newKey = "";
+  }
+
+  buttons.forEach(btn => {
+    if (newKey && btn.getAttribute('data-camelot') === newKey) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  if (currentKeySelect) {
+    currentKeySelect.value = newKey;
+    currentKeySelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+function syncBpmSlider(val) {
+  const readout = document.getElementById('filter-bpm-slider-val');
+  if (readout) readout.textContent = val ? val + ' BPM' : 'ALL';
+  const minInput = document.querySelector('form.filter-bar input[name="bpm_min"]');
+  const maxInput = document.querySelector('form.filter-bar input[name="bpm_max"]');
+  if (val === '0' || !val) {
+    if (minInput) minInput.value = '';
+    if (maxInput) maxInput.value = '';
+  } else {
+    const num = parseInt(val, 10);
+    if (minInput) minInput.value = Math.max(40, num - 10);
+    if (maxInput) maxInput.value = Math.min(220, num + 10);
+  }
+  const form = document.querySelector('form.filter-bar');
+  if (form) form.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   initThemeEngine();

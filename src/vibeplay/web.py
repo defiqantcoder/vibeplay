@@ -135,6 +135,8 @@ def get_filtered_tracks(
     tracks: list[dict[str, Any]] = []
     key_filter = key.strip().upper() if key and key.strip() else None
     mood_filter = mood.strip().lower() if mood and mood.strip() else None
+    if mood_filter == "chill":
+        mood_filter = "relaxed"
 
     for r in raw_rows:
         row_dict = dict(r)
@@ -398,6 +400,23 @@ def create_app(
         clusters = get_library_clusters(resolved_db_path, cfg)
         playback = get_playback_status(resolved_db_path, cfg)
 
+        selected_track = tracks[0] if tracks else None
+        selected_tech_info = None
+        selected_mood_scores: dict[str, float] = {}
+        if selected_track:
+            try:
+                selected_tech_info = get_audio_file_technical_info(selected_track["path"])
+            except Exception:
+                selected_tech_info = None
+            if selected_track.get("mood_scores"):
+                try:
+                    selected_mood_scores = json.loads(selected_track["mood_scores"])
+                except Exception:
+                    selected_mood_scores = {}
+            for m in ("electronic", "relaxed", "acoustic", "party", "happy", "aggressive", "sad"):
+                if m not in selected_mood_scores:
+                    selected_mood_scores[m] = 0.0
+
         return templates.TemplateResponse(
             request=request,
             name="index.html",
@@ -411,6 +430,9 @@ def create_app(
                 "playlist": latest_playlist,
                 "playback": playback,
                 "desktop_settings": active_desktop_settings,
+                "selected_track": selected_track,
+                "selected_tech_info": selected_tech_info,
+                "selected_mood_scores": selected_mood_scores,
             },
         )
 
@@ -450,8 +472,10 @@ def create_app(
         )
 
     @app.get("/api/track/{track_id}", response_class=HTMLResponse)
-    async def api_track_detail(request: Request, track_id: int) -> Response:
-        """HTMX endpoint returning track detail modal content."""
+    async def api_track_detail(
+        request: Request, track_id: int, view: str | None = None
+    ) -> Response:
+        """HTMX endpoint returning track detail modal or docked inspector content."""
         with get_connection(resolved_db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -519,9 +543,15 @@ def create_app(
 
             tech_info = get_audio_file_technical_info(track_dict["path"])
 
+        template_name = (
+            "components/track_inspector.html"
+            if (view == "inspector" or request.headers.get("HX-Target") == "workspace-inspector-content")
+            else "components/track_detail.html"
+        )
+
         return templates.TemplateResponse(
             request=request,
-            name="components/track_detail.html",
+            name=template_name,
             context={
                 "track": track_dict,
                 "tech_info": tech_info,
