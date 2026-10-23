@@ -1,0 +1,63 @@
+name: Desktop Packaging
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+          libwebkit2gtk-4.1-dev \
+          libgirepository1.0-dev \
+          libasound2-dev \
+          mpd \
+          libnotify-bin
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run automated Phase 7 release gate
+      run: VIBEPLAY_DB_PATH=/tmp/vibeplay-ci.db VIBEPLAY_CONFIG_PATH=/tmp/vibeplay-ci-settings.json uv run vibeplay desktop --release-gate
+
+    - name: Execute PyInstaller build
+      run: uv run pyinstaller packaging/vibeplay.spec
+
+    - name: Verify frozen binary starts and executes release gate checks
+      run: |
+        ./dist/vibeplay-desktop --version
+        VIBEPLAY_DB_PATH=/tmp/vibeplay-ci-frozen.db VIBEPLAY_CONFIG_PATH=/tmp/vibeplay-ci-frozen-settings.json ./dist/vibeplay-desktop --release-gate
+
+    - name: Bundle artifacts
+      run: |
+        mkdir -p vibeplay-desktop-ubuntu24.04
+        cp dist/vibeplay-desktop vibeplay-desktop-ubuntu24.04/
+        cp packaging/vibeplay.desktop vibeplay-desktop-ubuntu24.04/
+        cp packaging/vibeplay.service vibeplay-desktop-ubuntu24.04/
+        cp -r packaging/icons vibeplay-desktop-ubuntu24.04/
+        cp scripts/install-desktop.sh vibeplay-desktop-ubuntu24.04/
+        tar -czvf vibeplay-desktop-ubuntu24.04.tar.gz vibeplay-desktop-ubuntu24.04/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: vibeplay-desktop-ubuntu24.04
+        path: vibeplay-desktop-ubuntu24.04.tar.gz
