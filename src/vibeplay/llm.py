@@ -86,28 +86,16 @@ class PromptPlaylistPlan(BaseModel):
     )
     bpm_min: float | None = Field(default=None, description="Minimum tempo in BPM")
     bpm_max: float | None = Field(default=None, description="Maximum tempo in BPM")
-    energy_min: float | None = Field(
-        default=None, description="Minimum energy level [0.0, 1.0]"
-    )
-    energy_max: float | None = Field(
-        default=None, description="Maximum energy level [0.0, 1.0]"
-    )
-    danceability_min: float | None = Field(
-        default=None, description="Minimum danceability [0.0, 1.0]"
-    )
-    danceability_max: float | None = Field(
-        default=None, description="Maximum danceability [0.0, 1.0]"
-    )
+    energy_min: float | None = Field(default=None, description="Minimum energy level [0.0, 1.0]")
+    energy_max: float | None = Field(default=None, description="Maximum energy level [0.0, 1.0]")
+    danceability_min: float | None = Field(default=None, description="Minimum danceability [0.0, 1.0]")
+    danceability_max: float | None = Field(default=None, description="Maximum danceability [0.0, 1.0]")
     mood_min: dict[str, float] = Field(
         default_factory=dict,
         description="Minimum thresholds for mood probabilities",
     )
-    genre_include: list[str] = Field(
-        default_factory=list, description="Genres to include"
-    )
-    genre_exclude: list[str] = Field(
-        default_factory=list, description="Genres to exclude"
-    )
+    genre_include: list[str] = Field(default_factory=list, description="Genres to include")
+    genre_exclude: list[str] = Field(default_factory=list, description="Genres to exclude")
     limit: int = Field(default=25, description="Target playlist track count")
 
 
@@ -115,20 +103,14 @@ class TrackVibeTag(BaseModel):
     """Generated mood and genre tags for a single track."""
 
     track_id: int = Field(description="Database track ID")
-    mood_tags: list[str] = Field(
-        default_factory=list, description="Descriptive mood tags"
-    )
-    genre_tags: list[str] = Field(
-        default_factory=list, description="Descriptive genre tags"
-    )
+    mood_tags: list[str] = Field(default_factory=list, description="Descriptive mood tags")
+    genre_tags: list[str] = Field(default_factory=list, description="Descriptive genre tags")
 
 
 class BatchVibeTagResponse(BaseModel):
     """Batch response container for track vibe tagging."""
 
-    tracks: list[TrackVibeTag] = Field(
-        default_factory=list, description="List of tagged tracks"
-    )
+    tracks: list[TrackVibeTag] = Field(default_factory=list, description="List of tagged tracks")
 
 
 # ---------------------------------------------------------------------------
@@ -174,10 +156,7 @@ class GeminiProvider(LLMProvider):
     ) -> None:
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "Gemini API key is required. Set GEMINI_API_KEY environment variable "
-                "or configure gemini_api_key in settings."
-            )
+            raise ValueError("Gemini API key is required. Set GEMINI_API_KEY environment variable or configure gemini_api_key in settings.")
         self.model_name = model_name
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
@@ -398,9 +377,7 @@ class FakeLLMProvider(LLMProvider):
         if self.fail_count > 0:
             self.fail_count -= 1
             raise RuntimeError("Simulated transient rate limit error")
-        return self.custom_responses.get(
-            prompt, "Simulated LLM text response for vibeplay."
-        )
+        return self.custom_responses.get(prompt, "Simulated LLM text response for vibeplay.")
 
     def generate_json(
         self,
@@ -429,12 +406,7 @@ class FakeLLMProvider(LLMProvider):
 
         # Check if batch tagging prompt or schema is BatchVibeTagResponse
         lower = prompt.lower()
-        if (
-            schema is BatchVibeTagResponse
-            or "tag the following" in lower
-            or "mood_tags" in lower
-            or ("tracks" in lower and "track_id" in lower)
-        ):
+        if schema is BatchVibeTagResponse or "tag the following" in lower or "mood_tags" in lower or ("tracks" in lower and "track_id" in lower):
             track_ids: list[int] = []
             if "{" in prompt:
                 try:
@@ -660,9 +632,7 @@ def parse_prompt_to_plan(
 
     # 1. Check cache
     with get_connection(db_path) as conn:
-        cached_json = get_llm_cache(
-            conn, prompt_hash, max_age_days=cfg.cache_retention_days
-        )
+        cached_json = get_llm_cache(conn, prompt_hash, max_age_days=cfg.cache_retention_days)
         if cached_json:
             logger.info(
                 "LLM cache hit for prompt '%s' (hash: %s)",
@@ -673,9 +643,7 @@ def parse_prompt_to_plan(
                 data = json.loads(cached_json)
                 return PromptPlaylistPlan.model_validate(data)
             except Exception as err:
-                logger.warning(
-                    "Cached JSON invalid (%s); refreshing from provider", err
-                )
+                logger.warning("Cached JSON invalid (%s); refreshing from provider", err)
 
     # 2. Call provider with validation and single retry
     user_query = f"User Request: {clean_prompt}"
@@ -690,14 +658,9 @@ def parse_prompt_to_plan(
         plan = PromptPlaylistPlan.model_validate(raw_dict)
         plan_dict = plan.model_dump()
     except (ValidationError, json.JSONDecodeError, Exception) as first_err:
-        logger.warning(
-            "First LLM JSON generation failed (%s); retrying once...", first_err
-        )
+        logger.warning("First LLM JSON generation failed (%s); retrying once...", first_err)
         try:
-            retry_prompt = (
-                f"{user_query}\n\nIMPORTANT: Return strictly valid JSON adhering "
-                f"to the required schema without comments or markdown text."
-            )
+            retry_prompt = f"{user_query}\n\nIMPORTANT: Return strictly valid JSON adhering to the required schema without comments or markdown text."
             raw_dict = active_provider.generate_json(
                 prompt=retry_prompt,
                 schema=PromptPlaylistPlan,
@@ -802,15 +765,9 @@ def sanitize_track_for_privacy(track: dict[str, Any]) -> dict[str, Any]:
         "artist": str(track.get("artist") or track.get("original_artist") or "Unknown"),
         "title": str(track.get("title") or track.get("original_title") or "Unknown"),
         "bpm": round(float(track["bpm"]), 1) if track.get("bpm") is not None else None,
-        "energy": round(float(track["energy"]), 3)
-        if track.get("energy") is not None
-        else None,
-        "danceability": round(float(track["danceability"]), 3)
-        if track.get("danceability") is not None
-        else None,
-        "loudness": round(float(track["loudness"]), 1)
-        if track.get("loudness") is not None
-        else None,
+        "energy": round(float(track["energy"]), 3) if track.get("energy") is not None else None,
+        "danceability": round(float(track["danceability"]), 3) if track.get("danceability") is not None else None,
+        "loudness": round(float(track["loudness"]), 1) if track.get("loudness") is not None else None,
         "key": str(track["key"]) if track.get("key") else None,
         "scale": str(track["scale"]) if track.get("scale") else None,
     }
@@ -863,9 +820,7 @@ def batch_vibe_tag_tracks(
 
         # Check cache
         with get_connection(db_path) as conn:
-            cached = get_llm_cache(
-                conn, prompt_hash, max_age_days=cfg.cache_retention_days
-            )
+            cached = get_llm_cache(conn, prompt_hash, max_age_days=cfg.cache_retention_days)
             if cached:
                 logger.info(
                     "LLM cache hit for vibe tagging batch %d-%d",

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -12,7 +11,6 @@ from vibe_dsp.ipc import (
     AVAILABLE_PROFILES,
     DSPClient,
     ProfileSwitchError,
-    get_current_dsp_status,
     load_persistent_state,
     save_persistent_state,
     start_ipc_server,

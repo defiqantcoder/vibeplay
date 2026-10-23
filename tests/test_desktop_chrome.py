@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
 from vibeplay.db import init_db
-from vibeplay.ui.theme import THEME_PRESETS, generate_all_themes_css, get_theme_by_id
+from vibeplay.ui.theme import THEME_PRESETS, generate_all_themes_css
 from vibeplay.web import create_app
 
 
@@ -104,8 +104,10 @@ class TestDesktopApiEndpoints:
         assert "active_profile" in data
 
     def test_dsp_spatial_toggle_endpoint(self, desktop_client: TestClient) -> None:
-        with patch("vibe_dsp.spatial.get_spatial_virtualization_status", return_value="stereo_direct"), \
-             patch("vibe_dsp.spatial.set_spatial_virtualization_mode", return_value={"mode": "spatial_binaural", "status": "active"}):
+        with (
+            patch("vibe_dsp.spatial.get_spatial_virtualization_status", return_value="stereo_direct"),
+            patch("vibe_dsp.spatial.set_spatial_virtualization_mode", return_value={"mode": "spatial_binaural", "status": "active"}),
+        ):
             resp = desktop_client.post("/api/dsp/spatial/toggle")
             assert resp.status_code == 200
             data = resp.json()
@@ -133,9 +135,9 @@ class TestDesktopShellRendering:
         # 1. Simulated Window Titlebar
         assert 'class="desktop-titlebar"' in html
         assert 'class="window-controls"' in html
-        assert 'dot-close' in html
-        assert 'dot-minimize' in html
-        assert 'dot-maximize' in html
+        assert "dot-close" in html
+        assert "dot-minimize" in html
+        assert "dot-maximize" in html
         assert "VIBEPLAY" in html
         assert "Active Desktop Session:" in html
 

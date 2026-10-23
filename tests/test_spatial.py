@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from vibe_dsp.spatial import (
     CHANNEL_LAYOUT_7_1_4,
     SPATIAL_SINK_NAME,
-    STANDARD_7_1_4_BASE_PREAMP_DB,
     calculate_composite_preamp,
     ensure_default_sofa_hrtf,
     generate_pipewire_spatial_filter_chain_config,
@@ -106,9 +102,7 @@ Audio
  │  *   55. Spatial-7.1.4-Sink                  [vol: 1.00]
  │
 """
-    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch(
-        "subprocess.run"
-    ) as mock_run:
+    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stdout=mock_wpctl_output)
         status = get_spatial_virtualization_status()
 
@@ -119,10 +113,14 @@ Audio
 
 def test_set_spatial_virtualization_mode_toggle() -> None:
     """Verify set_spatial_virtualization_mode executes wpctl set-default."""
-    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch(
-        "vibe_dsp.spatial.get_spatial_virtualization_status",
-        return_value={"node_id": 55, "mode": "stereo_direct"},
-    ), patch("subprocess.run") as mock_run:
+    with (
+        patch("shutil.which", return_value="/usr/bin/wpctl"),
+        patch(
+            "vibe_dsp.spatial.get_spatial_virtualization_status",
+            return_value={"node_id": 55, "mode": "stereo_direct"},
+        ),
+        patch("subprocess.run") as mock_run,
+    ):
         mock_run.return_value = MagicMock(returncode=0)
 
         # Enable 3D binaural

@@ -21,6 +21,7 @@ from vibeplay.db import (
     get_playlist,
     get_playlist_tracks,
 )
+from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.player import (
     adjust_volume_step,
     get_audio_file_technical_info,
@@ -43,7 +44,6 @@ from vibeplay.playlist import (
     generate_playlist,
     key_to_camelot,
 )
-from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.vectors import ClusterSummary, compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
@@ -143,9 +143,7 @@ def get_filtered_tracks(
         row_dict["title"] = row_dict["title"] or Path(row_dict["path"]).stem
         row_dict["artist"] = row_dict["artist"] or "Unknown Artist"
         row_dict["album"] = row_dict["album"] or "Unknown Album"
-        row_dict["duration"] = (
-            float(row_dict["duration"]) if row_dict["duration"] else 0.0
-        )
+        row_dict["duration"] = float(row_dict["duration"]) if row_dict["duration"] else 0.0
         row_dict["genre"] = _format_genre(row_dict["genre"])
 
         # Filter by key/camelot if requested
@@ -171,9 +169,7 @@ def get_filtered_tracks(
     return tracks
 
 
-def get_library_clusters(
-    db_path: Path, settings: Settings | None = None
-) -> list[ClusterSummary]:
+def get_library_clusters(db_path: Path, settings: Settings | None = None) -> list[ClusterSummary]:
     """Compute or load unsupervised vibe clusters for the library."""
     try:
         clust_res = compute_clusters(db_path=db_path, settings=settings)
@@ -208,14 +204,8 @@ def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | 
     for pos, t in enumerate(tracks, start=1):
         meta = dict(t)
         tid = int(t["track_id"])
-        vec = (
-            vectors[id_to_vec_idx[tid]]
-            if vectors is not None and tid in id_to_vec_idx
-            else None
-        )
-        trans = (
-            calculate_transition(prev_meta, meta, prev_vec, vec) if pos > 1 else None
-        )
+        vec = vectors[id_to_vec_idx[tid]] if vectors is not None and tid in id_to_vec_idx else None
+        trans = calculate_transition(prev_meta, meta, prev_vec, vec) if pos > 1 else None
         items.append(
             PlaylistTrackItem(
                 position=pos,
@@ -300,21 +290,12 @@ def create_app(
         @app.middleware("http")
         async def auth_middleware(request: Request, call_next):
             path = request.url.path
-            if (
-                path.startswith("/static")
-                or path == "/favicon.ico"
-                or path == "/docs"
-                or path == "/openapi.json"
-            ):
+            if path.startswith("/static") or path == "/favicon.ico" or path == "/docs" or path == "/openapi.json":
                 return await call_next(request)
 
             header_key = request.headers.get("X-API-Key")
             auth_header = request.headers.get("Authorization", "")
-            bearer_key = (
-                auth_header.split(" ", 1)[1].strip()
-                if auth_header.startswith("Bearer ")
-                else None
-            )
+            bearer_key = auth_header.split(" ", 1)[1].strip() if auth_header.startswith("Bearer ") else None
             query_key = request.query_params.get("api_key") or request.query_params.get("token")
             cookie_key = request.cookies.get("vibeplay_session_token") or request.cookies.get("vibeplay_api_key")
 
@@ -340,12 +321,8 @@ def create_app(
 
             response = await call_next(request)
             if query_key == effective_api_key:
-                response.set_cookie(
-                    "vibeplay_session_token", effective_api_key, httponly=True, samesite="lax"
-                )
-                response.set_cookie(
-                    "vibeplay_api_key", effective_api_key, httponly=True, samesite="lax"
-                )
+                response.set_cookie("vibeplay_session_token", effective_api_key, httponly=True, samesite="lax")
+                response.set_cookie("vibeplay_api_key", effective_api_key, httponly=True, samesite="lax")
             return response
 
     static_dir = Path(__file__).parent / "static"
@@ -362,9 +339,7 @@ def create_app(
         active_desktop_settings = load_desktop_settings(settings_file_path)
         with get_connection(resolved_db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT COUNT(*), COALESCE(SUM(duration), 0) FROM tracks WHERE status = 'active'"
-            )
+            cursor.execute("SELECT COUNT(*), COALESCE(SUM(duration), 0) FROM tracks WHERE status = 'active'")
             count_row = cursor.fetchone()
             total_tracks = count_row[0] if count_row else 0
             total_duration = float(count_row[1]) if count_row else 0.0
@@ -379,9 +354,7 @@ def create_app(
                 """
             )
             artists = [r[0] for r in cursor.fetchall() if r[0]]
-            tracks = get_filtered_tracks(
-                conn, mood_threshold=cfg.mood_confidence_threshold
-            )
+            tracks = get_filtered_tracks(conn, mood_threshold=cfg.mood_confidence_threshold)
 
             cursor.execute("SELECT id FROM playlists ORDER BY id DESC LIMIT 1")
             recent_pl = cursor.fetchone()
@@ -481,20 +454,14 @@ def create_app(
             )
             row = cursor.fetchone()
             if not row:
-                raise HTTPException(
-                    status_code=404, detail=f"Track {track_id} not found"
-                )
+                raise HTTPException(status_code=404, detail=f"Track {track_id} not found")
 
             track_dict = dict(row)
             track_dict["title"] = track_dict["title"] or Path(track_dict["path"]).stem
             track_dict["artist"] = track_dict["artist"] or "Unknown Artist"
             track_dict["album"] = track_dict["album"] or "Unknown Album"
-            track_dict["camelot"] = key_to_camelot(
-                track_dict["key"], track_dict["scale"]
-            )
-            track_dict["duration"] = (
-                float(track_dict["duration"]) if track_dict["duration"] else 0.0
-            )
+            track_dict["camelot"] = key_to_camelot(track_dict["key"], track_dict["scale"])
+            track_dict["duration"] = float(track_dict["duration"]) if track_dict["duration"] else 0.0
 
             mood_scores: dict[str, float] = {}
             if track_dict.get("mood_scores"):
@@ -554,16 +521,8 @@ def create_app(
         max_artist_tracks: int = Form(2),
     ) -> Response:
         """Generate smart playlist and return updated playlist builder component."""
-        parsed_seed_id = (
-            int(seed_track_id)
-            if seed_track_id and str(seed_track_id).strip().isdigit()
-            else None
-        )
-        parsed_cluster_id = (
-            int(cluster_id)
-            if cluster_id and str(cluster_id).strip().isdigit()
-            else None
-        )
+        parsed_seed_id = int(seed_track_id) if seed_track_id and str(seed_track_id).strip().isdigit() else None
+        parsed_cluster_id = int(cluster_id) if cluster_id and str(cluster_id).strip().isdigit() else None
         parsed_vibe = vibe.strip() if vibe and vibe.strip() else None
         parsed_arc = arc.strip() if arc and arc.strip() else None
 
@@ -572,9 +531,7 @@ def create_app(
 
         if prompt and prompt.strip():
             try:
-                plan = parse_prompt_to_plan(
-                    prompt.strip(), db_path=resolved_db_path, settings=cfg
-                )
+                plan = parse_prompt_to_plan(prompt.strip(), db_path=resolved_db_path, settings=cfg)
                 name = plan.name
                 desc = plan.description
                 parsed_vibe = plan.vibe or parsed_vibe
@@ -602,12 +559,8 @@ def create_app(
             rules = PlaylistRuleConfig(
                 energy_min=max(0.0, energy - 0.25) if energy is not None else None,
                 energy_max=min(1.0, energy + 0.25) if energy is not None else None,
-                danceability_min=max(0.0, danceability - 0.25)
-                if danceability is not None
-                else None,
-                danceability_max=min(1.0, danceability + 0.25)
-                if danceability is not None
-                else None,
+                danceability_min=max(0.0, danceability - 0.25) if danceability is not None else None,
+                danceability_max=min(1.0, danceability + 0.25) if danceability is not None else None,
             )
 
         try:
@@ -657,9 +610,7 @@ def create_app(
         track_ids: str = Form(...),
     ) -> Response:
         """Reorder tracks in playlist, update database, recalculate transitions."""
-        ordered_ids = [
-            int(x.strip()) for x in track_ids.split(",") if x.strip().isdigit()
-        ]
+        ordered_ids = [int(x.strip()) for x in track_ids.split(",") if x.strip().isdigit()]
         if not ordered_ids:
             raise HTTPException(status_code=400, detail="Invalid track_ids")
 
@@ -669,9 +620,7 @@ def create_app(
                 raise HTTPException(status_code=404, detail="Playlist not found")
 
             cursor = conn.cursor()
-            cursor.execute(
-                "DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,)
-            )
+            cursor.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
             add_tracks_to_playlist(conn, playlist_id, ordered_ids)
 
         reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
@@ -695,19 +644,13 @@ def create_app(
 
         lines = ["#EXTM3U\n"]
         for t in tracks:
-            duration_sec = (
-                int(round(float(t["duration"]))) if t["duration"] is not None else -1
-            )
+            duration_sec = int(round(float(t["duration"]))) if t["duration"] is not None else -1
             artist = t["artist"] or "Unknown Artist"
             title = t["title"] or "Unknown Title"
             lines.append(f"#EXTINF:{duration_sec},{artist} - {title}\n")
             lines.append(f"{t['path']}\n")
 
-        safe_name = (
-            "".join(c for c in pl_row["name"] if c.isalnum() or c in (" ", "_", "-"))
-            .strip()
-            .replace(" ", "_")
-        )
+        safe_name = "".join(c for c in pl_row["name"] if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
         filename = f"{safe_name or 'playlist'}_{playlist_id}.m3u8"
 
         return Response(
@@ -931,9 +874,7 @@ def create_app(
             res = client.set_profile(str(target_profile))
             set_output_profile(str(target_profile))
             try:
-                update_desktop_settings(
-                    {"dsp_profile": str(target_profile)}, settings_file_path
-                )
+                update_desktop_settings({"dsp_profile": str(target_profile)}, settings_file_path)
             except Exception:
                 pass
             return JSONResponse(content=res)
@@ -1023,10 +964,7 @@ def create_app(
             from vibe_dsp.peq import list_available_presets
 
             raw_presets = list_available_presets()
-            peq_presets = [
-                (p["name"] if isinstance(p, dict) else str(p))
-                for p in raw_presets
-            ]
+            peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in raw_presets]
         except Exception:
             peq_presets = [
                 "7hz_zero_2",
@@ -1077,9 +1015,7 @@ def create_app(
 
         # Synchronize spatial_enabled <-> spatial_mode when only one is supplied
         if "spatial_enabled" in payload and "spatial_mode" not in payload:
-            merged["spatial_mode"] = (
-                "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
-            )
+            merged["spatial_mode"] = "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
         elif "spatial_mode" in payload and "spatial_enabled" not in payload:
             merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
                 "3d_binaural",
@@ -1095,24 +1031,16 @@ def create_app(
             )
 
         # Auto-compute negative headroom preamp when peq_profile changes or peq_preamp_auto is enabled
-        if (
-            ("peq_profile" in payload or "peq_preamp_auto" in payload)
-            and "peq_preamp_db" not in payload
-            and validated.peq_preamp_auto
-        ):
+        if ("peq_profile" in payload or "peq_preamp_auto" in payload) and "peq_preamp_db" not in payload and validated.peq_preamp_auto:
             if validated.peq_profile == "none":
                 validated.peq_preamp_db = 0.0
             else:
                 try:
                     from vibe_dsp.peq import lookup_autoeq_model
 
-                    prof = lookup_autoeq_model(
-                        validated.peq_profile, allow_network=False
-                    )
+                    prof = lookup_autoeq_model(validated.peq_profile, allow_network=False)
                     if prof is not None:
-                        validated.peq_preamp_db = round(
-                            float(prof.calculated_preamp), 2
-                        )
+                        validated.peq_preamp_db = round(float(prof.calculated_preamp), 2)
                     else:
                         validated.peq_preamp_db = -5.5
                 except Exception:
@@ -1195,29 +1123,21 @@ def create_app(
             )
 
         try:
-            updated = update_desktop_settings(
-                {"peq_profile": str(preset_id)}, settings_file_path
-            )
+            updated = update_desktop_settings({"peq_profile": str(preset_id)}, settings_file_path)
             filters_count = 0
             if updated.peq_profile == "none":
                 if updated.peq_preamp_auto:
-                    updated = update_desktop_settings(
-                        {"peq_preamp_db": 0.0}, settings_file_path
-                    )
+                    updated = update_desktop_settings({"peq_preamp_db": 0.0}, settings_file_path)
             else:
                 try:
                     from vibe_dsp.peq import lookup_autoeq_model
 
-                    prof = lookup_autoeq_model(
-                        updated.peq_profile, allow_network=False
-                    )
+                    prof = lookup_autoeq_model(updated.peq_profile, allow_network=False)
                     if prof is not None:
                         filters_count = len(prof.filters)
                         if updated.peq_preamp_auto:
                             preamp = round(float(prof.calculated_preamp), 2)
-                            updated = update_desktop_settings(
-                                {"peq_preamp_db": preamp}, settings_file_path
-                            )
+                            updated = update_desktop_settings({"peq_preamp_db": preamp}, settings_file_path)
                 except Exception:
                     pass
 
@@ -1273,17 +1193,11 @@ def create_app(
     async def api_dsp_telemetry() -> JSONResponse:
         """Return real-time hardware latency, xruns, and buffer telemetry."""
         ds = load_desktop_settings(settings_file_path)
-        hw_label = (
-            f"ALSA {ds.alsa_device}"
-            if ds.alsa_device.startswith("hw:")
-            else ds.alsa_device
-        )
+        hw_label = f"ALSA {ds.alsa_device}" if ds.alsa_device.startswith("hw:") else ds.alsa_device
         telemetry = {
             "xruns": 0,
             "jitter_ppm": 0.02,
-            "buffer_health": "100% Bit-Perfect Locked"
-            if ds.alsa_exclusive_lock
-            else "Shared Mixer Active",
+            "buffer_health": "100% Bit-Perfect Locked" if ds.alsa_exclusive_lock else "Shared Mixer Active",
             "pipewire_active": ds.alsa_device == "pipewire",
             "active_profile": ds.dsp_profile,
             "peq_profile": ds.peq_profile,
@@ -1345,8 +1259,7 @@ def create_app(
                 update_desktop_settings(
                     {
                         "spatial_mode": result_payload.get("mode", target),
-                        "spatial_enabled": result_payload.get("mode", target)
-                        != "stereo_direct",
+                        "spatial_enabled": result_payload.get("mode", target) != "stereo_direct",
                     },
                     settings_file_path,
                 )
@@ -1398,10 +1311,7 @@ def run_server(
     effective_api_key = api_key if api_key is not None else cfg.api_key
     permit_remote = allow_insecure_remote or cfg.allow_insecure_remote
 
-    is_loopback = (
-        host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-        or host.startswith("127.")
-    )
+    is_loopback = host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1") or host.startswith("127.")
 
     if not is_loopback and not effective_api_key and not permit_remote:
         raise ValueError(

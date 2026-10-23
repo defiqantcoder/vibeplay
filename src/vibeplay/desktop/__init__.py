@@ -17,6 +17,7 @@ from vibeplay.desktop.environment import (
     generate_ephemeral_session_token,
     inspect_desktop_environment,
 )
+from vibeplay.desktop.notifications import TrackNotificationDispatcher
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -43,6 +44,7 @@ __all__ = [
     "DesktopEnvironment",
     "DesktopSettings",
     "DesktopSupervisor",
+    "TrackNotificationDispatcher",
     "WINDOW_TITLE",
     "find_free_loopback_port",
     "generate_audiophile_mpd_config",

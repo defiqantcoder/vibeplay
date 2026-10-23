@@ -1159,16 +1159,12 @@ def get_llm_cache(
             return None
         return row["response"]
 
-    cursor.execute(
-        "SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,)
-    )
+    cursor.execute("SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,))
     row = cursor.fetchone()
     return row["response"] if row else None
 
 
-def cleanup_expired_caches(
-    conn: sqlite3.Connection, max_age_days: int = 30
-) -> dict[str, int]:
+def cleanup_expired_caches(conn: sqlite3.Connection, max_age_days: int = 30) -> dict[str, int]:
     """Prune cached LLM prompts and network metadata responses older than max_age_days.
 
     Enforces privacy data retention policies and removes stale cached API data.
@@ -1181,14 +1177,10 @@ def cleanup_expired_caches(
         dict[str, int]: Deleted records count {'llm_cache': N, 'network_cache': M}.
     """
     cursor = conn.cursor()
-    cursor.execute(
-        f"DELETE FROM llm_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
-    )
+    cursor.execute(f"DELETE FROM llm_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')")
     llm_count = cursor.rowcount
 
-    cursor.execute(
-        f"DELETE FROM network_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
-    )
+    cursor.execute(f"DELETE FROM network_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')")
     net_count = cursor.rowcount
 
     logger.info(
@@ -1224,9 +1216,7 @@ def purge_all_caches(conn: sqlite3.Connection) -> dict[str, int]:
     return {"llm_cache": max(0, llm_count), "network_cache": max(0, net_count)}
 
 
-def set_llm_cache(
-    conn: sqlite3.Connection, prompt_hash: str, prompt: str, response: str, model: str
-) -> None:
+def set_llm_cache(conn: sqlite3.Connection, prompt_hash: str, prompt: str, response: str, model: str) -> None:
     """Insert or replace a cached LLM response.
 
     Args:
