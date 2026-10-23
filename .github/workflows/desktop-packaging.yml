@@ -38,6 +38,9 @@ jobs:
     - name: Run automated Phase 7 release gate
       run: VIBEPLAY_DB_PATH=/tmp/vibeplay-ci.db VIBEPLAY_CONFIG_PATH=/tmp/vibeplay-ci-settings.json uv run vibeplay desktop --release-gate
 
+    - name: Install Pyinstaller
+      run: uv add --dev pyinstaller
+
     - name: Execute PyInstaller build
       run: uv run pyinstaller packaging/vibeplay.spec
 
