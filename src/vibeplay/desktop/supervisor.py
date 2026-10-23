@@ -53,15 +53,12 @@ def _is_loopback_address(host: str) -> bool:
     if not host or not isinstance(host, str):
         return False
     normalized = host.strip().lower()
-    return (
-        normalized in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-        or normalized.startswith("127.")
-    )
+    return normalized in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1") or normalized.startswith("127.")
 
 
 def _sanitize_mpd_string(value: str) -> str:
     """Sanitize strings used in mpd.conf to prevent injection."""
-    return value.replace('\n', '').replace('\r', '').replace('\\', '\\\\').replace('"', '\\"')
+    return value.replace("\n", "").replace("\r", "").replace("\\", "\\\\").replace('"', '\\"')
 
 
 def generate_audiophile_mpd_config(
@@ -90,18 +87,10 @@ def generate_audiophile_mpd_config(
         ValueError: If host is not a loopback interface.
     """
     if not _is_loopback_address(host):
-        raise ValueError(
-            f"Security guardrail: MPD daemon must bind to loopback interface only, got '{host}'"
-        )
+        raise ValueError(f"Security guardrail: MPD daemon must bind to loopback interface only, got '{host}'")
 
     resolved_music_dir = (
-        music_dir
-        if music_dir is not None
-        else (
-            Path("~/Music").expanduser()
-            if Path("~/Music").expanduser().exists()
-            else Path.cwd()
-        )
+        music_dir if music_dir is not None else (Path("~/Music").expanduser() if Path("~/Music").expanduser().exists() else Path.cwd())
     )
     mpd_dir_str = _sanitize_mpd_string(str(mpd_dir.resolve()))
     resolved_music_dir_str = _sanitize_mpd_string(str(resolved_music_dir))
@@ -112,13 +101,9 @@ def generate_audiophile_mpd_config(
             from vibe_dsp.hardware import scan_hardware
 
             audit = scan_hardware()
-            primary = audit.active_dac or audit.fallback_endpoint or (
-                audit.endpoints[0] if audit.endpoints else None
-            )
+            primary = audit.active_dac or audit.fallback_endpoint or (audit.endpoints[0] if audit.endpoints else None)
             if primary:
-                audio_outputs_block = generate_mpd_audio_outputs(
-                    primary, audit.fallback_endpoint
-                )
+                audio_outputs_block = generate_mpd_audio_outputs(primary, audit.fallback_endpoint)
             else:
                 audio_outputs_block = _default_audio_outputs_fallback()
         except Exception as err:
@@ -189,14 +174,9 @@ class DesktopSupervisor:
         self.host = host
 
         # Enforce loopback host security guardrail
-        is_loopback = (
-            self.host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-            or self.host.startswith("127.")
-        )
+        is_loopback = self.host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1") or self.host.startswith("127.")
         if not is_loopback:
-            raise ValueError(
-                f"Security Guardrail: Desktop supervisor host must be a loopback address, got '{self.host}'"
-            )
+            raise ValueError(f"Security Guardrail: Desktop supervisor host must be a loopback address, got '{self.host}'")
 
         self.requested_port = port
         self.port = port
@@ -260,9 +240,7 @@ class DesktopSupervisor:
 
             audit = scan_hardware()
             info["endpoints_count"] = len(audit.endpoints)
-            ep = audit.active_dac or audit.fallback_endpoint or (
-                audit.endpoints[0] if audit.endpoints else None
-            )
+            ep = audit.active_dac or audit.fallback_endpoint or (audit.endpoints[0] if audit.endpoints else None)
             if ep:
                 info["primary_device"] = ep.hw_device
                 info["card_name"] = ep.card_name
@@ -444,18 +422,12 @@ class DesktopSupervisor:
                 self.server_thread.join(timeout=2.0)
             self.server = None
             self.server_thread = None
-            raise RuntimeError(
-                f"FastAPI backend failed to become ready on http://{self.host}:{self.port}"
-            )
+            raise RuntimeError(f"FastAPI backend failed to become ready on http://{self.host}:{self.port}")
         logger.info("FastAPI backend is ready at http://%s:%d", self.host, self.port)
         try:
             from vibeplay.desktop.mime import DEFAULT_IPC_STATE_PATH, write_ipc_state
 
-            ipc_path = (
-                self.mpd_dir / "desktop_ipc.json"
-                if self.mpd_dir != DEFAULT_MPD_DATA_DIR
-                else DEFAULT_IPC_STATE_PATH
-            )
+            ipc_path = self.mpd_dir / "desktop_ipc.json" if self.mpd_dir != DEFAULT_MPD_DATA_DIR else DEFAULT_IPC_STATE_PATH
             write_ipc_state(self.host, self.port, self.session_token, state_path=ipc_path)
         except Exception as ipc_err:
             logger.debug("Could not write runtime IPC state: %s", ipc_err)
@@ -465,9 +437,7 @@ class DesktopSupervisor:
         try:
             import webview
         except ImportError as err:
-            raise RuntimeError(
-                "pywebview is required to run the desktop GUI. Install with 'uv add pywebview'."
-            ) from err
+            raise RuntimeError("pywebview is required to run the desktop GUI. Install with 'uv add pywebview'.") from err
 
         shell_url = f"http://{self.host}:{self.port}/?token={self.session_token}"
         masked_token = f"{self.session_token[:8]}..." if self.session_token else "none"
@@ -551,10 +521,7 @@ class DesktopSupervisor:
 
             if effective_headless:
                 if not env.has_display and not headless:
-                    logger.warning(
-                        "No display server detected ($DISPLAY or $WAYLAND_DISPLAY not set). "
-                        "Running supervisor in headless mode."
-                    )
+                    logger.warning("No display server detected ($DISPLAY or $WAYLAND_DISPLAY not set). Running supervisor in headless mode.")
                 else:
                     logger.info("Running supervisor in headless mode.")
                 try:
@@ -623,11 +590,7 @@ class DesktopSupervisor:
         try:
             from vibeplay.desktop.mime import DEFAULT_IPC_STATE_PATH, clear_ipc_state
 
-            ipc_path = (
-                self.mpd_dir / "desktop_ipc.json"
-                if self.mpd_dir != DEFAULT_MPD_DATA_DIR
-                else DEFAULT_IPC_STATE_PATH
-            )
+            ipc_path = self.mpd_dir / "desktop_ipc.json" if self.mpd_dir != DEFAULT_MPD_DATA_DIR else DEFAULT_IPC_STATE_PATH
             clear_ipc_state(state_path=ipc_path)
         except Exception:
             pass

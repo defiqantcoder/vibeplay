@@ -68,4 +68,3 @@ class TrackNotificationDispatcher:
             album=album,
             format_badge=format_badge,
         )
-

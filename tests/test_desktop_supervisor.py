@@ -407,6 +407,3 @@ def test_start_failure_cleans_up(tmp_path: Path) -> None:
             with pytest.raises(RuntimeError, match="Audio hardware fault"):
                 supervisor.start(headless=True)
             mock_stop.assert_called_once()
-
-
-

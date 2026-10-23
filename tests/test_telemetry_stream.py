@@ -18,12 +18,14 @@ def get_base_snapshot():
         service_healthy=True,
     )
 
+
 def test_telemetry_monitor_initial_snapshot():
     monitor = TelemetryMonitor()
     snap = get_base_snapshot()
     events = monitor.process_snapshot(snap)
     assert events == []
     assert monitor._last_snapshot == snap
+
 
 def test_track_transition():
     monitor = TelemetryMonitor()
@@ -44,6 +46,7 @@ def test_track_transition():
         "artist": "Artist 2",
     }
 
+
 def test_xrun_detected():
     monitor = TelemetryMonitor()
     snap1 = get_base_snapshot()
@@ -59,6 +62,7 @@ def test_xrun_detected():
         "count": 3,
         "total": 3,
     }
+
 
 def test_dac_lock_changed_bit_perfect():
     monitor = TelemetryMonitor()
@@ -77,6 +81,7 @@ def test_dac_lock_changed_bit_perfect():
         "bit_depth": 16,
     }
 
+
 def test_dac_lock_changed_sample_rate():
     monitor = TelemetryMonitor()
     snap1 = get_base_snapshot()
@@ -93,6 +98,7 @@ def test_dac_lock_changed_sample_rate():
         "sample_rate_hz": 48000,
         "bit_depth": 16,
     }
+
 
 def test_dac_lock_changed_bit_depth():
     monitor = TelemetryMonitor()
@@ -111,6 +117,7 @@ def test_dac_lock_changed_bit_depth():
         "bit_depth": 24,
     }
 
+
 def test_multiple_events():
     monitor = TelemetryMonitor()
     snap1 = get_base_snapshot()
@@ -125,6 +132,7 @@ def test_multiple_events():
     event_types = [e[0] for e in events]
     assert "track_transition" in event_types
     assert "xrun_detected" in event_types
+
 
 def test_format_sse_event():
     data = {"track_id": 1, "title": "Test Title"}

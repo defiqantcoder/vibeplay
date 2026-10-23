@@ -91,9 +91,7 @@ class BaseAnalyzer(ABC):
         Returns:
             AudioFeatures: Extracted features.
         """
-        offset = get_middle_window_offset(
-            duration or 0.0, window_seconds=window_seconds
-        )
+        offset = get_middle_window_offset(duration or 0.0, window_seconds=window_seconds)
         audio = decode_audio_slice(
             path=path,
             offset_seconds=offset,

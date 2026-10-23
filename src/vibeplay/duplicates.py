@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
+from pathlib import Path
 
 from vibeplay.db import get_connection
 
@@ -58,7 +59,7 @@ def find_duplicates(db_path: str) -> list[DuplicateGroup]:
     """Find likely duplicate tracks in the database."""
     groups = []
 
-    with get_connection(db_path) as conn:
+    with get_connection(Path(db_path)) as conn:
         conn.row_factory = dict_factory
         cursor = conn.cursor()
 
@@ -111,7 +112,7 @@ def find_duplicates(db_path: str) -> list[DuplicateGroup]:
         for (artist, title), tracks in at_groups.items():
             if len(tracks) > 1:
                 # Sub-group by duration (+- 2 seconds)
-                dur_groups = []
+                dur_groups: list[list[dict[str, Any]]] = []
                 for t in tracks:
                     placed = False
                     for dg in dur_groups:

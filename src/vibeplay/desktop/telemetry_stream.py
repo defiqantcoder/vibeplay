@@ -32,37 +32,45 @@ class TelemetryMonitor:
 
         # Track transition
         if current.current_track_id != last.current_track_id:
-            events.append((
-                "track_transition",
-                {
-                    "track_id": current.current_track_id,
-                    "title": current.current_track_title,
-                    "artist": current.current_track_artist,
-                }
-            ))
+            events.append(
+                (
+                    "track_transition",
+                    {
+                        "track_id": current.current_track_id,
+                        "title": current.current_track_title,
+                        "artist": current.current_track_artist,
+                    },
+                )
+            )
 
         # XRUN detected
         if current.xruns > last.xruns:
-            events.append((
-                "xrun_detected",
-                {
-                    "count": current.xruns - last.xruns,
-                    "total": current.xruns,
-                }
-            ))
+            events.append(
+                (
+                    "xrun_detected",
+                    {
+                        "count": current.xruns - last.xruns,
+                        "total": current.xruns,
+                    },
+                )
+            )
 
         # DAC lock changed
-        if (current.bit_perfect_locked != last.bit_perfect_locked or
-                current.sample_rate_hz != last.sample_rate_hz or
-                current.bit_depth != last.bit_depth):
-            events.append((
-                "dac_lock_changed",
-                {
-                    "bit_perfect_locked": current.bit_perfect_locked,
-                    "sample_rate_hz": current.sample_rate_hz,
-                    "bit_depth": current.bit_depth,
-                }
-            ))
+        if (
+            current.bit_perfect_locked != last.bit_perfect_locked
+            or current.sample_rate_hz != last.sample_rate_hz
+            or current.bit_depth != last.bit_depth
+        ):
+            events.append(
+                (
+                    "dac_lock_changed",
+                    {
+                        "bit_perfect_locked": current.bit_perfect_locked,
+                        "sample_rate_hz": current.sample_rate_hz,
+                        "bit_depth": current.bit_depth,
+                    },
+                )
+            )
 
         self._last_snapshot = current
         return events

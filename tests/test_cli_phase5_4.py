@@ -44,9 +44,26 @@ def test_cli_spatial_toggle() -> None:
 
 def test_cli_route_passthrough_all() -> None:
     """Verify vibe-dsp route passthrough --all enables receiver codecs."""
-    with patch(
-        "vibe_dsp.cli.configure_sink_passthrough",
-        return_value=(True, "Configured passthrough"),
+    with (
+        patch(
+            "vibe_dsp.cli.configure_sink_passthrough",
+            return_value=(True, "Configured passthrough"),
+        ),
+        patch(
+            "vibe_dsp.cli.discover_receiver_endpoints",
+            return_value=[
+                type(
+                    "ReceiverEndpoint",
+                    (),
+                    {
+                        "sink_name": "alsa_output.pci-0000_01_00.1.hdmi-stereo",
+                        "sink_id": "42",
+                        "description": "HDMI Receiver",
+                        "supported_codecs": {"ac3", "dts", "eac3", "truehd", "dtshd"},
+                    },
+                )()
+            ],
+        ),
     ):
         result = runner.invoke(app, ["route", "passthrough", "--all", "--no-default"])
         assert result.exit_code == 0
