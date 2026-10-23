@@ -918,6 +918,59 @@ def play(
         raise typer.Exit(code=1)
 
 
+@app.command("control")
+def control(
+    action: Annotated[
+        str,
+        typer.Argument(
+            help="Playback control action ('play-pause', 'play', 'pause', 'stop', 'next', 'previous')",
+        ),
+    ] = "play-pause",
+) -> None:
+    """Control MPD playback state directly from the command line or desktop actions."""
+    from vibeplay.player import PlaybackError, get_mpd_transport
+
+    try:
+        with get_mpd_transport() as transport:
+            if not transport.client:
+                raise PlaybackError("MPD client not connected")
+            if action in ("play-pause", "toggle"):
+                status = transport.client.status()
+                state = status.get("state")
+                if state == "play":
+                    transport.client.pause(1)
+                    console.print("[dim]Playback paused[/dim]")
+                else:
+                    transport.client.play()
+                    console.print("[dim]Playback started[/dim]")
+            elif action == "play":
+                transport.client.play()
+                console.print("[dim]Playback started[/dim]")
+            elif action == "pause":
+                transport.client.pause(1)
+                console.print("[dim]Playback paused[/dim]")
+            elif action == "stop":
+                transport.client.stop()
+                console.print("[dim]Playback stopped[/dim]")
+            elif action == "next":
+                transport.client.next()
+                console.print("[dim]Next track[/dim]")
+            elif action in ("previous", "prev"):
+                transport.client.previous()
+                console.print("[dim]Previous track[/dim]")
+            else:
+                console.print(f"[bold red]Unknown control action:[/bold red] {action}")
+                raise typer.Exit(code=1)
+    except (typer.Exit, SystemExit):
+        raise
+    except PlaybackError as err:
+        console.print(f"[bold red]MPD Playback Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+    except Exception as err:
+        console.print(f"[bold red]Playback Control Error:[/bold red] {err}")
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def serve(
     host: Annotated[
@@ -966,6 +1019,41 @@ def serve(
         raise typer.Exit(code=1)
 
 
+@app.command("web")
+def web(
+    host: Annotated[
+        str,
+        typer.Option(help="Host address to bind to"),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int,
+        typer.Option(help="Port number to listen on"),
+    ] = 8000,
+    api_key: Annotated[
+        str | None,
+        typer.Option(
+            "--api-key",
+            envvar="VIBEPLAY_API_KEY",
+            help="Optional API key for web UI & API access (required when binding beyond localhost)",
+        ),
+    ] = None,
+    allow_insecure_remote: Annotated[
+        bool,
+        typer.Option(
+            "--allow-insecure-remote",
+            help="Permit binding to external network interfaces without API key authentication",
+        ),
+    ] = False,
+) -> None:
+    """Alias for serve: Launch the local FastAPI web server and user interface."""
+    serve(
+        host=host,
+        port=port,
+        api_key=api_key,
+        allow_insecure_remote=allow_insecure_remote,
+    )
+
+
 @app.command()
 def desktop(
     host: Annotated[
@@ -994,12 +1082,39 @@ def desktop(
             help="Skip starting or managing MPD child daemon",
         ),
     ] = False,
+    release_gate: Annotated[
+        bool,
+        typer.Option(
+            "--release-gate",
+            help="Run Phase 7 automated release gate validation checks and exit",
+        ),
+    ] = False,
 ) -> None:
     """Launch the unified vibeplay desktop application shell and runtime supervisor."""
     from vibeplay.desktop.supervisor import DesktopSupervisor
 
     cfg = get_settings()
     db_path = db or cfg.db_path
+
+    if release_gate:
+        import tempfile
+        from vibeplay.desktop.release_gate import run_release_gate_checks
+
+        console.print("[bold cyan]Running VibePlay Phase 7 Release Gate Validation...[/bold cyan]")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_p = Path(tmp_dir)
+            report = run_release_gate_checks(
+                db_path=db or (tmp_p / "gate.db"),
+                settings_path=tmp_p / "desktop_settings.json",
+            )
+        for check in report.checks:
+            status_text = "[bold green]PASS[/bold green]" if check.passed else "[bold red]FAIL[/bold red]"
+            console.print(f"[{status_text}] {check.name}: {check.detail}")
+        if not report.passed:
+            console.print("[bold red]Release Gate Validation FAILED.[/bold red]")
+            raise typer.Exit(code=1)
+        console.print("[bold green]All Release Gate checks PASSED successfully.[/bold green]")
+        raise typer.Exit(code=0)
 
     supervisor = DesktopSupervisor(
         db_path=db_path,

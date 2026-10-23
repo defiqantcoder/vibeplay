@@ -134,3 +134,57 @@ def test_cli_play_without_args_fails(tmp_path: Path) -> None:
     result = runner.invoke(app, ["play", "--db", str(db_file)])
     assert result.exit_code == 1
     assert "Must specify either --playlist-id or --seed" in result.stdout
+
+
+def test_cli_control_play_pause() -> None:
+    """Verify vibeplay control play-pause toggles MPD playback state."""
+    with patch("vibeplay.player.MPDClient") as mock_mpd:
+        mock_client = MagicMock()
+        mock_mpd.return_value = mock_client
+        mock_client.status.return_value = {"state": "play"}
+
+        result = runner.invoke(app, ["control", "play-pause"])
+        assert result.exit_code == 0
+        mock_client.pause.assert_called_once_with(1)
+        assert "Playback paused" in result.stdout
+
+        mock_client.reset_mock()
+        mock_client.status.return_value = {"state": "pause"}
+        result2 = runner.invoke(app, ["control", "play-pause"])
+        assert result2.exit_code == 0
+        mock_client.play.assert_called_once()
+        assert "Playback started" in result2.stdout
+
+
+def test_cli_control_actions() -> None:
+    """Verify vibeplay control subactions (play, pause, stop, next, prev)."""
+    with patch("vibeplay.player.MPDClient") as mock_mpd:
+        mock_client = MagicMock()
+        mock_mpd.return_value = mock_client
+
+        assert runner.invoke(app, ["control", "play"]).exit_code == 0
+        mock_client.play.assert_called_once()
+
+        assert runner.invoke(app, ["control", "pause"]).exit_code == 0
+        mock_client.pause.assert_called_once_with(1)
+
+        assert runner.invoke(app, ["control", "stop"]).exit_code == 0
+        mock_client.stop.assert_called_once()
+
+        assert runner.invoke(app, ["control", "next"]).exit_code == 0
+        mock_client.next.assert_called_once()
+
+        assert runner.invoke(app, ["control", "previous"]).exit_code == 0
+        mock_client.previous.assert_called_once()
+
+        invalid_result = runner.invoke(app, ["control", "invalid-action"])
+        assert invalid_result.exit_code == 1
+        assert "Unknown control action" in invalid_result.stdout
+
+
+def test_cli_web_help() -> None:
+    """Verify vibeplay web alias shows help properly."""
+    result = runner.invoke(app, ["web", "--help"])
+    assert result.exit_code == 0
+    assert "Alias for serve" in result.stdout
+

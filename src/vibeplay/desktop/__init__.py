@@ -41,6 +41,13 @@ from vibeplay.desktop.settings import (
     save_desktop_settings,
     update_desktop_settings,
 )
+from vibeplay.desktop.notifications import TrackNotificationDispatcher
+from vibeplay.desktop.release_gate import (
+    GateCheckResult,
+    ReleaseGateReport,
+    run_release_gate_checks,
+    validate_loopback_host,
+)
 from vibeplay.desktop.supervisor import (
     DEFAULT_MPD_DATA_DIR,
     DesktopSupervisor,
@@ -66,6 +73,9 @@ __all__ = [
     "DesktopEnvironment",
     "DesktopSettings",
     "DesktopSupervisor",
+    "GateCheckResult",
+    "ReleaseGateReport",
+    "TrackNotificationDispatcher",
     "WINDOW_TITLE",
     "collect_pyinstaller_datas",
     "find_free_loopback_port",
@@ -81,7 +91,9 @@ __all__ = [
     "resolve_static_dir",
     "resolve_templates_dir",
     "run_desktop",
+    "run_release_gate_checks",
     "save_desktop_settings",
     "update_desktop_settings",
+    "validate_loopback_host",
     "verify_bundle_assets",
 ]

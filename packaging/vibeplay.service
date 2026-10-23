@@ -1,0 +1,14 @@
+[Unit]
+Description=VibePlay Headless Audio Indexing & Loopback API Service
+After=network.target sound.target mpd.service
+
+[Service]
+ExecStart=/usr/bin/env vibeplay serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

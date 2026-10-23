@@ -750,7 +750,7 @@ def create_app(
 
     def _maybe_notify_track_transition(playback: dict[str, Any]) -> None:
         """Dispatch a native desktop track transition notification if enabled and available."""
-        track_id = playback.get("track_id")
+        track_id = playback.get("track_id") or playback.get("song_id") or playback.get("file")
         if not track_id:
             return
         try:
@@ -764,9 +764,10 @@ def create_app(
             album = str(playback.get("album") or "")
             sample_rate = str(playback.get("sample_rate") or "")
             bit_depth = str(playback.get("bit_depth") or "")
+            track_id_val = int(track_id) if (isinstance(track_id, int) or (isinstance(track_id, str) and track_id.isdigit())) else str(track_id)
             if hasattr(dispatcher, "notify_track_change"):
                 dispatcher.notify_track_change(
-                    track_id=int(track_id),
+                    track_id=track_id_val,
                     title=title,
                     artist=artist,
                     album=album,
