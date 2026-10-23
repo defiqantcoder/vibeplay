@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import atexit
 import logging
-import os
 import shutil
 import signal
 import socket
@@ -59,6 +58,10 @@ def _is_loopback_address(host: str) -> bool:
     )
 
 
+def _sanitize_mpd_string(value: str) -> str:
+    """Sanitize strings used in mpd.conf to prevent injection."""
+    return value.replace('\n', '').replace('\r', '').replace('\\', '\\\\').replace('"', '\\"')
+
 def generate_audiophile_mpd_config(
     mpd_dir: Path,
     music_dir: Path | None = None,
@@ -98,7 +101,8 @@ def generate_audiophile_mpd_config(
             else Path.cwd()
         )
     )
-    mpd_dir_str = str(mpd_dir.resolve())
+    mpd_dir_str = _sanitize_mpd_string(str(mpd_dir.resolve()))
+    resolved_music_dir_str = _sanitize_mpd_string(str(resolved_music_dir))
 
     if audio_outputs_block is None:
         try:
@@ -122,7 +126,7 @@ def generate_audiophile_mpd_config(
     return f"""# ==============================================================================
 # vibeplay Audiophile-Safe MPD Configuration
 # ==============================================================================
-music_directory     "{resolved_music_dir}"
+music_directory     "{resolved_music_dir_str}"
 playlist_directory  "{mpd_dir_str}/playlists"
 db_file             "{mpd_dir_str}/tag_cache"
 log_file            "{mpd_dir_str}/mpd.log"

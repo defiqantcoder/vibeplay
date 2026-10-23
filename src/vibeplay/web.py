@@ -21,6 +21,7 @@ from vibeplay.db import (
     get_playlist,
     get_playlist_tracks,
 )
+from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.player import (
     adjust_volume_step,
     get_audio_file_technical_info,
@@ -43,7 +44,6 @@ from vibeplay.playlist import (
     generate_playlist,
     key_to_camelot,
 )
-from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.vectors import ClusterSummary, compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
@@ -318,7 +318,13 @@ def create_app(
             query_key = request.query_params.get("api_key") or request.query_params.get("token")
             cookie_key = request.cookies.get("vibeplay_session_token") or request.cookies.get("vibeplay_api_key")
 
-            provided_key = header_key or bearer_key or query_key or cookie_key
+            client_host = getattr(request.client, "host", "")
+            is_loopback_client = client_host in ("127.0.0.1", "::1", "localhost", "testclient")
+            is_root_path = request.url.path == "/"
+
+            allowed_query_key = query_key if (is_root_path and is_loopback_client) else None
+
+            provided_key = header_key or bearer_key or cookie_key or allowed_query_key
 
             if provided_key != effective_api_key:
                 if "text/html" in request.headers.get("accept", ""):
@@ -334,7 +340,7 @@ def create_app(
                 return JSONResponse(
                     status_code=401,
                     content={
-                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or ?api_key=..."
+                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header or Authorization Bearer token."
                     },
                 )
 
