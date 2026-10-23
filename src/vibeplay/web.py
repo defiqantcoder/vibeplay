@@ -21,6 +21,7 @@ from vibeplay.db import (
     get_playlist,
     get_playlist_tracks,
 )
+from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.player import (
     adjust_volume_step,
     get_audio_file_technical_info,
@@ -43,7 +44,6 @@ from vibeplay.playlist import (
     generate_playlist,
     key_to_camelot,
 )
-from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.vectors import ClusterSummary, compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
