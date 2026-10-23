@@ -89,7 +89,7 @@ class TestDesktopApiEndpoints:
         assert "slate-audiophile" in theme_ids
 
     def test_player_clear_endpoint(self, desktop_client: TestClient) -> None:
-        resp = desktop_client.post("/api/player/clear")
+        with patch("vibeplay.player.MPDClient"): resp = desktop_client.post("/api/player/clear")
         assert resp.status_code == 200
         data = resp.json()
         assert data.get("status") == "cleared"
