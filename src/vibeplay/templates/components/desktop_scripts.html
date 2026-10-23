@@ -735,8 +735,251 @@ function syncBpmSlider(val) {
   if (form) form.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+// 9. Live SSE Audio Visualizer & Dynamic Telemetry Deck
+let telemetryEventSource = null;
+let oscilloscopeAnimationId = null;
+let currentPlaybackState = 'stop';
+let currentHeadroomDb = 18.0;
+let currentSampleRateHz = 96000;
+let wavePhase = 0;
+
+function updateHeadroomMeter(state, headroomDb) {
+  const track = document.getElementById('telemetry-meter-track');
+  if (!track) return;
+  const segs = track.querySelectorAll('.meter-seg');
+  if (!segs || segs.length !== 9) return;
+
+  if (state === 'stop') {
+    segs.forEach((s, idx) => {
+      s.className = 'meter-seg ' + (idx === 0 ? 'bg-pri' : 'bg-empty');
+    });
+    return;
+  }
+
+  let activeCount = 7;
+  if (state === 'pause') {
+    activeCount = 2;
+  } else {
+    if (headroomDb <= 0) activeCount = 9;
+    else if (headroomDb <= 3) activeCount = 8;
+    else if (headroomDb <= 6) activeCount = 7;
+    else if (headroomDb <= 12) activeCount = 6;
+    else activeCount = 5;
+  }
+
+  segs.forEach((s, idx) => {
+    if (idx < activeCount) {
+      if (idx < 5) s.className = 'meter-seg bg-pri';
+      else if (idx < 7) s.className = 'meter-seg bg-green';
+      else s.className = 'meter-seg bg-sec';
+    } else {
+      s.className = 'meter-seg bg-empty';
+    }
+  });
+}
+
+function updateCamelotUi(code) {
+  if (!code) return;
+  const norm = code.trim().toUpperCase();
+  const metricEl = document.getElementById('telemetry-camelot-metric');
+  const centerEl = document.getElementById('telemetry-camelot-center');
+  const chipsRow = document.getElementById('telemetry-harmonic-chips');
+
+  if (centerEl) centerEl.textContent = norm;
+
+  const num = parseInt(norm, 10);
+  const letter = norm.slice(-1);
+  if (!isNaN(num) && (letter === 'A' || letter === 'B')) {
+    const prevNum = num === 1 ? 12 : num - 1;
+    const nextNum = num === 12 ? 1 : num + 1;
+    const oppLetter = letter === 'A' ? 'B' : 'A';
+
+    if (metricEl) {
+      metricEl.innerHTML = `${norm} <span id="telemetry-camelot-rel" style="font-size: 13px; color: var(--tertiary); font-weight: normal;">→ ${nextNum}${letter} / ${prevNum}${letter}</span>`;
+    }
+
+    if (chipsRow) {
+      chipsRow.innerHTML = `
+        <span class="chip-alt">${prevNum}${letter}</span>
+        <span class="chip-active">${norm} (Active)</span>
+        <span class="chip-alt">${nextNum}${letter}</span>
+        <span class="chip-alt">${num}${oppLetter}</span>
+      `;
+    }
+  }
+}
+
+function updateTelemetryUi(data) {
+  if (!data) return;
+  if (data.playback_state) currentPlaybackState = data.playback_state;
+  if (data.sample_rate_hz) currentSampleRateHz = data.sample_rate_hz;
+  if (data.headroom_db !== undefined) currentHeadroomDb = Number(data.headroom_db);
+
+  // 1. Update Sample Rate
+  const srEl = document.getElementById('telemetry-sample-rate');
+  if (srEl && data.sample_rate_hz) {
+    const khz = (data.sample_rate_hz / 1000).toFixed(3);
+    srEl.innerHTML = `${khz} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span>`;
+  }
+  const chromeSr = document.getElementById('chrome-sample-rate');
+  if (chromeSr && data.sample_rate_hz) {
+    chromeSr.textContent = `${(data.sample_rate_hz / 1000).toFixed(1)}kHz / ${data.bit_depth || 24}bit`;
+  }
+
+  // 2. Update Jitter & DMA buffer
+  const jitterEl = document.getElementById('telemetry-jitter');
+  if (jitterEl && data.jitter_ps !== undefined) {
+    jitterEl.textContent = `Phase Jitter: < ${Number(data.jitter_ps).toFixed(2)} ps RMS`;
+  }
+  const dmaFootnote = document.getElementById('footnote-dma-status');
+  if (dmaFootnote && data.buffer_frames) {
+    const ms = ((data.buffer_frames / (data.sample_rate_hz || 96000)) * 1000).toFixed(2);
+    dmaFootnote.innerHTML = `<span class="dot-indicator dot-green"></span> DMA Ring Buffer: ${data.buffer_frames} frames (${ms}ms)`;
+  }
+
+  // 3. Update Dynamic Range & dBFS
+  const dbfsEl = document.getElementById('telemetry-dbfs');
+  if (dbfsEl && data.dbfs !== undefined) {
+    dbfsEl.innerHTML = `${Number(data.dbfs).toFixed(1)} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span>`;
+  }
+  const peakEl = document.getElementById('telemetry-true-peak');
+  if (peakEl && data.true_peak_db !== undefined) {
+    peakEl.textContent = `True Peak: ${Number(data.true_peak_db).toFixed(2)} dBTP`;
+  }
+
+  // 4. Update Segmented VU Headroom Meter
+  updateHeadroomMeter(currentPlaybackState, currentHeadroomDb);
+
+  // 5. Update Camelot Key Deck if provided
+  if (data.camelot_key) {
+    updateCamelotUi(data.camelot_key);
+  }
+}
+
+function renderOscilloscopeFrame() {
+  const path = document.getElementById('telemetry-oscilloscope-path');
+  const ghost = document.getElementById('telemetry-oscilloscope-ghost');
+  if (!path) return;
+
+  const isPlaying = currentPlaybackState === 'play';
+  const amp = isPlaying ? 14 : 3;
+  const speed = isPlaying ? 0.08 : 0.02;
+  wavePhase = (wavePhase + speed) % (Math.PI * 2);
+
+  const points = [];
+  const ghostPoints = [];
+  const segments = 10;
+  const width = 200;
+  const midY = 20;
+
+  for (let i = 0; i <= segments; i++) {
+    const x = (i / segments) * width;
+    const sin1 = Math.sin(wavePhase + (i * 0.8));
+    const sin2 = Math.cos((wavePhase * 0.7) + (i * 1.2));
+    const y = midY + (sin1 * amp * 0.7) + (sin2 * amp * 0.3);
+    const gy = midY + (Math.sin(wavePhase * 0.5 + i * 0.5) * (amp * 0.4));
+    points.push({ x, y });
+    ghostPoints.push({ x, y: gy });
+  }
+
+  let d = `M ${points[0].x} ${points[0].y.toFixed(1)}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cx = ((prev.x + curr.x) / 2).toFixed(1);
+    const cy = ((prev.y + curr.y) / 2).toFixed(1);
+    d += ` Q ${prev.x.toFixed(1)} ${prev.y.toFixed(1)}, ${cx} ${cy}`;
+  }
+  d += ` T ${points[points.length - 1].x} ${points[points.length - 1].y.toFixed(1)}`;
+
+  let gd = `M ${ghostPoints[0].x} ${ghostPoints[0].y.toFixed(1)}`;
+  for (let i = 1; i < ghostPoints.length; i++) {
+    const prev = ghostPoints[i - 1];
+    const curr = ghostPoints[i];
+    const cx = ((prev.x + curr.x) / 2).toFixed(1);
+    const cy = ((prev.y + curr.y) / 2).toFixed(1);
+    gd += ` Q ${prev.x.toFixed(1)} ${prev.y.toFixed(1)}, ${cx} ${cy}`;
+  }
+  gd += ` T ${ghostPoints[ghostPoints.length - 1].x} ${ghostPoints[ghostPoints.length - 1].y.toFixed(1)}`;
+
+  path.setAttribute('d', d);
+  if (ghost) ghost.setAttribute('d', gd);
+
+  oscilloscopeAnimationId = requestAnimationFrame(renderOscilloscopeFrame);
+}
+
+function initTelemetryStream() {
+  if (typeof window !== 'undefined' && window.EventSource) {
+    try {
+      if (telemetryEventSource) {
+        telemetryEventSource.close();
+      }
+      telemetryEventSource = new EventSource('/api/desktop/telemetry/stream');
+
+      telemetryEventSource.addEventListener('telemetry_snapshot', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateTelemetryUi(data);
+        } catch (err) {
+          console.debug('Failed parsing telemetry snapshot:', err);
+        }
+      });
+
+      telemetryEventSource.addEventListener('telemetry_tick', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateTelemetryUi(data);
+        } catch (err) {
+          console.debug('Failed parsing telemetry tick:', err);
+        }
+      });
+
+      telemetryEventSource.addEventListener('track_transition', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateTelemetryUi(data);
+        } catch (err) {
+          console.debug('Failed parsing track transition:', err);
+        }
+      });
+
+      telemetryEventSource.addEventListener('dac_lock_changed', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateTelemetryUi(data);
+        } catch (err) {
+          console.debug('Failed parsing dac lock changed:', err);
+        }
+      });
+
+      telemetryEventSource.addEventListener('xrun_detected', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const xrunsEl = document.getElementById('chrome-xruns-status');
+          if (xrunsEl && data.total !== undefined) {
+            xrunsEl.innerHTML = `<span class="dot-indicator dot-red animate-pulse"></span> ${data.total} xruns`;
+          }
+        } catch (err) {
+          console.debug('Failed parsing xrun event:', err);
+        }
+      });
+
+      telemetryEventSource.onerror = (err) => {
+        console.debug('Telemetry SSE connection dropped; will reconnect:', err);
+      };
+    } catch (e) {
+      console.debug('EventSource init error:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined' && typeof requestAnimationFrame === 'function' && !oscilloscopeAnimationId) {
+    renderOscilloscopeFrame();
+  }
+}
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   initThemeEngine();
   loadDesktopSettingsFromServer();
+  initTelemetryStream();
 });

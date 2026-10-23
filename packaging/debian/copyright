@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: vibeplay
+Source: https://github.com/defiqantcoder/vibeplay
+
+Files: *
+Copyright: 2026 VibePlay Contributors
+License: MIT
