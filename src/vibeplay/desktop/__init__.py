@@ -17,6 +17,23 @@ from vibeplay.desktop.environment import (
     generate_ephemeral_session_token,
     inspect_desktop_environment,
 )
+from vibeplay.desktop.packaging import (
+    BUNDLE_DATAS,
+    BUNDLE_ENTRYPOINT,
+    BUNDLE_EXCLUDES,
+    BUNDLE_HIDDEN_IMPORTS,
+    BUNDLE_NAME,
+    BundleAssetReport,
+    collect_pyinstaller_datas,
+    get_bundle_root,
+    is_frozen_bundle,
+    resolve_dsp_profiles_dir,
+    resolve_models_dir,
+    resolve_package_resource,
+    resolve_static_dir,
+    resolve_templates_dir,
+    verify_bundle_assets,
+)
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -32,6 +49,12 @@ from vibeplay.desktop.supervisor import (
 )
 
 __all__ = [
+    "BUNDLE_DATAS",
+    "BUNDLE_ENTRYPOINT",
+    "BUNDLE_EXCLUDES",
+    "BUNDLE_HIDDEN_IMPORTS",
+    "BUNDLE_NAME",
+    "BundleAssetReport",
     "DEFAULT_BACKEND_HOST",
     "DEFAULT_BACKEND_PORT",
     "DEFAULT_DESKTOP_SETTINGS_PATH",
@@ -44,12 +67,21 @@ __all__ = [
     "DesktopSettings",
     "DesktopSupervisor",
     "WINDOW_TITLE",
+    "collect_pyinstaller_datas",
     "find_free_loopback_port",
     "generate_audiophile_mpd_config",
     "generate_ephemeral_session_token",
+    "get_bundle_root",
     "inspect_desktop_environment",
+    "is_frozen_bundle",
     "load_desktop_settings",
+    "resolve_dsp_profiles_dir",
+    "resolve_models_dir",
+    "resolve_package_resource",
+    "resolve_static_dir",
+    "resolve_templates_dir",
     "run_desktop",
     "save_desktop_settings",
     "update_desktop_settings",
+    "verify_bundle_assets",
 ]
