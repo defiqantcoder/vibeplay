@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -718,6 +718,36 @@ def create_app(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
+    def _maybe_notify_track_transition(playback: dict[str, Any]) -> None:
+        """Dispatch a native desktop track transition notification if enabled and available."""
+        track_id = playback.get("track_id")
+        if not track_id:
+            return
+        try:
+            from vibeplay.desktop.notifications import TrackNotificationDispatcher
+
+            if not hasattr(app.state, "notification_dispatcher"):
+                app.state.notification_dispatcher = TrackNotificationDispatcher()
+            dispatcher = app.state.notification_dispatcher
+            title = str(playback.get("title") or "Unknown Title")
+            artist = str(playback.get("artist") or "Unknown Artist")
+            album = str(playback.get("album") or "")
+            sample_rate = str(playback.get("sample_rate") or "")
+            bit_depth = str(playback.get("bit_depth") or "")
+            if hasattr(dispatcher, "notify_track_change"):
+                dispatcher.notify_track_change(
+                    track_id=int(track_id),
+                    title=title,
+                    artist=artist,
+                    album=album,
+                    sample_rate=sample_rate,
+                    bit_depth=bit_depth,
+                )
+            elif hasattr(dispatcher, "notify"):
+                dispatcher.notify(title=title, artist=artist, album=album)
+        except Exception as err:
+            logger.debug("Desktop track notification skipped: %s", err)
+
     @app.post("/api/player/play-track/{track_id}", response_class=HTMLResponse)
     async def api_play_track(request: Request, track_id: int) -> Response:
         """Queue track directly into MPD and return transport bar."""
@@ -727,6 +757,7 @@ def create_app(
             logger.warning("Could not play track: %s", err)
 
         playback = get_playback_status(resolved_db_path, cfg)
+        _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -744,6 +775,7 @@ def create_app(
             logger.warning("Could not play playlist: %s", err)
 
         playback = get_playback_status(resolved_db_path, cfg)
+        _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -783,6 +815,7 @@ def create_app(
         """Skip to next track in MPD."""
         next_song(cfg)
         playback = get_playback_status(resolved_db_path, cfg)
+        _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -796,6 +829,7 @@ def create_app(
         """Skip to previous track in MPD."""
         previous_song(cfg)
         playback = get_playback_status(resolved_db_path, cfg)
+        _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -1357,6 +1391,205 @@ def create_app(
             return JSONResponse(content=result_payload)
         except Exception as err:
             return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.post("/api/desktop/open")
+    async def api_desktop_open(request: Request) -> JSONResponse:
+        """Open audio files, M3U/M3U8 playlists, or directories forwarded from XDG desktop (%U)."""
+        from vibeplay.desktop.mime import classify_mime_target, parse_m3u_playlist
+        from vibeplay.scanner import scan_directory
+
+        raw_uris: list[str] = []
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = await request.json()
+                if isinstance(body, dict):
+                    if isinstance(body.get("uris"), list):
+                        raw_uris = [str(u) for u in body["uris"] if str(u).strip()]
+                    elif body.get("uri"):
+                        raw_uris = [str(body["uri"]).strip()]
+            except Exception as err:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": f"Invalid JSON body: {err}"},
+                )
+        else:
+            q_uri = request.query_params.get("uri")
+            if q_uri:
+                raw_uris = [q_uri.strip()]
+            else:
+                try:
+                    form = await request.form()
+                    f_uri = form.get("uri")
+                    if f_uri:
+                        raw_uris = [str(f_uri).strip()]
+                except Exception:
+                    pass
+
+        if not raw_uris:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "No file paths or URIs provided."},
+            )
+
+        opened_items: list[dict[str, Any]] = []
+        matched_track_ids: list[int] = []
+
+        def _find_track_id_by_path(file_path: Path) -> int | None:
+            with get_connection(resolved_db_path) as conn:
+                row = conn.execute(
+                    "SELECT id FROM tracks WHERE path = ? AND status = 'active' LIMIT 1",
+                    (str(file_path.resolve()),),
+                ).fetchone()
+                return int(row["id"]) if row else None
+
+        for raw in raw_uris:
+            try:
+                target = classify_mime_target(raw)
+            except ValueError as val_err:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": str(val_err)},
+                )
+
+            item_info: dict[str, Any] = {
+                "uri": target.raw_uri,
+                "path": str(target.path),
+                "type": target.target_type,
+                "exists": target.exists,
+            }
+
+            if target.target_type == "directory" and target.exists:
+                try:
+                    stats = scan_directory(target.path, db_path=resolved_db_path)
+                    item_info["files_added"] = stats.files_added
+                except Exception as scan_err:
+                    logger.warning("Directory scan failed for %s: %s", target.path, scan_err)
+                escaped_dir = (
+                    str(target.path.resolve())
+                    .replace("\\", "\\\\")
+                    .replace("%", "\\%")
+                    .replace("_", "\\_")
+                )
+                with get_connection(resolved_db_path) as conn:
+                    rows = conn.execute(
+                        "SELECT id FROM tracks WHERE path LIKE ? ESCAPE '\\' AND status = 'active' ORDER BY path ASC",
+                        (f"{escaped_dir}/%",),
+                    ).fetchall()
+                    matched_track_ids.extend(int(r["id"]) for r in rows)
+            elif target.target_type == "audio":
+                tid = _find_track_id_by_path(target.path)
+                if tid is None and target.exists:
+                    try:
+                        scan_directory(target.path.parent, db_path=resolved_db_path)
+                        tid = _find_track_id_by_path(target.path)
+                    except Exception as scan_err:
+                        logger.warning("Audio parent scan failed for %s: %s", target.path, scan_err)
+                if tid is not None:
+                    matched_track_ids.append(tid)
+                    item_info["track_id"] = tid
+            elif target.target_type == "playlist" and target.exists:
+                pl_paths = parse_m3u_playlist(target.path)
+                pl_track_ids: list[int] = []
+                for p in pl_paths:
+                    tid = _find_track_id_by_path(p)
+                    if tid is not None:
+                        pl_track_ids.append(tid)
+                matched_track_ids.extend(pl_track_ids)
+                item_info["playlist_tracks"] = len(pl_paths)
+                item_info["matched_tracks"] = len(pl_track_ids)
+
+            opened_items.append(item_info)
+
+        played_track_id: int | None = None
+        if matched_track_ids:
+            played_track_id = matched_track_ids[0]
+            try:
+                play_track(resolved_db_path, played_track_id, cfg)
+                playback = get_playback_status(resolved_db_path, cfg)
+                _maybe_notify_track_transition(playback)
+            except Exception as play_err:
+                logger.warning("Could not start playback for opened track %d: %s", played_track_id, play_err)
+
+        return JSONResponse(
+            content={
+                "status": "ok",
+                "opened": opened_items,
+                "matched_track_ids": matched_track_ids,
+                "played_track_id": played_track_id,
+            }
+        )
+
+    @app.get("/api/desktop/telemetry/stream")
+    async def api_desktop_telemetry_stream() -> StreamingResponse:
+        """Stream desktop hardware & playback telemetry updates as Server-Sent Events (SSE)."""
+        from vibeplay.desktop.telemetry_stream import (
+            TelemetryMonitor,
+            TelemetrySnapshot,
+            format_sse_event,
+        )
+
+        if not hasattr(app.state, "telemetry_monitor"):
+            app.state.telemetry_monitor = TelemetryMonitor()
+        monitor: TelemetryMonitor = app.state.telemetry_monitor
+
+        ds = load_desktop_settings(settings_file_path)
+        playback = get_playback_status(resolved_db_path, cfg)
+
+        raw_sr = str(playback.get("sample_rate") or ds.alsa_sample_rate_lock or "44100")
+        sr_digits = "".join(ch for ch in raw_sr if ch.isdigit())
+        sample_rate_hz = int(sr_digits) if sr_digits else 44100
+
+        raw_bd = str(playback.get("bit_depth") or "24")
+        bd_digits = "".join(ch for ch in raw_bd if ch.isdigit())
+        bit_depth = int(bd_digits) if bd_digits else 24
+
+        raw_tid = playback.get("track_id")
+        current_track_id = int(raw_tid) if raw_tid is not None else None
+
+        snapshot = TelemetrySnapshot(
+            xruns=0,
+            bit_perfect_locked=bool(ds.alsa_exclusive_lock),
+            sample_rate_hz=sample_rate_hz,
+            bit_depth=bit_depth,
+            alsa_device=ds.alsa_device,
+            dsp_profile=ds.dsp_profile,
+            spatial_enabled=bool(ds.spatial_enabled),
+            current_track_id=current_track_id,
+            current_track_title=playback.get("title"),
+            current_track_artist=playback.get("artist"),
+            service_healthy=bool(playback.get("daemon_online", True)),
+        )
+        delta_events = monitor.process_snapshot(snapshot)
+
+        def _event_generator():
+            yield format_sse_event(
+                "telemetry_snapshot",
+                {
+                    "xruns": snapshot.xruns,
+                    "bit_perfect_locked": snapshot.bit_perfect_locked,
+                    "sample_rate_hz": snapshot.sample_rate_hz,
+                    "bit_depth": snapshot.bit_depth,
+                    "alsa_device": snapshot.alsa_device,
+                    "dsp_profile": snapshot.dsp_profile,
+                    "spatial_enabled": snapshot.spatial_enabled,
+                    "current_track_id": snapshot.current_track_id,
+                    "current_track_title": snapshot.current_track_title,
+                    "current_track_artist": snapshot.current_track_artist,
+                    "service_healthy": snapshot.service_healthy,
+                },
+            )
+            for evt_type, evt_data in delta_events:
+                yield format_sse_event(evt_type, evt_data)
+
+        return StreamingResponse(
+            _event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @app.post("/api/app/quit")
     async def api_app_quit() -> JSONResponse:
