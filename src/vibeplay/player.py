@@ -587,6 +587,10 @@ def get_playback_status(
         }
 
 
+import functools
+
+
+@functools.lru_cache(maxsize=1024)
 def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     """Extract raw audio stream metadata (sample rate, bit depth, codec, channels)."""
     import mutagen

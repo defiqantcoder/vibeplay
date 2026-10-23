@@ -1,0 +1,57 @@
+<div class="track-inspector-panel p-4 flex flex-col gap-4">
+  <div class="header flex items-start gap-4 border-b border-gray-700 pb-4">
+    <div class="artwork-placeholder w-[160px] h-[160px] bg-gray-800 rounded-md flex flex-col items-center justify-center relative">
+      <span class="text-gray-500 text-4xl">🎵</span>
+      <div class="absolute bottom-2 right-2 bg-blue-600 text-xs px-2 py-1 rounded">
+        {{ tech_info.codec }}
+      </div>
+    </div>
+    <div class="info flex-1">
+      <h2 class="text-xl font-bold text-white mb-1">{{ track.title }}</h2>
+      <p class="text-gray-400 text-sm mb-1">{{ track.artist }}</p>
+      <p class="text-gray-500 text-xs">{{ track.album }}</p>
+      <p class="text-gray-500 text-xs mt-2">
+        {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
+      </p>
+    </div>
+  </div>
+
+  <div class="tech-info grid grid-cols-2 gap-2 text-sm">
+    <div class="p-2 bg-gray-800 rounded">
+      <div class="text-gray-500 text-xs uppercase">Sample Rate</div>
+      <div class="text-white">{{ tech_info.sample_rate_str }}</div>
+    </div>
+    <div class="p-2 bg-gray-800 rounded">
+      <div class="text-gray-500 text-xs uppercase">Bit Depth</div>
+      <div class="text-white">{{ tech_info.bit_depth_str }}</div>
+    </div>
+  </div>
+
+  <div class="mood-radar">
+    <h3 class="text-sm font-semibold text-gray-300 uppercase mb-2">Acoustic Properties</h3>
+    <div class="flex flex-col gap-2">
+      {% for mood, score in mood_scores.items() %}
+      <div class="flex items-center text-xs">
+        <span class="w-20 text-gray-400 capitalize">{{ mood }}</span>
+        <div class="flex-1 h-2 bg-gray-700 rounded overflow-hidden mx-2">
+          <div class="h-full bg-green-500" style="width: {{ (score * 100)|round(1) }}%"></div>
+        </div>
+        <span class="w-10 text-right text-gray-400">{{ (score * 100)|round(0)|int }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="camelot-key text-sm bg-gray-800 p-2 rounded">
+      <span class="text-gray-500 text-xs uppercase mr-2">Harmonic Key</span>
+      <span class="text-white font-mono">{{ track.camelot or track.key or 'N/A' }}</span>
+  </div>
+
+  <button
+    class="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center justify-center transition-colors"
+    hx-get="/api/playlist/builder?seed={{ track.track_id }}"
+    hx-target="#playlist-builder-container"
+    onclick="document.getElementById('right-sidebar').classList.add('hidden')">
+    ⚡ Set as Vibe Seed
+  </button>
+</div>

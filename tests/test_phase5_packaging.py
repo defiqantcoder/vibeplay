@@ -8,18 +8,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from vibe_dsp.peq import list_available_presets, lookup_autoeq_model
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
 from vibeplay.config import Settings
 from vibeplay.db import init_db
 from vibeplay.desktop.packaging import (
-    BUNDLE_DATAS,
     BUNDLE_ENTRYPOINT,
-    BUNDLE_EXCLUDES,
-    BUNDLE_HIDDEN_IMPORTS,
     BUNDLE_NAME,
     REQUIRED_DSP_PROFILES,
     REQUIRED_STATIC_FILES,
