@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- God of Ink Palette: #181824 base, #6874a6 slate/periwinkle ring, #22c55e bit-perfect lock indicator -->
+  <rect width="256" height="256" rx="64" fill="#181824"/>
+  <circle cx="128" cy="128" r="80" fill="none" stroke="#6874a6" stroke-width="16"/>
+  <polygon points="108,88 168,128 108,168" fill="#6874a6"/>
+  <circle cx="200" cy="56" r="16" fill="#22c55e"/>
+</svg>

@@ -66,12 +66,33 @@ def main(argv: list[str] | None = None) -> int:
         version="vibeplay-desktop 0.1.0",
     )
     parser.add_argument(
+        "--release-gate",
+        action="store_true",
+        help="Run automated Phase 7 release gate validation checks and exit",
+    )
+    parser.add_argument(
         "uris",
         nargs="*",
         help="Optional audio files, playlists (.m3u/.m3u8), or directories passed via desktop launcher (%%U)",
     )
 
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
+
+    if args.release_gate:
+        import tempfile
+        from vibeplay.desktop.release_gate import run_release_gate_checks
+
+        print("VibePlay Phase 7 Release Gate Validation:")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_p = Path(tmp_dir)
+            report = run_release_gate_checks(
+                db_path=args.db or (tmp_p / "gate.db"),
+                settings_path=tmp_p / "desktop_settings.json",
+            )
+        for check in report.checks:
+            tag = "PASS" if check.passed else "FAIL"
+            print(f"[{tag}] {check.name}: {check.detail}")
+        return 0 if report.passed else 1
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(

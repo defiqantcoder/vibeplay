@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Generator
 
@@ -587,7 +588,8 @@ def get_playback_status(
         }
 
 
-def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
+@lru_cache(maxsize=1024)
+def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     """Extract raw audio stream metadata (sample rate, bit depth, codec, channels)."""
     import mutagen
 
@@ -650,3 +652,8 @@ def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
         else ("Mono" if channels == 1 else f"{channels} Ch"),
         "bitrate_kbps": f"{int(bitrate / 1000)} kbps" if bitrate else "Lossless VBR",
     }
+
+
+def get_audio_file_technical_info(path_str: str) -> dict[str, Any]:
+    """Return cached copy of audio file technical metadata."""
+    return _extract_audio_file_technical_info(path_str).copy()
