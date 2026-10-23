@@ -65,6 +65,11 @@ def main(argv: list[str] | None = None) -> int:
         action="version",
         version="vibeplay-desktop 0.1.0",
     )
+    parser.add_argument(
+        "uris",
+        nargs="*",
+        help="Optional audio files, playlists (.m3u/.m3u8), or directories passed via desktop launcher (%%U)",
+    )
 
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
@@ -74,11 +79,26 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
+    if args.uris:
+        from vibeplay.desktop.mime import forward_uris_to_running_instance
+
+        if forward_uris_to_running_instance(
+            args.uris, host=args.host, port=args.port
+        ):
+            logger.info(
+                "Forwarded %d file/URI target(s) to existing instance on %s:%d.",
+                len(args.uris),
+                args.host,
+                args.port,
+            )
+            return 0
+
     supervisor = DesktopSupervisor(
         db_path=args.db,
         host=args.host,
         port=args.port,
         start_mpd_child=not args.no_mpd,
+        initial_uris=args.uris or None,
     )
 
     try:

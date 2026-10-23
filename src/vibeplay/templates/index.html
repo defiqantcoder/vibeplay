@@ -1,8 +1,84 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Top Audio Telemetry Strip & HUD Deck (Stitch Specification) -->
-<section class="telemetry-grid">
+<div class="workspace-layout">
+  <!-- Left Studio Sidebar -->
+  <aside class="workspace-sidebar">
+    <!-- Studio Navigation Panel -->
+    <div class="sidebar-panel">
+      <div class="sidebar-title">
+        <span>Workspace Hierarchy</span>
+        <span class="badge-spec">STUDIO</span>
+      </div>
+      <nav class="sidebar-nav-list">
+        <button class="sidebar-nav-item active" id="side-nav-library" onclick="showTab('library')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4v2zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/></svg>
+          <span>Master Console</span>
+        </button>
+        <button class="sidebar-nav-item" id="side-nav-clusters" onclick="showTab('clusters')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3c0 .35.06.69.17 1H6.5A2.5 2.5 0 0 0 4 8.5v5A2.5 2.5 0 0 0 6.5 16h2.67c-.11.31-.17.65-.17 1a3 3 0 1 0 6 0c0-.35-.06-.69-.17-1h2.67A2.5 2.5 0 0 0 20 13.5v-5A2.5 2.5 0 0 0 17.5 6h-2.67c.11-.31.17-.65.17-1a3 3 0 0 0-3-3z"/></svg>
+          <span>Acoustic Clustermap</span>
+        </button>
+        <button class="sidebar-nav-item" id="side-nav-builder" onclick="showTab('builder')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+          <span>Energy Architect</span>
+        </button>
+        <button class="sidebar-nav-item" onclick="toggleSettingsDialog('dsp')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+          <span>DSP Audio Chain</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Harmonic Zones Grid (Camelot Filter Matrix) -->
+    <div class="sidebar-panel">
+      <div class="sidebar-title">
+        <span>Harmonic Zones</span>
+        <span class="badge-camelot">CAMELOT</span>
+      </div>
+      <div class="harmonic-grid">
+        <button type="button" class="harmonic-zone-btn" data-camelot="8A" onclick="filterByHarmonicKey('8A')">8A</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="9A" onclick="filterByHarmonicKey('9A')">9A</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="10A" onclick="filterByHarmonicKey('10A')">10A</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="11A" onclick="filterByHarmonicKey('11A')">11A</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="8B" onclick="filterByHarmonicKey('8B')">8B</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="9B" onclick="filterByHarmonicKey('9B')">9B</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="10B" onclick="filterByHarmonicKey('10B')">10B</button>
+        <button type="button" class="harmonic-zone-btn" data-camelot="11B" onclick="filterByHarmonicKey('11B')">11B</button>
+      </div>
+    </div>
+
+    <!-- Audio Hardware Sync & Diagnostics -->
+    <div class="sidebar-panel">
+      <div class="sidebar-title">
+        <span>Audio Hardware Sync</span>
+        <span class="dot-indicator dot-green"></span>
+      </div>
+      <div class="hardware-sync-card">
+        <div class="hw-sync-row">
+          <span class="hw-sync-label">ALSA Direct Sink:</span>
+          <span class="hw-sync-val text-primary">hw:0,0 (Master)</span>
+        </div>
+        <div class="hw-sync-row">
+          <span class="hw-sync-label">Master Clock:</span>
+          <span class="hw-sync-val text-secondary">0.02 PPM TCXO</span>
+        </div>
+        <div class="hw-sync-row">
+          <span class="hw-sync-label">Ring Buffer:</span>
+          <span class="hw-sync-val text-tertiary">128f / 1.33ms</span>
+        </div>
+        <div class="hw-sync-row">
+          <span class="hw-sync-label">Kernel Memory:</span>
+          <span class="hw-sync-val text-muted">mlockall locked</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Center Content Area -->
+  <div class="workspace-center">
+    <!-- Top Audio Telemetry Strip & HUD Deck (Stitch Specification) -->
+    <section class="telemetry-grid">
   <!-- Card 1: Master Clock // ALSA -->
   <div class="telemetry-card">
     <div class="telemetry-header">
@@ -129,7 +205,7 @@
 
 <!-- Tab 1: Library View -->
 <section id="tab-library" style="display: block;">
-  <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+  <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-end;">
     <div>
       <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
         Music Library
@@ -137,6 +213,47 @@
       <p style="font-size: 13px; color: var(--text-muted);">
         Sortable and filterable by BPM, Camelot harmonic key, mood scores, and artist.
       </p>
+    </div>
+  </div>
+
+  <!-- Mood-First Browsing Chips Bar -->
+  <div class="mood-chips-container" style="margin-bottom: 1rem;">
+    <div class="mood-chips-header">
+      <span class="mood-chips-title">Acoustic Vibe Matrix</span>
+      <span class="badge-spec">NEURAL CLASSIFIER</span>
+    </div>
+    <div class="mood-chips-bar">
+      <button type="button" class="mood-chip active" data-mood="" onclick="selectMoodChip('')">
+        <span>All Vibes</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="chill" onclick="selectMoodChip('chill')">
+        <span class="dot-indicator dot-cyan"></span>
+        <span>Chill</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="melodic" onclick="selectMoodChip('relaxed')">
+        <span class="dot-indicator dot-purple"></span>
+        <span>Melodic</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="hypnotic" onclick="selectMoodChip('electronic')">
+        <span class="dot-indicator dot-cyan"></span>
+        <span>Hypnotic</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="euphoric" onclick="selectMoodChip('party')">
+        <span class="dot-indicator dot-orange"></span>
+        <span>Euphoric</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="dark" onclick="selectMoodChip('aggressive')">
+        <span class="dot-indicator dot-red"></span>
+        <span>Dark</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="acoustic" onclick="selectMoodChip('acoustic')">
+        <span class="dot-indicator dot-green"></span>
+        <span>Acoustic</span>
+      </button>
+      <button type="button" class="mood-chip" data-mood="electronic" onclick="selectMoodChip('electronic')">
+        <span class="dot-indicator dot-cyan"></span>
+        <span>Electronic</span>
+      </button>
     </div>
   </div>
 
@@ -199,6 +316,7 @@
         <option value="">All Moods</option>
         <option value="happy">Happy (≥ 50%)</option>
         <option value="relaxed">Relaxed (≥ 50%)</option>
+        <option value="chill">Chill (Low Energy, High Relaxed)</option>
         <option value="party">Party (≥ 50%)</option>
         <option value="aggressive">Aggressive (≥ 50%)</option>
         <option value="acoustic">Acoustic (≥ 50%)</option>
@@ -210,13 +328,13 @@
     <!-- Tempo BPM Range -->
     <div class="filter-group">
       <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase;">
-        BPM Range:
+        BPM:
       </span>
       <input type="number"
              name="bpm_min"
              placeholder="Min"
              class="input-text"
-             style="width: 70px; text-align: center;"
+             style="width: 65px; text-align: center;"
              min="40"
              max="220"/>
       <span style="color: var(--text-dim);">—</span>
@@ -224,9 +342,18 @@
              name="bpm_max"
              placeholder="Max"
              class="input-text"
-             style="width: 70px; text-align: center;"
+             style="width: 65px; text-align: center;"
              min="40"
              max="220"/>
+      <input type="range"
+             min="60"
+             max="180"
+             step="5"
+             value="120"
+             title="Quick BPM center slider"
+             oninput="syncBpmSlider(this.value)"
+             style="width: 80px; cursor: pointer; accent-color: var(--primary);"/>
+      <span id="filter-bpm-slider-val" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); min-width: 45px;">ALL</span>
       
       <!-- Sort selection -->
       <select name="sort" class="select-input">
@@ -433,4 +560,30 @@
     </div>
   </div>
 </section>
+  </div><!-- end .workspace-center -->
+
+  <!-- Right Docked Telemetry Drawer: Hardware Inspect -->
+  <aside class="workspace-inspector" id="workspace-inspector-drawer">
+    <div class="inspector-drawer-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="dot-indicator dot-cyan animate-pulse"></span>
+        <span class="font-mono" style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-primary);">Hardware Inspect</span>
+      </div>
+      <span class="badge-spec">LIVE TELEMETRY</span>
+    </div>
+    <div id="workspace-inspector-content">
+      {% if selected_track %}
+        {% with track=selected_track, tech_info=selected_tech_info, mood_scores=selected_mood_scores %}
+          {% include "components/track_inspector.html" %}
+        {% endwith %}
+      {% else %}
+        <div class="inspector-empty-state">
+          <svg class="icon" style="width: 32px; height: 32px; fill: var(--text-dim); margin-bottom: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Select a track to inspect telemetry</div>
+          <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">Click any track row in the library to inspect audio format, Camelot zone, and neural mood distribution.</div>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+</div><!-- end .workspace-layout -->
 {% endblock %}

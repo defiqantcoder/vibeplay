@@ -176,6 +176,7 @@ class DesktopSupervisor:
         auto_find_port: bool = True,
         session_token: str | None = None,
         mpd_dir: Path | None = None,
+        initial_uris: list[str] | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.db_path = db_path or self.settings.db_path.expanduser().resolve()
@@ -195,6 +196,7 @@ class DesktopSupervisor:
         self.port = port
         self.auto_find_port = auto_find_port
         self.session_token = session_token
+        self.initial_uris = list(initial_uris) if initial_uris else []
 
         # MPD configuration
         self.mpd_host = mpd_host or self.settings.mpd_host
@@ -440,6 +442,17 @@ class DesktopSupervisor:
                 f"FastAPI backend failed to become ready on http://{self.host}:{self.port}"
             )
         logger.info("FastAPI backend is ready at http://%s:%d", self.host, self.port)
+        try:
+            from vibeplay.desktop.mime import DEFAULT_IPC_STATE_PATH, write_ipc_state
+
+            ipc_path = (
+                self.mpd_dir / "desktop_ipc.json"
+                if self.mpd_dir != DEFAULT_MPD_DATA_DIR
+                else DEFAULT_IPC_STATE_PATH
+            )
+            write_ipc_state(self.host, self.port, self.session_token, state_path=ipc_path)
+        except Exception as ipc_err:
+            logger.debug("Could not write runtime IPC state: %s", ipc_err)
 
     def _launch_window(self, gui: str = "gtk") -> None:
         """Launch the PyWebView desktop application shell on the main thread."""
@@ -508,6 +521,20 @@ class DesktopSupervisor:
 
             # 3. Start local backend server
             self._start_backend()
+
+            # 3b. If launched with %U file/URI arguments, open them on the newly started backend
+            if self.initial_uris:
+                try:
+                    from vibeplay.desktop.mime import forward_uris_to_running_instance
+
+                    forward_uris_to_running_instance(
+                        self.initial_uris,
+                        host=self.host,
+                        port=self.port,
+                        token=self.session_token,
+                    )
+                except Exception as uri_err:
+                    logger.warning("Failed to open initial desktop URIs: %s", uri_err)
 
             # 4. Check display capability
             env = inspect_desktop_environment()
@@ -585,6 +612,19 @@ class DesktopSupervisor:
             except Exception:
                 pass
             self.mpd_log_file = None
+
+        # 5. Remove runtime IPC state file
+        try:
+            from vibeplay.desktop.mime import DEFAULT_IPC_STATE_PATH, clear_ipc_state
+
+            ipc_path = (
+                self.mpd_dir / "desktop_ipc.json"
+                if self.mpd_dir != DEFAULT_MPD_DATA_DIR
+                else DEFAULT_IPC_STATE_PATH
+            )
+            clear_ipc_state(state_path=ipc_path)
+        except Exception:
+            pass
 
         logger.info("Clean shutdown complete. All child services terminated.")
 

@@ -54,7 +54,7 @@ def phase4_env(tmp_path: Path):
 def test_phase4_theme_presets_and_named_subpalettes():
     """Verify all Phase 4 themes and their required named sub-palette swatches exist."""
     presets = {t.id: t for t in get_available_themes()}
-    assert len(presets) == 6
+    assert len(presets) == 9
 
     # 1. God of Ink: Navy, Slate, Periwinkle
     ink = presets["god-of-ink"]
@@ -89,6 +89,27 @@ def test_phase4_theme_presets_and_named_subpalettes():
     for swatch_name in ("Plum", "Charcoal", "Teal", "Mint"):
         assert swatch_name in mint.swatches
         assert mint.swatches[swatch_name].startswith("#")
+
+    # 6. Beyond the Boundary: Midnight, Abyss, Neon Cyan, Amethyst Plum, Seafoam
+    beyond = presets["beyond-the-boundary"]
+    assert beyond.name == "Beyond the Boundary"
+    for swatch_name in ("Midnight", "Abyss", "Neon Cyan", "Amethyst Plum", "Seafoam"):
+        assert swatch_name in beyond.swatches
+        assert beyond.swatches[swatch_name].startswith("#")
+
+    # 7. The Unknown: Obsidian Magenta, Crimson Wine, Electric Orange, Golden Amber
+    unknown = presets["the-unknown"]
+    assert unknown.name == "The Unknown"
+    for swatch_name in ("Obsidian Magenta", "Crimson Wine", "Electric Orange", "Golden Amber"):
+        assert swatch_name in unknown.swatches
+        assert unknown.swatches[swatch_name].startswith("#")
+
+    # 8. Castle In The Sky: Mahogany, Terracotta, Celadon, Apricot
+    castle = presets["castle-in-the-sky"]
+    assert castle.name == "Castle In The Sky"
+    for swatch_name in ("Mahogany", "Terracotta", "Celadon", "Apricot"):
+        assert swatch_name in castle.swatches
+        assert castle.swatches[swatch_name].startswith("#")
 
 
 @pytest.mark.parametrize(
@@ -236,7 +257,7 @@ def test_root_data_theme_and_api_themes_endpoint(phase4_env):
     assert themes_res.status_code == 200
     payload = themes_res.json()
     assert isinstance(payload, list)
-    assert len(payload) == 6
+    assert len(payload) == 9
     assert payload[0]["id"] == "god-of-ink"
     themes_by_id = {t["id"]: t for t in payload}
     assert "Navy" in themes_by_id["god-of-ink"]["swatches"]
@@ -244,6 +265,9 @@ def test_root_data_theme_and_api_themes_endpoint(phase4_env):
     assert "Lavender" in themes_by_id["obsidian"]["swatches"]
     assert "Cobalt" in themes_by_id["swimming-with-the-whales"]["swatches"]
     assert "Plum" in themes_by_id["mint-city"]["swatches"]
+    assert "Neon Cyan" in themes_by_id["beyond-the-boundary"]["swatches"]
+    assert "Electric Orange" in themes_by_id["the-unknown"]["swatches"]
+    assert "Celadon" in themes_by_id["castle-in-the-sky"]["swatches"]
 
 
 def test_no_hardcoded_colors_in_css_or_app_shell():

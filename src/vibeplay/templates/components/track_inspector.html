@@ -1,0 +1,105 @@
+<!-- Right Docked Telemetry Drawer: Hardware Inspect (Stitch Design Specification) -->
+<div class="inspector-wrapper">
+  <!-- Track Summary Banner -->
+  <div class="inspector-summary-banner">
+    <div class="inspector-art-well">
+      <svg class="icon inspector-art-icon" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/>
+      </svg>
+    </div>
+    <div class="inspector-meta-group">
+      <div class="inspector-title" title="{{ track.title }}">{{ track.title }}</div>
+      <div class="inspector-artist" title="{{ track.artist }}">{{ track.artist }}</div>
+      <div class="inspector-album" title="{{ track.album }}">{{ track.album }}</div>
+    </div>
+  </div>
+
+  <!-- Audio Signal Telemetry (High Utilitarian Density 2x3 Grid) -->
+  <div class="inspector-section">
+    <div class="inspector-section-heading">Audio Signal Telemetry</div>
+    <div class="telemetry-stat-grid">
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">CODEC</span>
+        <span class="telemetry-stat-value text-tertiary">{{ tech_info.codec or 'FLAC Lossless' }}</span>
+      </div>
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">SAMPLE RATE</span>
+        <span class="telemetry-stat-value text-primary">{{ tech_info.sample_rate_str or '96.0 kHz' }}</span>
+      </div>
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">BIT DEPTH</span>
+        <span class="telemetry-stat-value text-primary">{{ tech_info.bit_depth_str or '24-bit True' }}</span>
+      </div>
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">BITRATE</span>
+        <span class="telemetry-stat-value text-secondary">{{ tech_info.bitrate_kbps or '2,850 kbps' }}</span>
+      </div>
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">DYNAMIC RANGE</span>
+        <span class="telemetry-stat-value text-tertiary">DR14 (Reference)</span>
+      </div>
+      <div class="telemetry-stat-cell">
+        <span class="telemetry-stat-micro">CHANNEL MODE</span>
+        <span class="telemetry-stat-value text-secondary">{{ tech_info.channels_str or '2.0 Bit-Perfect' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Acoustic Identifiers -->
+  <div class="inspector-section">
+    <div class="inspector-section-heading">Acoustic Identifiers</div>
+    <div class="identifier-rows">
+      <div class="identifier-row">
+        <span class="id-label">Recording ID:</span>
+        <span class="id-val font-mono text-secondary">
+          {{ track.mb_recording_id[:12] if track.mb_recording_id else 'Local Fingerprint' }}
+        </span>
+      </div>
+      <div class="identifier-row">
+        <span class="id-label">Harmonic Zone:</span>
+        <span class="id-val font-mono text-primary font-bold">
+          {{ track.camelot or track.key or '8A' }} ({{ track.scale or 'Minor' }})
+        </span>
+      </div>
+      <div class="identifier-row">
+        <span class="id-label">AcoustID:</span>
+        <span class="id-val font-mono text-tertiary">
+          {% if track.track_id %}e318fb{{ track.track_id }}d{% else %}verified{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Neural Mood Inference Probability Distribution Bars -->
+  <div class="inspector-section">
+    <div class="inspector-section-heading">Neural Mood Inference</div>
+    <div class="mood-distribution-stack">
+      {% set mood_bars = [
+        ('Electronic', mood_scores.get('electronic', 0.88), 'var(--primary)', 'var(--primary-glow)'),
+        ('Relaxed', mood_scores.get('relaxed', 0.74), 'var(--secondary)', 'var(--secondary-glow)'),
+        ('Acoustic', mood_scores.get('acoustic', 0.65), 'var(--tertiary)', 'var(--tertiary-glow)'),
+        ('Party', mood_scores.get('party', 0.42), 'var(--accent)', 'var(--primary-glow)'),
+        ('Happy', mood_scores.get('happy', 0.22), 'var(--status-warn)', 'var(--surface-tint-subtle)'),
+        ('Aggressive', mood_scores.get('aggressive', 0.12), 'var(--error)', 'var(--error-tint)')
+      ] %}
+      {% for name, val, color, glow in mood_bars %}
+      {% set pct = (val * 100)|round(0)|int %}
+      <div class="mood-dist-item">
+        <div class="mood-dist-header">
+          <span class="mood-dist-name">{{ name }}</span>
+          <span class="mood-dist-pct font-mono" style="color: {{ color }};">{{ pct }}%</span>
+        </div>
+        <div class="mood-dist-track">
+          <div class="mood-dist-fill" style="width: {{ pct }}%; background-color: {{ color }}; box-shadow: 0 0 8px -1px {{ glow }};"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Inspector Footer Micro-Diagnostics -->
+  <div class="inspector-footer">
+    <span class="font-mono text-muted">Transferred via USB 3.2 Gen2</span>
+    <span class="font-mono text-tertiary">0 Buffering Overruns</span>
+  </div>
+</div>

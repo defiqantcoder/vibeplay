@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
-from vibeplay.db import init_db
+from vibeplay.db import get_connection, init_db
 from vibeplay.ui.theme import THEME_PRESETS, generate_all_themes_css, get_theme_by_id
 from vibeplay.web import create_app
 
@@ -19,6 +19,19 @@ def desktop_client(tmp_path: Path) -> TestClient:
     """Fixture providing isolated FastAPI TestClient with initialized SQLite database."""
     db_file = tmp_path / "desktop_test.db"
     init_db(db_file)
+    with get_connection(db_file) as conn:
+        conn.execute(
+            """
+            INSERT INTO tracks (id, path, mtime, size, hash, duration, tags)
+            VALUES (1, '/music/audiophile.flac', 1000.0, 1024, 'dummy_hash', 240.0, '{"title": "Studio Master", "artist": "Audiophile Trio", "album": "Precision Album", "genre": "Lossless Jazz"}')
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO features (track_id, analyzer_version, bpm, key, scale, danceability, energy, mood_scores)
+            VALUES (1, '1.0.0', 120.0, 'B', 'minor', 0.65, 0.78, '{"electronic": 0.88, "relaxed": 0.74, "acoustic": 0.65, "party": 0.42, "happy": 0.22, "aggressive": 0.12}')
+            """
+        )
     settings = Settings(db_path=db_file)
     app = create_app(db_path=db_file, settings=settings)
     return TestClient(app)
@@ -35,6 +48,9 @@ class TestThemeEngine:
             "swimming-with-the-whales",
             "mint-city",
             "slate-audiophile",
+            "beyond-the-boundary",
+            "the-unknown",
+            "castle-in-the-sky",
         }
         preset_ids = {p.id for p in THEME_PRESETS}
         assert preset_ids == expected_themes
@@ -82,11 +98,14 @@ class TestDesktopApiEndpoints:
         assert resp.status_code == 200
         themes = resp.json()
         assert isinstance(themes, list)
-        assert len(themes) == 6
+        assert len(themes) == 9
         theme_ids = [t["id"] for t in themes]
         assert "god-of-ink" in theme_ids
         assert "obsidian" in theme_ids
         assert "slate-audiophile" in theme_ids
+        assert "beyond-the-boundary" in theme_ids
+        assert "the-unknown" in theme_ids
+        assert "castle-in-the-sky" in theme_ids
 
     def test_player_clear_endpoint(self, desktop_client: TestClient) -> None:
         resp = desktop_client.post("/api/player/clear")
@@ -193,3 +212,47 @@ class TestDesktopShellRendering:
         assert "I²S SYNC" in html
         assert "DR14+ MASTER" in html
         assert "DMA Ring Buffer: 128 frames" in html
+
+        # 7. Stitch 3-Column Studio Workspace Layout (Screen 5b4e60ea)
+        assert 'class="workspace-layout"' in html
+        assert 'class="workspace-sidebar"' in html
+        assert 'class="workspace-center"' in html
+        assert 'class="workspace-inspector"' in html
+        assert 'id="workspace-inspector-drawer"' in html
+        assert 'id="workspace-inspector-content"' in html
+        assert "Hardware Inspect" in html
+        assert "Acoustic Vibe Matrix" in html
+        assert "Harmonic Zones" in html
+        assert "Audio Hardware Sync" in html
+
+        # 8. Interactive Mood-First Chips and Harmonic Matrix
+        assert 'class="mood-chip active"' in html
+        assert 'data-mood="chill"' in html
+        assert 'data-mood="electronic"' in html
+        assert 'class="harmonic-zone-btn"' in html
+        assert 'data-camelot="8A"' in html
+        assert 'data-camelot="10A"' in html
+        assert "filterByHarmonicKey" in html
+        assert "selectMoodChip" in html
+        assert "syncBpmSlider" in html
+
+        # 9. Extended Themes in Settings Dialog
+        assert "Beyond the Boundary" in html
+        assert "The Unknown" in html
+        assert "Castle In The Sky" in html
+
+    def test_track_inspector_endpoint(self, desktop_client: TestClient) -> None:
+        """Verify GET /api/track/{track_id}?view=inspector returns the docked telemetry drawer fragment."""
+        resp = desktop_client.get("/api/track/1?view=inspector")
+        assert resp.status_code == 200
+        html = resp.text
+        assert "inspector-wrapper" in html
+        assert "Audio Signal Telemetry" in html
+        assert "Acoustic Identifiers" in html
+        assert "Neural Mood Inference" in html
+        assert "CODEC" in html
+        assert "SAMPLE RATE" in html
+        assert "BIT DEPTH" in html
+        assert "Harmonic Zone:" in html
+        assert "Transferred via USB 3.2 Gen2" in html
+

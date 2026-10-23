@@ -47,6 +47,7 @@ BUNDLE_DATAS: tuple[tuple[str, str], ...] = (
 # Hidden imports required for FastAPI/Uvicorn, Jinja2, PyWebView GTK3/WebKit2GTK on Ubuntu 24.04, and DSP
 BUNDLE_HIDDEN_IMPORTS: tuple[str, ...] = (
     "vibeplay",
+    "vibeplay.capabilities",
     "vibeplay.cli",
     "vibeplay.config",
     "vibeplay.db",
@@ -54,9 +55,11 @@ BUNDLE_HIDDEN_IMPORTS: tuple[str, ...] = (
     "vibeplay.desktop.__main__",
     "vibeplay.desktop.constants",
     "vibeplay.desktop.environment",
+    "vibeplay.desktop.mime",
     "vibeplay.desktop.packaging",
     "vibeplay.desktop.settings",
     "vibeplay.desktop.supervisor",
+    "vibeplay.desktop.telemetry_stream",
     "vibeplay.duplicates",
     "vibeplay.enrichment",
     "vibeplay.exporter",

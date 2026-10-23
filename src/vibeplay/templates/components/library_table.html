@@ -16,7 +16,13 @@
     </thead>
     <tbody>
       {% for track in tracks %}
-      <tr {% if playback and playback.track_id == track.track_id %}class="active-playing-row"{% endif %}>
+      <tr class="track-row {% if playback and playback.track_id == track.track_id %}active-playing-row{% endif %}"
+          hx-get="/api/track/{{ track.track_id }}?view=inspector"
+          hx-trigger="click"
+          hx-target="#workspace-inspector-content"
+          hx-swap="innerHTML"
+          onclick="selectTrackRow(this, '{{ track.track_id }}')"
+          style="cursor: pointer;">
         <td style="text-align: center; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px;">
           {% if playback and playback.track_id == track.track_id %}
             <span class="dot-indicator dot-cyan animate-pulse"></span>
@@ -84,7 +90,7 @@
             {% endif %}
           </span>
         </td>
-        <td style="text-align: center;">
+        <td style="text-align: center;" onclick="event.stopPropagation();">
           <div style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
             <button class="btn-icon"
                     hx-post="/api/player/play-track/{{ track.track_id }}"
