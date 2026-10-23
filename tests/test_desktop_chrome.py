@@ -88,7 +88,8 @@ class TestDesktopApiEndpoints:
         assert "obsidian" in theme_ids
         assert "slate-audiophile" in theme_ids
 
-    def test_player_clear_endpoint(self, desktop_client: TestClient) -> None:
+    @patch('vibeplay.web.get_mpd_transport')
+    def test_player_clear_endpoint(self, mock_mpd, desktop_client: TestClient) -> None:
         resp = desktop_client.post("/api/player/clear")
         assert resp.status_code == 200
         data = resp.json()

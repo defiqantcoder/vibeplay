@@ -42,7 +42,8 @@ def test_cli_spatial_toggle() -> None:
         assert "Spatial Mode Updated" in result.stdout
 
 
-def test_cli_route_passthrough_all() -> None:
+@patch('vibe_dsp.cli.discover_receiver_endpoints', return_value=[type('Receiver', (), {'sink_id': '1', 'sink_name': 'test', 'supported_codecs': ['ac3'], 'description': 'desc'})()])
+def test_cli_route_passthrough_all(mock_discover) -> None:
     """Verify vibe-dsp route passthrough --all enables receiver codecs."""
     with patch(
         "vibe_dsp.cli.configure_sink_passthrough",
