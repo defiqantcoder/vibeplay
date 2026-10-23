@@ -9,7 +9,7 @@ from typing import Any
 
 import numpy as np
 import uvicorn
-from fastapi import FastAPI, Form, HTTPException, Request, Response
+from fastapi import FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -40,7 +40,10 @@ from vibeplay.playlist import (
     GeneratedPlaylist,
     PlaylistRuleConfig,
     PlaylistTrackItem,
+    calculate_playlist_summary,
     calculate_transition,
+    calculate_transition_metrics,
+    evaluate_harmonic_transition,
     generate_playlist,
     key_to_camelot,
 )
@@ -397,6 +400,17 @@ def create_app(
             except Exception as err:
                 logger.debug("Could not load recent playlist: %s", err)
 
+        latest_transitions = (
+            calculate_transition_metrics(latest_playlist.tracks)
+            if latest_playlist
+            else []
+        )
+        latest_summary = (
+            calculate_playlist_summary(latest_playlist.tracks, latest_transitions)
+            if latest_playlist
+            else {}
+        )
+
         clusters = get_library_clusters(resolved_db_path, cfg)
         playback = get_playback_status(resolved_db_path, cfg)
 
@@ -428,6 +442,9 @@ def create_app(
                 "artists": artists,
                 "clusters": clusters,
                 "playlist": latest_playlist,
+                "transitions": latest_transitions,
+                "summary": latest_summary,
+                "active_step": 3 if latest_playlist else 1,
                 "playback": playback,
                 "desktop_settings": active_desktop_settings,
                 "selected_track": selected_track,
@@ -674,11 +691,244 @@ def create_app(
                 settings=cfg,
             )
 
+        transitions = calculate_transition_metrics(playlist.tracks)
+        summary = calculate_playlist_summary(playlist.tracks, transitions)
+
         return templates.TemplateResponse(
             request=request,
             name="components/playlist_builder.html",
             context={
                 "playlist": playlist,
+                "transitions": transitions,
+                "summary": summary,
+                "active_step": 3,
+            },
+        )
+
+    @app.get("/api/playlist/builder/search")
+    async def api_playlist_builder_search(
+        request: Request,
+        q: str = Query("", description="Search term for tracks"),
+    ) -> Response:
+        """Search tracks with acoustic telemetry for the seed track selector."""
+        search_term = q.strip()
+        with get_connection(resolved_db_path) as conn:
+            cursor = conn.cursor()
+            if search_term:
+                query = """
+                    SELECT t.id, t.title, t.artist, t.album, t.duration, t.path,
+                           f.bpm, f.key, f.scale, f.energy, f.danceability
+                    FROM tracks t
+                    LEFT JOIN features f ON t.id = f.track_id
+                    WHERE t.status = 'active'
+                      AND (t.title LIKE ? OR t.artist LIKE ? OR t.album LIKE ?)
+                    ORDER BY t.title ASC
+                    LIMIT 20
+                """
+                pattern = f"%{search_term}%"
+                cursor.execute(query, (pattern, pattern, pattern))
+            else:
+                query = """
+                    SELECT t.id, t.title, t.artist, t.album, t.duration, t.path,
+                           f.bpm, f.key, f.scale, f.energy, f.danceability
+                    FROM tracks t
+                    LEFT JOIN features f ON t.id = f.track_id
+                    WHERE t.status = 'active'
+                    ORDER BY t.id DESC
+                    LIMIT 20
+                """
+                cursor.execute(query)
+            rows = cursor.fetchall()
+
+        results = []
+        for r in rows:
+            dur = float(r[4] or 0.0)
+            c = key_to_camelot(r[7], r[8])
+            results.append({
+                "track_id": r[0],
+                "title": r[1] or "Unknown Title",
+                "artist": r[2] or "Unknown Artist",
+                "album": r[3] or "Unknown Album",
+                "duration": dur,
+                "duration_formatted": f"{int(dur // 60)}:{int(dur % 60):02d}",
+                "path": r[5] or "",
+                "bpm": round(float(r[6]), 1) if r[6] is not None else None,
+                "key": r[7],
+                "scale": r[8],
+                "camelot": c,
+                "energy": round(float(r[9]), 2) if r[9] is not None else None,
+                "danceability": round(float(r[10]), 2) if r[10] is not None else None,
+            })
+
+        accept_header = request.headers.get("accept", "")
+        if "application/json" in accept_header or request.query_params.get("format") == "json":
+            return JSONResponse(content={"results": results, "count": len(results)})
+
+        return templates.TemplateResponse(
+            request=request,
+            name="components/playlist_seed_results.html",
+            context={
+                "results": results,
+                "query": search_term,
+            },
+        )
+
+    @app.post("/api/playlist/builder/preview")
+    async def api_playlist_builder_preview(
+        request: Request,
+        seed_track_id: int = Form(...),
+        arc: str = Form("energy_ramp"),
+        limit: int = Form(12),
+        max_bpm_delta: float = Form(10.0),
+        max_artist_tracks: int = Form(2),
+        name: str = Form("Harmonic Journey"),
+        vibe: str | None = Form(None),
+    ) -> Response:
+        """Generate an arc-guided harmonic preview sequence with transition telemetry."""
+        parsed_vibe = vibe.strip() if vibe and vibe.strip() else None
+        parsed_arc = arc.strip() if arc and arc.strip() else "energy_ramp"
+
+        rules = PlaylistRuleConfig(
+            mode="seed",
+            seed_track_ids=[seed_track_id],
+            arc=parsed_arc,
+            limit=limit,
+            max_bpm_delta=max_bpm_delta,
+            max_artist_tracks=max_artist_tracks,
+            vibe=parsed_vibe,
+        )
+
+        playlist = generate_playlist(
+            db_path=resolved_db_path,
+            name=name.strip() or "Harmonic Journey",
+            seed_track_id=seed_track_id,
+            arc=parsed_arc,
+            vibe=parsed_vibe,
+            limit=limit,
+            max_artist_tracks=max_artist_tracks,
+            rules=rules,
+            settings=cfg,
+        )
+
+        transitions = calculate_transition_metrics(playlist.tracks)
+        summary = calculate_playlist_summary(playlist.tracks, transitions)
+
+        accept_header = request.headers.get("accept", "")
+        if "application/json" in accept_header or request.query_params.get("format") == "json":
+            return JSONResponse(content={
+                "playlist": playlist.to_dict(),
+                "transitions": transitions,
+                "summary": summary,
+            })
+
+        return templates.TemplateResponse(
+            request=request,
+            name="components/playlist_builder.html",
+            context={
+                "playlist": playlist,
+                "transitions": transitions,
+                "summary": summary,
+                "active_step": 3,
+                "seed_track_id": seed_track_id,
+                "arc": parsed_arc,
+                "limit": limit,
+                "max_bpm_delta": max_bpm_delta,
+                "max_artist_tracks": max_artist_tracks,
+            },
+        )
+
+    @app.post("/api/playlist/builder/reorder")
+    async def api_playlist_builder_reorder(
+        request: Request,
+        track_ids: str = Form(...),
+        playlist_id: int | None = Form(None),
+        step: int = Form(4),
+    ) -> Response:
+        """Reorder tracks in playlist, update database, and recalculate harmonic transitions."""
+        ordered_ids = [
+            int(x.strip()) for x in track_ids.split(",") if x.strip().isdigit()
+        ]
+        if not ordered_ids:
+            raise HTTPException(status_code=400, detail="Invalid track_ids")
+
+        with get_connection(resolved_db_path) as conn:
+            if playlist_id:
+                pl_row = get_playlist(conn, playlist_id)
+                if not pl_row:
+                    raise HTTPException(status_code=404, detail="Playlist not found")
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,)
+                )
+                add_tracks_to_playlist(conn, playlist_id, ordered_ids)
+
+        if playlist_id:
+            reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
+        else:
+            with get_connection(resolved_db_path) as conn:
+                all_tracks = {
+                    t["track_id"]: dict(t)
+                    for t in get_tracks_with_features(conn)
+                }
+            items: list[PlaylistTrackItem] = []
+            prev_meta = None
+            for pos, tid in enumerate(ordered_ids, start=1):
+                if tid not in all_tracks:
+                    continue
+                meta = all_tracks[tid]
+                trans = calculate_transition(prev_meta, meta, None, None) if pos > 1 else None
+                items.append(
+                    PlaylistTrackItem(
+                        position=pos,
+                        track_id=tid,
+                        title=meta.get("title") or "Unknown Title",
+                        artist=meta.get("artist") or "Unknown Artist",
+                        album=meta.get("album") or "Unknown Album",
+                        duration=float(meta.get("duration") or 0.0),
+                        bpm=meta.get("bpm"),
+                        key=meta.get("key"),
+                        scale=meta.get("scale"),
+                        camelot=key_to_camelot(meta.get("key"), meta.get("scale")),
+                        energy=meta.get("energy"),
+                        danceability=meta.get("danceability"),
+                        path=meta.get("path") or "",
+                        transition=trans,
+                    )
+                )
+                prev_meta = meta
+            scores = [i.transition.total_score for i in items if i.transition]
+            reordered_playlist = GeneratedPlaylist(
+                playlist_id=0,
+                name="Preview Sequence",
+                description="Live reordered sequence",
+                mode="preview",
+                tracks=items,
+                total_duration=round(sum(i.duration for i in items), 2),
+                avg_transition_score=round(float(np.mean(scores)), 4) if scores else 1.0,
+            )
+
+        if reordered_playlist is None:
+            raise HTTPException(status_code=404, detail="Failed to load reordered playlist")
+
+        transitions = calculate_transition_metrics(reordered_playlist.tracks)
+        summary = calculate_playlist_summary(reordered_playlist.tracks, transitions)
+
+        accept_header = request.headers.get("accept", "")
+        if "application/json" in accept_header or request.query_params.get("format") == "json":
+            return JSONResponse(content={
+                "playlist": reordered_playlist.to_dict(),
+                "transitions": transitions,
+                "summary": summary,
+            })
+
+        return templates.TemplateResponse(
+            request=request,
+            name="components/playlist_builder.html",
+            context={
+                "playlist": reordered_playlist,
+                "transitions": transitions,
+                "summary": summary,
+                "active_step": step,
             },
         )
 
@@ -707,12 +957,20 @@ def create_app(
             add_tracks_to_playlist(conn, playlist_id, ordered_ids)
 
         reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
+        if reordered_playlist is None:
+            raise HTTPException(status_code=404, detail="Failed to reload reordered playlist")
+
+        transitions = calculate_transition_metrics(reordered_playlist.tracks)
+        summary = calculate_playlist_summary(reordered_playlist.tracks, transitions)
 
         return templates.TemplateResponse(
             request=request,
             name="components/playlist_builder.html",
             context={
                 "playlist": reordered_playlist,
+                "transitions": transitions,
+                "summary": summary,
+                "active_step": 4,
             },
         )
 

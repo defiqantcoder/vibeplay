@@ -1,0 +1,50 @@
+{% if results %}
+<div class="seed-results-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto;">
+  {% for t in results %}
+  <div class="seed-result-item"
+       tabindex="0"
+       role="button"
+       data-track-id="{{ t.track_id }}"
+       data-title="{{ t.title }}"
+       data-artist="{{ t.artist }}"
+       data-album="{{ t.album }}"
+       data-bpm="{{ t.bpm or '' }}"
+       data-camelot="{{ t.camelot or t.key or '' }}"
+       data-energy="{{ t.energy or '0.5' }}"
+       data-danceability="{{ t.danceability or '0.5' }}"
+       onclick="selectSeedTrack(this)"
+       onkeydown="if(event.key === 'Enter' || event.key === ' ') { selectSeedTrack(this); event.preventDefault(); }"
+       style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s ease;">
+    <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 0;">
+      <div style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--surface-tint-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg class="icon" style="width: 14px; height: 14px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      </div>
+      <div style="min-width: 0;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ t.title }}
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ t.artist }} • <span style="color: var(--text-dim);">{{ t.album }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+      <span class="badge-spec" style="font-family: var(--font-mono); font-size: 10px;">
+        {{ t.bpm|round(1) if t.bpm else '—' }} BPM
+      </span>
+      <span class="badge-camelot" style="font-family: var(--font-mono); font-size: 10px; width: 36px; text-align: center;">
+        {{ t.camelot or t.key or '—' }}
+      </span>
+      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 34px; text-align: right;">
+        {{ t.duration_formatted }}
+      </span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-dim); font-size: 12px; font-family: var(--font-mono);">
+  No tracks match query "{{ query }}"
+</div>
+{% endif %}
