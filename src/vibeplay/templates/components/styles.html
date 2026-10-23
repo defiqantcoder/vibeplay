@@ -883,6 +883,191 @@ input[type="range"]::-webkit-slider-thumb {
   margin-right: 0.75rem;
 }
 
+/* Guided Playlist Builder 4-Step Stepper */
+.builder-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-container-low);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+}
+
+.builder-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.builder-step-pill:hover {
+  color: var(--text-primary);
+  background: var(--bg-container);
+  border-color: var(--border-subtle);
+}
+
+.builder-step-pill.active {
+  background: var(--primary-tint);
+  border-color: var(--primary-border);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.builder-step-pill.completed {
+  color: var(--tertiary);
+}
+
+.builder-step-pill .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--bg-container);
+  font-size: 10px;
+}
+
+.builder-step-pill.active .step-num {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.builder-step-pill.completed .step-num {
+  background: var(--tertiary);
+  color: var(--bg-canvas);
+}
+
+.builder-step-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* Arc Cards Grid */
+.arc-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.arc-card {
+  position: relative;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.arc-card:hover {
+  border-color: var(--primary-border);
+  background: var(--bg-container-high);
+}
+
+.arc-card.active,
+.arc-card:has(input[type="radio"]:checked) {
+  border-color: var(--primary);
+  background: var(--primary-tint);
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+
+/* Transition Connector Cards */
+.transition-connector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.85rem;
+  margin: 0.2rem 0;
+  background: var(--bg-container-lowest);
+  border-left: 3px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.transition-connector.transition-seamless {
+  border-left-color: var(--tertiary);
+  background: var(--tertiary-tint);
+}
+
+.transition-connector.transition-boost {
+  border-left-color: var(--primary);
+  background: var(--primary-tint);
+}
+
+.transition-connector.transition-acceptable {
+  border-left-color: var(--status-warn);
+  background: var(--surface-tint-subtle);
+}
+
+.transition-connector.transition-clash {
+  border-left-color: var(--error);
+  background: var(--error-tint);
+}
+
+/* Badges */
+.badge-harmonic-seamless {
+  color: var(--tertiary);
+  background: var(--tertiary-tint);
+  border: 1px solid var(--tertiary-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.badge-harmonic-boost {
+  color: var(--primary);
+  background: var(--primary-tint);
+  border: 1px solid var(--primary-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.badge-harmonic-acceptable {
+  color: var(--status-warn);
+  background: var(--surface-tint-subtle);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.badge-harmonic-clash {
+  color: var(--error);
+  background: var(--error-tint);
+  border: 1px solid var(--error-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
 /* Modal Dialog */
 dialog.modal-dialog {
   background: var(--bg-surface);
