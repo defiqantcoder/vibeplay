@@ -18,6 +18,7 @@ from rich.progress import (
 from rich.table import Table
 
 from vibeplay.analysis import analyze_tracks
+from vibeplay.capabilities import check_all_capabilities
 from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.enrichment import enrich_tracks, get_report_data
@@ -1144,3 +1145,29 @@ def duplicates(
 if __name__ == "__main__":
     app()
 
+
+@app.command("doctor")
+def doctor():
+    """Run diagnostics to check optional dependencies and runtime capabilities."""
+    settings = get_settings()
+    capabilities = check_all_capabilities(settings)
+
+    table = Table(title="VibePlay Runtime Capabilities", show_lines=True)
+    table.add_column("Subsystem", style="cyan", no_wrap=True)
+    table.add_column("Status", style="bold")
+    table.add_column("Provider/Fallback", style="magenta")
+    table.add_column("Details", style="dim")
+    table.add_column("Remediation Action", style="yellow")
+
+    for cap in capabilities:
+        status_text = "[green]✓ Available[/green]" if cap.available else "[red]✗ Missing[/red]"
+        remediation_text = cap.remediation if cap.remediation else "N/A"
+        table.add_row(
+            cap.name,
+            status_text,
+            cap.provider,
+            cap.detail,
+            remediation_text
+        )
+
+    console.print(table)
