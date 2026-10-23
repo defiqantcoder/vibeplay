@@ -5,17 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
 from vibe_dsp.alsa_reservation import (
-    DEFAULT_MPD_CONF_DIR,
     generate_mpd_audio_outputs,
     write_mpd_audio_outputs_config,
 )
 from vibe_dsp.hardware import scan_hardware
-from vibe_dsp.models import CardType
 from vibe_dsp.passthrough import (
     configure_sink_passthrough,
     discover_receiver_endpoints,
@@ -23,7 +20,6 @@ from vibe_dsp.passthrough import (
 from vibe_dsp.peq import apply_peq_preset, get_active_peq_state
 from vibe_dsp.pipewire import apply_wpctl_sink_rate_override
 from vibe_dsp.spatial import (
-    SPATIAL_SINK_NAME,
     get_spatial_virtualization_status,
     set_spatial_virtualization_mode,
 )

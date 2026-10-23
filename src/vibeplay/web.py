@@ -529,6 +529,68 @@ def create_app(
             },
         )
 
+    @app.get("/api/track/{track_id}/inspector", response_class=HTMLResponse)
+    async def api_track_inspector(request: Request, track_id: int) -> Response:
+        """HTMX endpoint returning track inspector sidebar component."""
+        with get_connection(resolved_db_path) as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT t.id AS track_id, t.path, t.duration,
+                       v.title, v.artist, v.album_artist, v.album, v.genre, v.year, v.mb_recording_id,
+                       f.bpm, f.key, f.scale, f.energy, f.danceability, f.loudness, f.mood_scores,
+                       f.key || f.scale AS camelot
+                FROM tracks t
+                LEFT JOIN v_tracks_best_value v ON t.id = v.track_id
+                LEFT JOIN features f ON t.id = f.track_id
+                WHERE t.id = ?
+            """
+            cursor.execute(query, (track_id,))
+            row = cursor.fetchone()
+
+        if not row:
+            return HTMLResponse(
+                content="<div class='p-4 text-red-500'>Track not found in local library.</div>",
+                status_code=404,
+            )
+
+        track_dict = dict(row)
+        mood_scores = {}
+        if track_dict.get("mood_scores"):
+            try:
+                import json
+                mood_scores = json.loads(track_dict["mood_scores"])
+            except Exception:
+                pass
+
+        for m in (
+            "happy",
+            "sad",
+            "relaxed",
+            "aggressive",
+            "party",
+            "acoustic",
+            "electronic",
+        ):
+            if m not in mood_scores:
+                mood_scores[m] = 0.0
+
+        tech_info = get_audio_file_technical_info(track_dict["path"])
+
+        # camelot approximation if not present, just mapped from key and scale directly above via sql
+        # actually camelot might not be directly available, fallback.
+        if "camelot" not in track_dict or not track_dict["camelot"]:
+            track_dict["camelot"] = f"{track_dict.get('key', '')} {track_dict.get('scale', '')}".strip()
+
+        return templates.TemplateResponse(
+            request=request,
+            name="components/track_inspector.html",
+            context={
+                "track": track_dict,
+                "tech_info": tech_info,
+                "mood_scores": mood_scores,
+            },
+        )
+
     @app.get("/api/clusters/cards", response_class=HTMLResponse)
     async def api_cluster_cards(request: Request) -> Response:
         """HTMX endpoint returning cluster cards component."""

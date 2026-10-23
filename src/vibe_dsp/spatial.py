@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import shutil
 import subprocess
 import urllib.request
@@ -14,7 +13,6 @@ from typing import Any
 
 from vibe_dsp.backup import create_backup
 from vibe_dsp.peq import get_active_peq_state
-from vibe_dsp.pipewire import reload_pipewire_daemons
 
 logger = logging.getLogger(__name__)
 
