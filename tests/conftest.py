@@ -189,16 +189,10 @@ def seed_test_database():
                     "happy": 0.8 if "Party" in title or "Summer" in title else 0.3,
                     "sad": 0.1,
                     "relaxed": 0.8 if "Chill" in title or "Acoustic" in title else 0.2,
-                    "aggressive": 0.8
-                    if "Rush" in title or "Overdrive" in title
-                    else 0.1,
+                    "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                     "party": 0.9 if "Party" in title else 0.2,
-                    "acoustic": 0.9
-                    if "Acoustic" in title or "Rustic" in title
-                    else 0.1,
-                    "electronic": 0.9
-                    if genre == "Electronic" or genre == "Techno"
-                    else 0.1,
+                    "acoustic": 0.9 if "Acoustic" in title or "Rustic" in title else 0.1,
+                    "electronic": 0.9 if genre == "Electronic" or genre == "Techno" else 0.1,
                 }
                 emb = np.sin(np.linspace(0, tid, 128)).astype(np.float32)
                 insert_or_replace_features(

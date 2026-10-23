@@ -101,9 +101,7 @@ def test_scan_new_files(synthetic_music_library: Path, tmp_path: Path) -> None:
 
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT title, artist, album, track_no, year, genre, has_cover, status FROM tracks ORDER BY track_no"
-        )
+        cursor.execute("SELECT title, artist, album, track_no, year, genre, has_cover, status FROM tracks ORDER BY track_no")
         rows = cursor.fetchall()
 
         assert len(rows) == 2
@@ -122,9 +120,7 @@ def test_scan_new_files(synthetic_music_library: Path, tmp_path: Path) -> None:
         assert rows[1]["status"] == "active"
 
 
-def test_scan_incremental_unchanged(
-    synthetic_music_library: Path, tmp_path: Path
-) -> None:
+def test_scan_incremental_unchanged(synthetic_music_library: Path, tmp_path: Path) -> None:
     """Verify that rescanning an unchanged folder reports all tracks as unchanged."""
     db_path = tmp_path / "vibeplay.db"
     first_summary = scan_directory(synthetic_music_library, db_path)
@@ -175,9 +171,7 @@ def test_scan_updated_files(synthetic_music_library: Path, tmp_path: Path) -> No
         assert row["genre"] == "Modern Ambient"
 
 
-def test_scan_removed_files_marked_missing(
-    synthetic_music_library: Path, tmp_path: Path
-) -> None:
+def test_scan_removed_files_marked_missing(synthetic_music_library: Path, tmp_path: Path) -> None:
     """Verify that deleted files are marked as missing rather than deleted from the database."""
     db_path = tmp_path / "vibeplay.db"
     scan_directory(synthetic_music_library, db_path)
@@ -203,9 +197,7 @@ def test_scan_removed_files_marked_missing(
         assert rows[1]["path"] == str(song2_path.resolve())
 
 
-def test_scan_corrupt_files_logged_and_continued(
-    synthetic_music_library: Path, tmp_path: Path
-) -> None:
+def test_scan_corrupt_files_logged_and_continued(synthetic_music_library: Path, tmp_path: Path) -> None:
     """Verify that corrupt audio files are recorded as errors without halting scanning."""
     db_path = tmp_path / "vibeplay.db"
     corrupt_file = synthetic_music_library / "corrupt.mp3"
@@ -220,9 +212,7 @@ def test_scan_corrupt_files_logged_and_continued(
 def test_cli_scan_command(synthetic_music_library: Path, tmp_path: Path) -> None:
     """Verify that vibeplay scan CLI command runs and outputs summary."""
     db_path = tmp_path / "cli_test.db"
-    result = runner.invoke(
-        app, ["scan", str(synthetic_music_library), "--db", str(db_path)]
-    )
+    result = runner.invoke(app, ["scan", str(synthetic_music_library), "--db", str(db_path)])
 
     assert result.exit_code == 0
     assert "Scan Summary" in result.stdout

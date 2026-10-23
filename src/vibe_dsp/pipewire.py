@@ -156,11 +156,7 @@ def reload_pipewire_daemons() -> tuple[bool, str]:
             check=False,
         )
         # In containers or non-systemd sessions, this might fail
-        if (
-            proc.returncode != 0
-            and "running" not in proc.stdout
-            and "degraded" not in proc.stdout
-        ):
+        if proc.returncode != 0 and "running" not in proc.stdout and "degraded" not in proc.stdout:
             logger.info("systemd user session not running; skipping daemon restart")
             return True, "systemd user session not active (skipped reload)"
     except Exception:

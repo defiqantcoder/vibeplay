@@ -245,9 +245,7 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.95 if "Party" in title else 0.2,
                 "acoustic": aco,
-                "electronic": 0.9
-                if "Techno" in genre or "Electronic" in genre
-                else 0.1,
+                "electronic": 0.9 if "Techno" in genre or "Electronic" in genre else 0.1,
             }
             np.random.seed(tid)
             emb = np.random.randn(32).astype(np.float32).tobytes()
@@ -426,9 +424,7 @@ def test_playlist_generation_reorder_and_export(
         },
     )
     assert reorder_res.status_code == 200
-    new_track_matches = [
-        int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)
-    ]
+    new_track_matches = [int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)]
     assert new_track_matches == reversed_ids
 
     # Reorder validation errors
@@ -438,9 +434,7 @@ def test_playlist_generation_reorder_and_export(
     )
     assert bad_req.status_code == 400
 
-    not_found = client.post(
-        "/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"}
-    )
+    not_found = client.post("/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"})
     assert not_found.status_code == 404
 
 
@@ -509,6 +503,7 @@ def test_api_authentication_middleware(test_environment: tuple[Path, Settings, T
     """Verify API authentication enforcement, token headers, and 401 rejections."""
     db_file, cfg, _ = test_environment
     from fastapi.testclient import TestClient
+
     from vibeplay.web import create_app
 
     auth_app = create_app(db_path=db_file, settings=cfg, api_key="secret-key-12345")
@@ -600,5 +595,3 @@ def test_dsp_profile_web_endpoints(test_environment: tuple[Path, Settings, TestC
     form_res = client.post("/api/player/output", data={"profile": "7.1.4 Spatial Headphones (SOFA 3D)"})
     assert form_res.status_code == 200
     assert "transport-footer" in form_res.text
-
-

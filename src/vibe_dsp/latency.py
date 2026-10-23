@@ -203,21 +203,12 @@ def detect_cpu_power_profile(
 
         gov = gov_file.read_text().strip() if gov_file.exists() else "unknown"
         active_governor = gov
-        cur_mhz = (
-            float(cur_file.read_text().strip()) / 1000.0 if cur_file.exists() else 0.0
-        )
-        max_mhz = (
-            float(max_file.read_text().strip()) / 1000.0 if max_file.exists() else 0.0
-        )
+        cur_mhz = float(cur_file.read_text().strip()) / 1000.0 if cur_file.exists() else 0.0
+        max_mhz = float(max_file.read_text().strip()) / 1000.0 if max_file.exists() else 0.0
         epp = epp_file.read_text().strip() if epp_file.exists() else None
 
         # Detect throttling if core is capped below 65% of max clock in powersave
-        core_throttled = (
-            max_mhz > 0
-            and cur_mhz > 0
-            and (cur_mhz / max_mhz) < 0.45
-            and gov in ("powersave", "power")
-        )
+        core_throttled = max_mhz > 0 and cur_mhz > 0 and (cur_mhz / max_mhz) < 0.45 and gov in ("powersave", "power")
         if core_throttled:
             is_throttled = True
 
@@ -315,9 +306,7 @@ def request_realtime_scheduling(
                 check=False,
             )
             if res.returncode == 0:
-                logger.info(
-                    "RealtimeKit granted RT priority %d to PID %d", priority, pid
-                )
+                logger.info("RealtimeKit granted RT priority %d to PID %d", priority, pid)
                 return True, f"RealtimeKit: Granted SCHED_RR priority {priority}"
         except Exception as err:
             logger.debug("busctl rtkit call failed: %s", err)
@@ -361,34 +350,22 @@ def evaluate_latency_health(
 
     # Check for hard failures
     if xrun_report.xrun_count > 0 or xrun_report.state == "XRUN":
-        diagnostics.append(
-            f"Hardware underrun (xrun) detected on card {xrun_report.card_index}: {xrun_report.xrun_count} dropouts"
-        )
+        diagnostics.append(f"Hardware underrun (xrun) detected on card {xrun_report.card_index}: {xrun_report.xrun_count} dropouts")
     if jitter_metrics.max_jitter_us > 2500.0:
-        diagnostics.append(
-            f"Extreme scheduling jitter spike: {jitter_metrics.max_jitter_us:.1f} µs (>2.5 ms)"
-        )
+        diagnostics.append(f"Extreme scheduling jitter spike: {jitter_metrics.max_jitter_us:.1f} µs (>2.5 ms)")
     if power_profile.is_throttled and not power_profile.ac_online:
-        diagnostics.append(
-            "ACPI battery throttling active: CPU frequency severely depressed"
-        )
+        diagnostics.append("ACPI battery throttling active: CPU frequency severely depressed")
 
     if diagnostics:
         return LatencyHealthRating.THROTTLED, diagnostics
 
     # Check for marginal warning signs
     if jitter_metrics.max_jitter_us > 1000.0:
-        diagnostics.append(
-            f"Elevated DPC jitter: {jitter_metrics.max_jitter_us:.1f} µs (>1.0 ms)"
-        )
+        diagnostics.append(f"Elevated DPC jitter: {jitter_metrics.max_jitter_us:.1f} µs (>1.0 ms)")
     if not power_profile.ac_online:
-        diagnostics.append(
-            "Battery power active: dynamic frequency scaling may induce jitter"
-        )
+        diagnostics.append("Battery power active: dynamic frequency scaling may induce jitter")
     if power_profile.active_governor == "powersave":
-        diagnostics.append(
-            "CPU governor set to powersave; recommends performance mode for DSD"
-        )
+        diagnostics.append("CPU governor set to powersave; recommends performance mode for DSD")
     if not rtkit_granted:
         diagnostics.append("RealtimeKit priority not active for thread")
 

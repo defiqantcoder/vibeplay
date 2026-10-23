@@ -1,0 +1,23 @@
+[Desktop Entry]
+Type=Application
+Name=VibePlay
+GenericName=Audiophile Music Console
+Comment=Bit-Perfect ALSA/MPD Audio Console & Essentia Vibe Engine
+Exec=vibeplay-desktop %U
+TryExec=vibeplay-desktop
+Icon=vibeplay
+Terminal=false
+Categories=AudioVideo;Audio;Player;GTK;
+MimeType=audio/flac;audio/x-flac;audio/mpeg;audio/ogg;audio/wav;audio/x-wav;audio/aac;audio/mp4;
+StartupNotify=true
+StartupWMClass=vibeplay
+SingleMainWindow=true
+Actions=HeadlessScan;PlayPause;
+
+[Desktop Action HeadlessScan]
+Name=Background Library Scan
+Exec=vibeplay scan
+
+[Desktop Action PlayPause]
+Name=Play/Pause
+Exec=vibeplay control play-pause

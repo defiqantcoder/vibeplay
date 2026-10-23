@@ -21,8 +21,21 @@ from vibe_dsp.alsa_reservation import (
 )
 from vibe_dsp.backup import create_backup, execute_rollback, find_latest_backup
 from vibe_dsp.hardware import scan_hardware
+from vibe_dsp.ipc import (
+    AVAILABLE_PROFILES,
+    DEFAULT_IPC_SOCKET_PATH,
+    DSPClient,
+    start_ipc_server,
+    switch_audio_profile,
+)
 from vibe_dsp.latency import audit_latency
 from vibe_dsp.models import AudioEndpoint, CardType, LatencyHealthRating
+from vibe_dsp.passthrough import (
+    CODEC_DESCRIPTIONS,
+    CODEC_MAP,
+    configure_sink_passthrough,
+    discover_receiver_endpoints,
+)
 from vibe_dsp.peq import (
     DEFAULT_EASYEFFECTS_OUTPUT_DIR,
     PEQProfile,
@@ -40,7 +53,6 @@ from vibe_dsp.pipewire import (
     write_pipewire_dropin,
 )
 from vibe_dsp.spatial import (
-    DEFAULT_HRTF_DIR,
     DEFAULT_SPATIAL_CONF_FILE,
     SPATIAL_SINK_NAME,
     STANDARD_7_1_4_BASE_PREAMP_DB,
@@ -50,21 +62,6 @@ from vibe_dsp.spatial import (
     inspect_sofa_file,
     set_spatial_virtualization_mode,
     write_spatial_filter_chain,
-)
-from vibe_dsp.passthrough import (
-    CODEC_DESCRIPTIONS,
-    CODEC_MAP,
-    configure_sink_passthrough,
-    discover_receiver_endpoints,
-)
-from vibe_dsp.ipc import (
-    AVAILABLE_PROFILES,
-    DEFAULT_IPC_SOCKET_PATH,
-    DSPClient,
-    get_current_dsp_status,
-    load_persistent_state,
-    start_ipc_server,
-    switch_audio_profile,
 )
 
 logger = logging.getLogger("vibe-dsp")
@@ -159,10 +156,7 @@ def hardware_audit(
     for ep in report.endpoints:
         # Determine role label
         is_active = report.active_dac and ep.hw_device == report.active_dac.hw_device
-        is_fallback = (
-            report.fallback_endpoint
-            and ep.hw_device == report.fallback_endpoint.hw_device
-        )
+        is_fallback = report.fallback_endpoint and ep.hw_device == report.fallback_endpoint.hw_device
 
         if is_active:
             role = "[bold green]PRIMARY DAC[/bold green]"
@@ -176,11 +170,7 @@ def hardware_audit(
         type_label = (
             "[bold green]USB DAC[/bold green]"
             if ep.card_type == CardType.USB_DAC
-            else (
-                "[cyan]HDMI[/cyan]"
-                if ep.card_type == CardType.HDMI
-                else "[magenta]Speaker/Analog[/magenta]"
-            )
+            else ("[cyan]HDMI[/cyan]" if ep.card_type == CardType.HDMI else "[magenta]Speaker/Analog[/magenta]")
         )
 
         usb_label = ep.usb_id if ep.usb_id else ep.driver
@@ -204,23 +194,13 @@ def hardware_audit(
     if report.active_dac:
         dac = report.active_dac
         rates_summary = ", ".join(f"{r / 1000:.1f}k" for r in dac.rates)
-        console.print(
-            f"[bold green]Priority Target:[/bold green] [bold cyan]{dac.card_name}[/bold cyan] ({dac.hw_device})"
-        )
-        console.print(
-            f"  [dim]USB ID:[/dim]              {dac.usb_id or 'Class Compliant'}"
-        )
-        console.print(
-            f"  [dim]Native Clock Rates:[/dim]  {rates_summary or 'Standard'}"
-        )
-        console.print(
-            f"  [dim]Formats Supported:[/dim]   {', '.join(dac.formats) or 'S16_LE, S24, S32'}"
-        )
+        console.print(f"[bold green]Priority Target:[/bold green] [bold cyan]{dac.card_name}[/bold cyan] ({dac.hw_device})")
+        console.print(f"  [dim]USB ID:[/dim]              {dac.usb_id or 'Class Compliant'}")
+        console.print(f"  [dim]Native Clock Rates:[/dim]  {rates_summary or 'Standard'}")
+        console.print(f"  [dim]Formats Supported:[/dim]   {', '.join(dac.formats) or 'S16_LE, S24, S32'}")
         if report.fallback_endpoint:
             fb = report.fallback_endpoint
-            console.print(
-                f"  [dim]Fallback Endpoint:[/dim]   {fb.card_name} ({fb.hw_device})"
-            )
+            console.print(f"  [dim]Fallback Endpoint:[/dim]   {fb.card_name} ({fb.hw_device})")
     else:
         console.print(
             "[yellow]Notice:[/yellow] No external USB DAC detected. "
@@ -241,9 +221,7 @@ def route_bitperfect(
     ] = 0,
     dry_run: Annotated[
         bool,
-        typer.Option(
-            "--dry-run", help="Preview configuration changes without modifying files"
-        ),
+        typer.Option("--dry-run", help="Preview configuration changes without modifying files"),
     ] = False,
     no_reload: Annotated[
         bool,
@@ -269,26 +247,18 @@ def route_bitperfect(
     # Determine target endpoint
     target_ep: AudioEndpoint | None = None
     if card is not None:
-        matches = [
-            ep
-            for ep in report.endpoints
-            if ep.card_index == card and ep.device_index == device
-        ]
+        matches = [ep for ep in report.endpoints if ep.card_index == card and ep.device_index == device]
         if matches:
             target_ep = matches[0]
         else:
-            console.print(
-                f"[bold red]Error:[/bold red] Specified ALSA card hw:{card},{device} not found."
-            )
+            console.print(f"[bold red]Error:[/bold red] Specified ALSA card hw:{card},{device} not found.")
             raise typer.Exit(code=1)
     else:
         # Prioritize connected USB DAC; fallback to onboard speakers if none connected
         target_ep = report.active_dac or report.fallback_endpoint
 
     if not target_ep:
-        console.print(
-            "[bold red]Error:[/bold red] No audio output endpoints detected to route."
-        )
+        console.print("[bold red]Error:[/bold red] No audio output endpoints detected to route.")
         raise typer.Exit(code=1)
 
     console.print()
@@ -311,15 +281,11 @@ def route_bitperfect(
         fallback_endpoint=report.fallback_endpoint,
     )
 
-    target_pw_file = output_pipewire or (
-        DEFAULT_PIPEWIRE_CONF_DIR / "99-bitperfect.conf"
-    )
+    target_pw_file = output_pipewire or (DEFAULT_PIPEWIRE_CONF_DIR / "99-bitperfect.conf")
     target_mpd_file = output_mpd or (DEFAULT_MPD_CONF_DIR / "bitperfect.conf")
 
     if dry_run:
-        console.print(
-            "[bold yellow][DRY RUN MODE][/bold yellow] Previewing generated configurations:"
-        )
+        console.print("[bold yellow][DRY RUN MODE][/bold yellow] Previewing generated configurations:")
         console.print(f"\n[bold cyan]--- {target_pw_file} ---[/bold cyan]")
         console.print(pipewire_cfg)
         console.print(f"\n[bold cyan]--- {target_mpd_file} ---[/bold cyan]")
@@ -328,9 +294,7 @@ def route_bitperfect(
         return
 
     # Safety: Create backup and rollback script before writing any file
-    backup_dir, rollback_script = create_backup(
-        targets=[target_pw_file, target_mpd_file]
-    )
+    backup_dir, rollback_script = create_backup(targets=[target_pw_file, target_mpd_file])
 
     # Write configs
     write_pipewire_dropin(
@@ -369,9 +333,7 @@ def route_bitperfect(
         f"[yellow]{target_ep.plughw_device}[/yellow] (transparent format plug)",
     )
     summary_table.add_row("PipeWire Sinks", "resample.disable = true (*.usb-*)")
-    summary_table.add_row(
-        "Unlocked Rates", "44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384 kHz"
-    )
+    summary_table.add_row("Unlocked Rates", "44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384 kHz")
     summary_table.add_row("Device State", f"[cyan]{status}[/cyan]")
     summary_table.add_row("PipeWire Drop-in", str(target_pw_file))
     summary_table.add_row("MPD Output Conf", str(target_mpd_file))
@@ -457,10 +419,7 @@ def route_passthrough(
     else:
         # Prompt the user with supported options
         default_choice = ",".join(target_receiver.supported_codecs)
-        prompt_text = (
-            f"[bold yellow]Select codecs to enable on receiver[/bold yellow] "
-            f"({', '.join(target_receiver.supported_codecs)})"
-        )
+        prompt_text = f"[bold yellow]Select codecs to enable on receiver[/bold yellow] ({', '.join(target_receiver.supported_codecs)})"
         try:
             val = typer.prompt(prompt_text, default=default_choice)
             chosen_codecs = [c.strip().lower() for c in val.split(",") if c.strip()]
@@ -574,20 +533,17 @@ def latency_monitor(
     # Health Rating Badge Panel
     if report.health_rating == LatencyHealthRating.GOOD:
         rating_panel = Panel.fit(
-            "[bold green]HEALTH RATING: GOOD[/bold green]\n"
-            "[white]Real-time audio transport latency optimal. Zero underruns detected.[/white]",
+            "[bold green]HEALTH RATING: GOOD[/bold green]\n[white]Real-time audio transport latency optimal. Zero underruns detected.[/white]",
             border_style="green",
         )
     elif report.health_rating == LatencyHealthRating.MARGINAL:
         rating_panel = Panel.fit(
-            "[bold yellow]HEALTH RATING: MARGINAL[/bold yellow]\n"
-            "[yellow]Elevated scheduling jitter or power saving state detected.[/yellow]",
+            "[bold yellow]HEALTH RATING: MARGINAL[/bold yellow]\n[yellow]Elevated scheduling jitter or power saving state detected.[/yellow]",
             border_style="yellow",
         )
     else:
         rating_panel = Panel.fit(
-            "[bold red]HEALTH RATING: THROTTLED[/bold red]\n"
-            "[red]Active xruns, severe timer jitter, or ACPI CPU throttling detected.[/red]",
+            "[bold red]HEALTH RATING: THROTTLED[/bold red]\n[red]Active xruns, severe timer jitter, or ACPI CPU throttling detected.[/red]",
             border_style="red",
         )
     console.print(rating_panel)
@@ -600,15 +556,9 @@ def latency_monitor(
     table.add_column("Status / Reading", style="bold", width=34)
 
     # ALSA & Buffer Telemetry
-    rate_str = (
-        f"{report.xrun_report.active_rate / 1000.0:.1f} kHz"
-        if report.xrun_report.active_rate
-        else "Standby / Idle"
-    )
+    rate_str = f"{report.xrun_report.active_rate / 1000.0:.1f} kHz" if report.xrun_report.active_rate else "Standby / Idle"
     buf_str = (
-        f"{report.xrun_report.buffer_size} frames (period {report.xrun_report.period_size})"
-        if report.xrun_report.buffer_size
-        else "Unallocated"
+        f"{report.xrun_report.buffer_size} frames (period {report.xrun_report.period_size})" if report.xrun_report.buffer_size else "Unallocated"
     )
     xrun_color = "green" if report.xrun_report.xrun_count == 0 else "bold red"
 
@@ -624,9 +574,7 @@ def latency_monitor(
 
     # Jitter Telemetry
     jit = report.jitter_metrics
-    table.add_row(
-        "Kernel DPC Jitter", "Avg Scheduling Delay", f"{jit.avg_jitter_us:.1f} µs"
-    )
+    table.add_row("Kernel DPC Jitter", "Avg Scheduling Delay", f"{jit.avg_jitter_us:.1f} µs")
     table.add_row(
         "Kernel DPC Jitter",
         "Peak Jitter / StdDev",
@@ -640,16 +588,8 @@ def latency_monitor(
 
     # Power Profile Telemetry
     pwr = report.power_profile
-    ac_label = (
-        "[bold green]Connected (AC)[/bold green]"
-        if pwr.ac_online
-        else "[bold yellow]Battery Discharging[/bold yellow]"
-    )
-    pwr_label = (
-        "[bold red]THROTTLED[/bold red]"
-        if pwr.is_throttled
-        else "[green]Nominal[/green]"
-    )
+    ac_label = "[bold green]Connected (AC)[/bold green]" if pwr.ac_online else "[bold yellow]Battery Discharging[/bold yellow]"
+    pwr_label = "[bold red]THROTTLED[/bold red]" if pwr.is_throttled else "[green]Nominal[/green]"
     table.add_row("ACPI Power State", "Power Supply", ac_label)
     table.add_row(
         "ACPI Power State",
@@ -678,9 +618,7 @@ def latency_monitor(
     # Micro-Stutter Anomalies Log
     if report.anomalies:
         console.print()
-        console.print(
-            f"[bold red]Detected Micro-Stutter Anomalies ({len(report.anomalies)}):[/bold red]"
-        )
+        console.print(f"[bold red]Detected Micro-Stutter Anomalies ({len(report.anomalies)}):[/bold red]")
         for anom in report.anomalies:
             console.print(
                 f"  [{anom.timestamp}] [bold red]Anomaly:[/bold red] {anom.message} "
@@ -1170,9 +1108,9 @@ def spatial_setup(
 
     console.print(table)
     console.print(
-        f"\n[bold green]Success:[/bold green] PipeWire 7.1.4 spatial audio bridge installed. "
-        f"Switch profiles anytime via [bold]vibe-dsp profile set spatial-headphones[/bold] or "
-        f"[bold]vibe-dsp spatial toggle[/bold]\n"
+        "\n[bold green]Success:[/bold green] PipeWire 7.1.4 spatial audio bridge installed. "
+        "Switch profiles anytime via [bold]vibe-dsp profile set spatial-headphones[/bold] or "
+        "[bold]vibe-dsp spatial toggle[/bold]\n"
     )
 
 
@@ -1195,7 +1133,9 @@ def spatial_status() -> None:
 
     inst_str = "[green]Yes[/green]" if status.get("installed") else "[yellow]No (run vibe-dsp spatial setup)[/yellow]"
     active_str = "[green]Active in PipeWire graph[/green]" if status.get("is_active") else "[yellow]Inactive / Standby[/yellow]"
-    mode_str = "[bold magenta]3D Binaural Virtualization[/bold magenta]" if status.get("mode") == "3d_binaural" else "[cyan]Stereo Direct Bypass[/cyan]"
+    mode_str = (
+        "[bold magenta]3D Binaural Virtualization[/bold magenta]" if status.get("mode") == "3d_binaural" else "[cyan]Stereo Direct Bypass[/cyan]"
+    )
 
     table.add_row("Drop-in Installed", inst_str)
     table.add_row("Sink Name", status.get("sink_name", SPATIAL_SINK_NAME))
@@ -1284,7 +1224,7 @@ def profile_list() -> None:
     table.add_column("Description", style="dim")
 
     for p in profiles:
-        is_active = (p["id"] == active)
+        is_active = p["id"] == active
         id_str = f"[bold green]* {p['id']}[/bold green]" if is_active else f"  {p['id']}"
         table.add_row(id_str, p["name"], p.get("target", "dsp"), p["description"])
 
@@ -1314,4 +1254,3 @@ def profile_serve(
         asyncio.run(_run())
     except KeyboardInterrupt:
         console.print("\n[yellow]IPC server stopped by user.[/yellow]")
-

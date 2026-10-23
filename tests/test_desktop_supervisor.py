@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import signal
-import socket
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -244,6 +242,7 @@ def test_cli_entrypoint_help_and_version() -> None:
 def test_cli_app_desktop_command() -> None:
     """Verify typer vibeplay desktop command prints help."""
     from typer.testing import CliRunner
+
     from vibeplay.cli import app
 
     runner = CliRunner()
@@ -407,6 +406,3 @@ def test_start_failure_cleans_up(tmp_path: Path) -> None:
             with pytest.raises(RuntimeError, match="Audio hardware fault"):
                 supervisor.start(headless=True)
             mock_stop.assert_called_once()
-
-
-

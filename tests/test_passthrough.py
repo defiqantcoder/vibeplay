@@ -4,14 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from vibe_dsp.passthrough import (
     CODEC_DESCRIPTIONS,
     CODEC_MAP,
-    ReceiverEndpoint,
     configure_sink_passthrough,
-    discover_receiver_endpoints,
     parse_pactl_sinks_output,
 )
 
@@ -85,9 +81,7 @@ def test_codec_mapping_and_descriptions() -> None:
 
 def test_configure_sink_passthrough() -> None:
     """Verify configure_sink_passthrough executes pactl set-sink-formats."""
-    with patch("shutil.which", return_value="/usr/bin/pactl"), patch(
-        "subprocess.run"
-    ) as mock_run:
+    with patch("shutil.which", return_value="/usr/bin/pactl"), patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         success, msg = configure_sink_passthrough(
