@@ -1,0 +1,11 @@
+Package: vibeplay
+Version: 0.1.0
+Section: sound
+Priority: optional
+Architecture: amd64
+Maintainer: VibePlay Contributors <dev@vibeplay.org>
+Depends: libc6, libwebkit2gtk-4.1-0, mpd, libasound2, libnotify-bin
+Description: Precision Audiophile Music Console & Essentia Vibe Engine
+ VibePlay is a bit-perfect ALSA/MPD audio console featuring an Essentia-powered
+ vibe clustering engine, SOFA 7.1.4 HRTF spatial convolution, parametric EQ,
+ and a hardware telemetry HUD.
