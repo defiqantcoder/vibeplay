@@ -27,7 +27,7 @@ from vibeplay.llm import batch_vibe_tag_tracks, parse_prompt_to_plan
 from vibeplay.player import PlaybackError, play_playlist, play_seed
 from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.scanner import scan_directory
-from vibeplay.vectors import compute_clusters
+from vibeplay.vectors import compute_clusters, invalidate_cluster_cache
 
 logger = logging.getLogger("vibeplay")
 console = Console()
@@ -109,11 +109,16 @@ def scan(
         "Errors",
         f"[magenta]{summary.errors}[/magenta]" if summary.errors else "0",
     )
+
     table.add_section()
     table.add_row("Total Processed", str(summary.total_processed))
 
     console.print()
     console.print(table)
+
+    if summary.new > 0 or summary.updated > 0 or summary.missing > 0:
+        invalidate_cluster_cache()
+
 
 
 @app.command()

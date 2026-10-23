@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import numpy as np
 from sklearn.cluster import HDBSCAN, KMeans
@@ -70,6 +71,19 @@ class ClusteringResult:
     k: int
     total_tracks: int
     clusters: list[ClusterSummary]
+
+
+class ClusterCacheEntry(TypedDict):
+    result: ClusteringResult
+
+_CLUSTER_CACHE: dict[str, ClusterCacheEntry] = {}
+_CLUSTER_CACHE_LOCK = threading.Lock()
+
+def invalidate_cluster_cache() -> None:
+    """Clear the in-memory cluster cache."""
+    with _CLUSTER_CACHE_LOCK:
+        _CLUSTER_CACHE.clear()
+
 
 
 def _compute_config_signature(settings: Settings) -> str:
@@ -529,7 +543,19 @@ def compute_clusters(
         ClusteringResult: Container holding cluster summaries, dominant moods,
         top artists, and representative tracks closest to each centroid.
     """
+
     cfg = settings or get_settings()
+
+    # Calculate cache key
+    with get_connection(db_path or cfg.db_path) as conn:
+        feature_checksum = get_features_checksum(conn)
+    cache_key = f"{feature_checksum}:{k}:{algorithm}"
+
+    if not rebuild_cache:
+        with _CLUSTER_CACHE_LOCK:
+            if cache_key in _CLUSTER_CACHE:
+                return _CLUSTER_CACHE[cache_key]["result"]
+
     track_ids, vectors, metadata_map = get_or_build_vibe_vectors(
         db_path=db_path,
         rebuild_cache=rebuild_cache,
@@ -539,15 +565,19 @@ def compute_clusters(
     total_tracks = len(track_ids)
     if total_tracks == 0:
         logger.warning("No analyzed tracks found to cluster")
-        return ClusteringResult(
+        result = ClusteringResult(
             algorithm=algorithm,
             k=k,
             total_tracks=0,
             clusters=[],
         )
+        with _CLUSTER_CACHE_LOCK:
+            _CLUSTER_CACHE[cache_key] = {"result": result}
+        return result
 
     algo = algorithm.lower().strip()
     if algo not in ("kmeans", "hdbscan"):
+
         raise ValueError(
             f"Unsupported clustering algorithm: '{algorithm}'. Must be 'kmeans' or 'hdbscan'."
         )
@@ -683,3 +713,37 @@ def compute_clusters(
         total_tracks=total_tracks,
         clusters=cluster_summaries,
     )
+
+
+
+def get_vibe_vectors_for_track_ids(
+    db_path: Path | None = None,
+    track_ids: list[int] | None = None,
+    settings: Settings | None = None,
+) -> dict[int, np.ndarray]:
+    """Retrieve vibe vectors only for the specified track IDs.
+
+    Args:
+        db_path: Optional path to the SQLite database.
+        track_ids: List of track IDs to query vectors for.
+        settings: Application settings.
+
+    Returns:
+        A dictionary mapping track_id to its normalized vector representation.
+    """
+    if track_ids is None or len(track_ids) == 0:
+        return {}
+
+    cfg = settings or get_settings()
+
+    with get_connection(db_path or cfg.db_path) as conn:
+        from vibeplay.db import get_tracks_with_features_by_ids
+        tracks_rows = get_tracks_with_features_by_ids(conn, track_ids)
+
+    if not tracks_rows:
+        return {}
+
+    built_track_ids, vectors, _ = build_vibe_vectors(tracks_rows, cfg)
+
+    # Map track ID to its resulting vector
+    return {tid: vec for tid, vec in zip(built_track_ids, vectors, strict=False)}

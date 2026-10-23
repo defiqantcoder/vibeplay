@@ -936,6 +936,54 @@ def get_tracks_with_features(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return cursor.fetchall()
 
 
+def get_tracks_with_features_by_ids(
+    conn: sqlite3.Connection, track_ids: list[int]
+) -> list[sqlite3.Row]:
+    """Retrieve track metadata and features for specific track IDs.
+
+    Args:
+        conn: Open SQLite connection.
+        track_ids: List of track IDs to query.
+
+    Returns:
+        list[sqlite3.Row]: Rows containing track metadata and audio features.
+    """
+    if not track_ids:
+        return []
+
+    cursor = conn.cursor()
+    placeholders = ",".join(["?"] * len(track_ids))
+    query = f"""
+        SELECT
+            f.track_id,
+            v.path,
+            v.duration,
+            v.title,
+            v.artist,
+            v.album_artist,
+            v.album,
+            v.year,
+            v.genre,
+            v.mb_recording_id,
+            v.enriched_genres,
+            v.enriched_tags,
+            f.analyzer_version,
+            f.bpm,
+            f.key,
+            f.scale,
+            f.loudness,
+            f.danceability,
+            f.energy,
+            f.mood_scores,
+            f.embedding
+        FROM features f
+        JOIN v_tracks_best_value v ON f.track_id = v.track_id
+        WHERE f.track_id IN ({placeholders})
+    """
+    cursor.execute(query, track_ids)
+    return cursor.fetchall()
+
+
 def get_features_checksum(conn: sqlite3.Connection) -> str:
     """Calculate a deterministic hash over the current features data.
 
