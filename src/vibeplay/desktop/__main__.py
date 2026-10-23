@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import multiprocessing
 import sys
 from pathlib import Path
 
@@ -22,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         int: Exit status code (0 for success).
     """
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser(
         prog="vibeplay-desktop",
         description="Unified vibeplay desktop music player shell and runtime supervisor.",

@@ -348,8 +348,10 @@ def create_app(
                 )
             return response
 
-    static_dir = Path(__file__).parent / "static"
-    templates_dir = Path(__file__).parent / "templates"
+    from vibeplay.desktop.packaging import resolve_static_dir, resolve_templates_dir
+
+    static_dir = resolve_static_dir()
+    templates_dir = resolve_templates_dir()
 
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")

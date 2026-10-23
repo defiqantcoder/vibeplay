@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer
+from vibeplay.desktop.packaging import resolve_models_dir
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
     def __init__(self, models_dir: Path | None = None) -> None:
         self._version = "essentia-1.0.0"
         self._sample_rate = 44100
-        self.models_dir = (models_dir or Path("models")).resolve()
+        self.models_dir = resolve_models_dir(models_dir)
 
     @property
     def version(self) -> str:

@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,15 @@ DEFAULT_EASYEFFECTS_OUTPUT_DIR = Path("~/.local/share/easyeffects/output").expan
 DEFAULT_PEQ_CACHE_DIR = Path("~/.config/vibe-dsp/peq/cache").expanduser()
 DEFAULT_ACTIVE_PEQ_FILE = Path("~/.config/vibe-dsp/active_peq.json").expanduser()
 BUNDLED_PROFILES_DIR = Path(__file__).parent / "profiles"
+
+
+def _get_bundled_profiles_dir() -> Path:
+    """Resolve bundled profiles directory, supporting PyInstaller frozen `_MEIPASS` archives."""
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        meipass_dir = Path(getattr(sys, "_MEIPASS")) / "vibe_dsp" / "profiles"
+        if meipass_dir.exists():
+            return meipass_dir
+    return BUNDLED_PROFILES_DIR
 
 
 class FilterType(str, Enum):
@@ -700,8 +710,9 @@ def lookup_autoeq_model(
                     pass
 
     # 1. Check bundled profiles
-    if BUNDLED_PROFILES_DIR.exists():
-        for f in BUNDLED_PROFILES_DIR.glob("*.txt"):
+    bundled_dir = _get_bundled_profiles_dir()
+    if bundled_dir.exists():
+        for f in bundled_dir.glob("*.txt"):
             stem_clean = f.stem.lower().replace("_", " ").replace("-", " ")
             if tokens and all(t in stem_clean for t in tokens):
                 content = f.read_text(encoding="utf-8")
@@ -773,8 +784,9 @@ def list_available_presets(target_dir: Path | None = None) -> list[dict[str, Any
                 continue
 
     # Bundled profiles
-    if BUNDLED_PROFILES_DIR.exists():
-        for f in sorted(BUNDLED_PROFILES_DIR.glob("*.txt")):
+    bundled_dir = _get_bundled_profiles_dir()
+    if bundled_dir.exists():
+        for f in sorted(bundled_dir.glob("*.txt")):
             b_name = f.stem.replace("_", " ").title()
             if not any(r["name"] == f.stem for r in results):
                 try:
