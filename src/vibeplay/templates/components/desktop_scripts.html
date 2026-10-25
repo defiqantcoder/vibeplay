@@ -145,6 +145,9 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.menu-item-wrapper')) {
     closeAllMenus();
   }
+  if (!e.target.closest('.audio-output-dropdown-container')) {
+    closeAudioOutputDropdown();
+  }
 });
 
 // 3. Settings Popover & Dialog Controls
@@ -358,6 +361,14 @@ function applyPeqProfile(presetId) {
 }
 
 // 4. Global Desktop Keyboard Shortcuts
+let lastKeyTimestamp = 0;
+function throttleKey(ms = 150) {
+  const now = Date.now();
+  if (now - lastKeyTimestamp < ms) return false;
+  lastKeyTimestamp = now;
+  return true;
+}
+
 window.addEventListener('keydown', (e) => {
   const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   const isInputActive = ['input', 'textarea', 'select'].includes(activeTag);
@@ -365,22 +376,25 @@ window.addEventListener('keydown', (e) => {
   // Escape: Close all menus and open dialogs
   if (e.key === 'Escape') {
     closeAllMenus();
+    closeAudioOutputDropdown();
     closeSettingsDialog();
     const trackModal = document.getElementById('track-detail-modal');
     if (trackModal && trackModal.open) trackModal.close();
     return;
   }
 
-  // Ctrl+R: Rescan Library
+  // Ctrl+R: Scan Library
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault();
-    triggerLibraryRescan();
+    if (!throttleKey(200)) return;
+    triggerLibraryScan();
     return;
   }
 
-  // Ctrl+O: Add Music Directory
+  // Ctrl+O: Add Music Directory (Native Folder Chooser)
   if ((e.ctrlKey || e.metaKey) && (e.key === 'o' || e.key === 'O')) {
     e.preventDefault();
+    if (!throttleKey(200)) return;
     triggerAddFolder();
     return;
   }
@@ -388,6 +402,7 @@ window.addEventListener('keydown', (e) => {
   // Ctrl+,: Toggle Settings Popover
   if ((e.ctrlKey || e.metaKey) && e.key === ',') {
     e.preventDefault();
+    if (!throttleKey(200)) return;
     toggleSettingsDialog();
     return;
   }
@@ -409,6 +424,7 @@ window.addEventListener('keydown', (e) => {
   // Volume Down: F5 or AudioVolumeDown
   if (e.key === 'F5' || e.code === 'F5' || e.key === 'AudioVolumeDown') {
     e.preventDefault();
+    if (!throttleKey(80)) return;
     adjustVolume(-5);
     return;
   }
@@ -416,6 +432,7 @@ window.addEventListener('keydown', (e) => {
   // Volume Mute: F6 or AudioVolumeMute
   if (e.key === 'F6' || e.code === 'F6' || e.key === 'AudioVolumeMute') {
     e.preventDefault();
+    if (!throttleKey(150)) return;
     triggerMuteToggle();
     return;
   }
@@ -423,13 +440,15 @@ window.addEventListener('keydown', (e) => {
   // Volume Up: F7 or AudioVolumeUp
   if (e.key === 'F7' || e.code === 'F7' || e.key === 'AudioVolumeUp') {
     e.preventDefault();
+    if (!throttleKey(80)) return;
     adjustVolume(5);
     return;
   }
 
-  // Previous Track: F9, MediaTrackPrevious, or Ctrl+ArrowLeft
-  if (e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft')) {
+  // Previous Track: F9, F8, MediaTrackPrevious, or Ctrl+ArrowLeft
+  if (e.key === 'F8' || e.code === 'F8' || e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft')) {
     e.preventDefault();
+    if (!throttleKey(150)) return;
     triggerPrevTrack();
     return;
   }
@@ -437,6 +456,7 @@ window.addEventListener('keydown', (e) => {
   // Play / Pause: F10, MediaPlayPause, or Space (when not in text input)
   if (e.key === 'F10' || e.code === 'F10' || e.key === 'MediaPlayPause' || (e.code === 'Space' && !isInputActive)) {
     e.preventDefault();
+    if (!throttleKey(150)) return;
     triggerPlayToggle();
     return;
   }
@@ -444,6 +464,7 @@ window.addEventListener('keydown', (e) => {
   // Next Track: F11, MediaTrackNext, or Ctrl+ArrowRight
   if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight')) {
     e.preventDefault();
+    if (!throttleKey(150)) return;
     triggerNextTrack();
     return;
   }
@@ -460,6 +481,12 @@ function updateAudioDeviceConfig() {
 
 // 5. Backend Action Triggers
 function triggerPlayToggle() {
+  // Optimistic UI state swap
+  const playBtn = document.querySelector('.btn-play-pause');
+  if (playBtn) {
+    playBtn.style.transform = 'scale(0.92)';
+    setTimeout(() => { playBtn.style.transform = ''; }, 100);
+  }
   if (window.htmx) {
     htmx.ajax('POST', '/api/player/toggle', {
       target: '#transport-footer-container',
@@ -519,33 +546,159 @@ function triggerClearQueue() {
     .catch(err => console.error('Error clearing queue:', err));
 }
 
-function triggerLibraryRescan() {
-  closeAllMenus();
-  const statusEl = document.getElementById('chrome-xruns-status');
-  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-cyan animate-pulse"></span> Scanning...';
-
-  fetch('/api/library/rescan', { method: 'POST' })
-    .then(r => r.json())
-    .then(data => {
-      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
-      // Trigger library table refresh
-      const tableContainer = document.getElementById('library-table-container');
-      if (tableContainer && window.htmx) {
-        htmx.ajax('GET', '/api/library/table', { target: '#library-table-container', swap: 'innerHTML' });
-      }
-    })
-    .catch(err => {
-      console.error('Rescan error:', err);
-      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+// Live Background Jobs & Library Actions
+function pollJobProgressWidget() {
+  const container = document.getElementById('job-progress-container');
+  if (container && window.htmx) {
+    htmx.ajax('GET', '/api/jobs/progress-widget', {
+      target: '#job-progress-container',
+      swap: 'outerHTML',
     });
+  }
 }
 
 function triggerAddFolder() {
   closeAllMenus();
-  const dir = prompt('Enter music directory path to scan:');
-  if (dir && dir.trim()) {
-    triggerLibraryRescan();
+  const statusEl = document.getElementById('chrome-xruns-status');
+  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-cyan animate-pulse"></span> Selecting folder...';
+
+  fetch('/api/desktop/browse-folder', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      if (!data.cancelled && data.path) {
+        triggerLibraryScan(data.path);
+      }
+    })
+    .catch(err => {
+      console.warn('Native folder chooser failed, falling back to prompt:', err);
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      const dir = prompt('Enter music directory path to scan:');
+      if (dir && dir.trim()) {
+        triggerLibraryScan(dir.trim());
+      }
+    });
+}
+
+function triggerLibraryScan(scanPath = null) {
+  closeAllMenus();
+  const statusEl = document.getElementById('chrome-xruns-status');
+  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-cyan animate-pulse"></span> Scanning...';
+
+  const bodyData = scanPath ? { path: scanPath } : {};
+  fetch('/api/library/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyData),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      pollJobProgressWidget();
+      // Also refresh library table
+      const tableContainer = document.getElementById('library-table-container');
+      if (tableContainer && window.htmx) {
+        setTimeout(() => {
+          htmx.ajax('GET', '/api/library/table', { target: '#library-table-container', swap: 'innerHTML' });
+        }, 1200);
+      }
+    })
+    .catch(err => {
+      console.error('Library scan error:', err);
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+    });
+}
+
+function triggerLibraryRescan() {
+  triggerLibraryScan();
+}
+
+function triggerMetadataEnrich() {
+  closeAllMenus();
+  const statusEl = document.getElementById('chrome-xruns-status');
+  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-purple animate-pulse"></span> Enriching...';
+
+  fetch('/api/library/enrich', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      pollJobProgressWidget();
+    })
+    .catch(err => {
+      console.error('Metadata enrichment error:', err);
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+    });
+}
+
+function triggerFeatureAnalyze() {
+  closeAllMenus();
+  const statusEl = document.getElementById('chrome-xruns-status');
+  if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-cyan animate-pulse"></span> Analyzing...';
+
+  fetch('/api/library/analyze', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+      pollJobProgressWidget();
+    })
+    .catch(err => {
+      console.error('Feature analysis error:', err);
+      if (statusEl) statusEl.innerHTML = '<span class="dot-indicator dot-green"></span> 0 xruns';
+    });
+}
+
+// Custom Audio Output Dropdown (WebKit-Safe)
+function toggleAudioOutputDropdown(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
   }
+  const menu = document.getElementById('audio-output-menu');
+  if (menu) {
+    menu.classList.toggle('open');
+  }
+}
+
+function closeAudioOutputDropdown() {
+  const menu = document.getElementById('audio-output-menu');
+  if (menu) {
+    menu.classList.remove('open');
+  }
+}
+
+function selectAudioOutput(profile) {
+  closeAudioOutputDropdown();
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/output', {
+      values: { profile: profile },
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+    });
+  }
+}
+
+// Inspector Drawer State & Responsive Handling
+function toggleInspectorDrawer() {
+  const drawer = document.getElementById('workspace-inspector-drawer');
+  if (!drawer) return;
+  drawer.classList.toggle('collapsed');
+  const isCollapsed = drawer.classList.contains('collapsed');
+  try {
+    localStorage.setItem('vibeplay_inspector_collapsed', isCollapsed ? '1' : '0');
+  } catch (e) {}
+}
+
+function initInspectorState() {
+  const drawer = document.getElementById('workspace-inspector-drawer');
+  if (!drawer) return;
+  try {
+    const saved = localStorage.getItem('vibeplay_inspector_collapsed');
+    if (saved === '1') {
+      drawer.classList.add('collapsed');
+    } else if (saved === null && window.innerWidth < 1366) {
+      drawer.classList.add('collapsed');
+    }
+  } catch (e) {}
 }
 
 function triggerCacheCleanup() {
@@ -982,4 +1135,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initThemeEngine();
   loadDesktopSettingsFromServer();
   initTelemetryStream();
+  initInspectorState();
 });

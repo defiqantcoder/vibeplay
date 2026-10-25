@@ -1,8 +1,12 @@
 """Command-line interface for vibeplay using Typer and Rich."""
 
 import logging
+import warnings
 from pathlib import Path
 from typing import Annotated, Any
+
+warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
 import typer
 from rich.console import Console

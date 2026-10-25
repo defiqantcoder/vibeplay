@@ -187,6 +187,26 @@ MIGRATIONS: list[tuple[int, str, str]] = [
         LEFT JOIN enrichment e ON t.id = e.track_id;
         """,
     ),
+    (
+        4,
+        "004_job_runs",
+        """
+        CREATE TABLE IF NOT EXISTS job_runs (
+            id TEXT PRIMARY KEY,
+            job_type TEXT NOT NULL,
+            total_items INTEGER DEFAULT 0,
+            processed_items INTEGER DEFAULT 0,
+            current_item_name TEXT,
+            status TEXT NOT NULL DEFAULT 'running',
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_job_runs_status ON job_runs(status);
+        CREATE INDEX IF NOT EXISTS idx_job_runs_type ON job_runs(job_type);
+        """,
+    ),
 ]
 
 

@@ -7,7 +7,13 @@ import stat
 from dataclasses import dataclass
 from pathlib import Path
 
-from fastapi.testclient import TestClient
+import warnings
+
+# Suppress harmless StarletteDeprecationWarning when TestClient is loaded
+warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")
+warnings.filterwarnings("ignore", message=r".*httpx.*deprecated.*")
+warnings.filterwarnings("ignore", category=Warning, module=r"fastapi\.testclient.*")
+warnings.filterwarnings("ignore", category=Warning, module=r"starlette\..*")
 
 from vibeplay.config import Settings
 from vibeplay.db import init_db
@@ -147,6 +153,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         # Create config and app
         settings = Settings(db_path=db_path, desktop_settings_path=settings_path)
         app = create_app(db_path=db_path, settings=settings, api_key="test-token")
+
+        from fastapi.testclient import TestClient
 
         client = TestClient(app)
         headers = {"X-Vibeplay-Session": "test-token"}

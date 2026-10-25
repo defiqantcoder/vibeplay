@@ -75,16 +75,26 @@
         </form>
       </div>
 
-      <!-- Audio Output Profile Selector -->
-      <form hx-post="/api/player/output" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0;">
-        <select name="profile" class="select-input" onchange="this.form.requestSubmit()" style="font-size: 11px; padding: 3px 6px;">
+      <!-- Audio Output Profile Selector (Custom Popup to prevent WebKit premature close) -->
+      <div class="audio-output-dropdown-container">
+        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleAudioOutputDropdown(event)" title="Select Audio Output Device">
+          <span class="pulse-dot" style="width: 5px; height: 5px; margin-right: 2px;"></span>
+          <span class="active-output-text truncate" style="max-width: 140px;">{{ playback.output_profile }}</span>
+          <svg class="icon icon-xs" style="width: 12px; height: 12px; margin-left: 2px;" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <div class="audio-output-menu" id="audio-output-menu">
           {% for prof in playback.output_profiles %}
-            <option value="{{ prof }}" {% if prof == playback.output_profile %}selected{% endif %}>
-              {{ prof }}
-            </option>
+            <button type="button"
+                    class="audio-output-item {% if prof == playback.output_profile %}active{% endif %}"
+                    onclick="selectAudioOutput('{{ prof }}')">
+              <span class="truncate">{{ prof }}</span>
+              {% if prof == playback.output_profile %}
+                <span class="dot-indicator dot-green"></span>
+              {% endif %}
+            </button>
           {% endfor %}
-        </select>
-      </form>
+        </div>
+      </div>
     </div>
   </div>
 </div>

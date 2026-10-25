@@ -1,0 +1,56 @@
+<div id="job-progress-container"
+     class="job-progress-wrapper {% if not has_active %}idle{% endif %}"
+     {% if has_active %}
+     hx-get="/api/jobs/progress-widget"
+     hx-trigger="every 1.5s"
+     hx-swap="outerHTML"
+     {% endif %}>
+  {% if has_active %}
+    {% for job in active_jobs %}
+      <div class="job-progress-card animate-fade-in" id="job-card-{{ job.id }}">
+        <div class="job-progress-header">
+          <div class="job-type-badge">
+            <span class="dot-indicator dot-cyan animate-pulse"></span>
+            {% if job.job_type == 'scan' %}
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+              <span>Scanning Library</span>
+            {% elif job.job_type == 'enrich' %}
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
+              <span>Enriching Metadata</span>
+            {% elif job.job_type == 'analyze' %}
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+              <span>Analyzing Vibe Features</span>
+            {% else %}
+              <span>Processing Job</span>
+            {% endif %}
+          </div>
+          
+          <div class="job-metrics">
+            <span class="job-counter">
+              {% if job.total_items > 0 %}
+                {{ job.processed_items }} / {{ job.total_items }}
+              {% else %}
+                {{ job.processed_items }} items
+              {% endif %}
+            </span>
+            <span class="job-percent">{{ job.percent }}%</span>
+          </div>
+        </div>
+
+        <!-- Animated Progress Track -->
+        <div class="job-progress-bar-track">
+          <div class="job-progress-bar-fill" style="width: {{ job.percent }}%;"></div>
+        </div>
+
+        {% if job.current_item_name %}
+          <div class="job-current-file">
+            <span class="truncate">{{ job.current_item_name }}</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <!-- Idle state: quiet anchor ready for HTMX updates -->
+    <div id="job-progress-idle" style="display: none;"></div>
+  {% endif %}
+</div>

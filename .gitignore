@@ -64,3 +64,11 @@ Thumbs.db
 *.swp
 *~
 coverage.xml
+
+# Logs and Packaging Artifacts
+*.log
+*.log.*
+logs/
+dist/
+build/
+*.deb

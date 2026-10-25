@@ -6,7 +6,11 @@ import argparse
 import logging
 import multiprocessing
 import sys
+import warnings
 from pathlib import Path
+
+warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
 from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT
 from vibeplay.desktop.supervisor import DesktopSupervisor

@@ -137,13 +137,33 @@
           <span>Library</span>
         </button>
         <div class="menu-dropdown" id="dropdown-library">
-          <div class="menu-row" onclick="triggerLibraryRescan()">
+          <div class="menu-row" onclick="triggerAddFolder()">
             <div class="menu-label-group">
-              <span class="menu-icon">🔍</span>
-              <span>Scan for Audio Tracks</span>
+              <span class="menu-icon">📁</span>
+              <span>Choose Music Folder...</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+O</kbd>
+          </div>
+          <div class="menu-row" onclick="triggerLibraryScan()">
+            <div class="menu-label-group">
+              <span class="menu-icon">⚡</span>
+              <span>Scan Music Library</span>
             </div>
             <kbd class="shortcut-kbd">Ctrl+R</kbd>
           </div>
+          <div class="menu-row" onclick="triggerMetadataEnrich()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🏷️</span>
+              <span>Enrich Metadata (Tags & Genres)</span>
+            </div>
+          </div>
+          <div class="menu-row" onclick="triggerFeatureAnalyze()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎵</span>
+              <span>Analyze Vibe Features (BPM, Key, Energy)</span>
+            </div>
+          </div>
+          <div class="menu-divider"></div>
           <div class="menu-row" onclick="showTab('library')">
             <div class="menu-label-group">
               <span class="menu-icon">📚</span>

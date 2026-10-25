@@ -11,6 +11,7 @@ from vibeplay.desktop.constants import (
     DEFAULT_WINDOW_WIDTH,
     WINDOW_TITLE,
 )
+from vibeplay.desktop.dialogs import choose_directory_dialog
 from vibeplay.desktop.environment import (
     DesktopEnvironment,
     find_free_loopback_port,
@@ -77,6 +78,7 @@ __all__ = [
     "ReleaseGateReport",
     "TrackNotificationDispatcher",
     "WINDOW_TITLE",
+    "choose_directory_dialog",
     "collect_pyinstaller_datas",
     "find_free_loopback_port",
     "generate_audiophile_mpd_config",

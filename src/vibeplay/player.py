@@ -385,9 +385,17 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
         from vibe_dsp.hardware import scan_hardware
 
         audit = scan_hardware()
+        for ep in audit.endpoints:
+            c_lower = (ep.card_name + " " + ep.device_name + " " + ep.card_id).lower()
+            if "letshuoer" in c_lower:
+                label = f"Letshuoer USB DAC (Bit-Perfect hw:{ep.card_index},{ep.device_index})"
+                if label not in profiles:
+                    profiles.insert(0, label)
+
         if audit.active_dac:
-            dac_label = f"USB DAC Bit-Perfect ({audit.active_dac.card_name})"
-            if dac_label not in profiles:
+            dac_name = audit.active_dac.card_name
+            dac_label = f"USB DAC Bit-Perfect ({dac_name})"
+            if dac_label not in profiles and not any("letshuoer" in p.lower() for p in profiles):
                 profiles.insert(0, dac_label)
         if audit.fallback_endpoint:
             fb_label = f"Speakers / Analog ({audit.fallback_endpoint.card_name})"
@@ -453,10 +461,13 @@ def set_output_profile(
                 p_lower = profile_name.lower()
                 for out in mpd_outputs:
                     o_name = str(out.get("outputname", "")).lower()
-                    if "pipewire" in p_lower and "pipewire" in o_name:
+                    if "letshuoer" in p_lower and ("letshuoer" in o_name or "dac" in o_name or "alsa" in o_name or "direct" in o_name):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
-                    elif ("dac" in p_lower or "bit-perfect" in p_lower) and ("direct" in o_name or "alsa" in o_name):
+                    elif "pipewire" in p_lower and "pipewire" in o_name:
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+                    elif ("dac" in p_lower or "bit-perfect" in p_lower) and ("direct" in o_name or "alsa" in o_name or "dac" in o_name):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
                     elif ("speaker" in p_lower or "headphone" in p_lower) and ("speaker" in o_name or "pipewire" in o_name):
@@ -467,13 +478,17 @@ def set_output_profile(
                 target_id = str(mpd_outputs[0].get("outputid", mpd_outputs[0].get("id")))
 
             if target_id is not None:
-                for out in mpd_outputs:
-                    oid = str(out.get("outputid", out.get("id")))
-                    if oid == target_id:
-                        transport.client.enableoutput(oid)
-                    else:
-                        transport.client.disableoutput(oid)
-                logger.info("Switched MPD active output ID to %s (%s)", target_id, profile_name)
+                try:
+                    for out in mpd_outputs:
+                        oid = str(out.get("outputid", out.get("id")))
+                        if oid == target_id:
+                            transport.client.enableoutput(oid)
+                        else:
+                            transport.client.disableoutput(oid)
+                    logger.info("Switched MPD active output ID to %s (%s)", target_id, profile_name)
+                except Exception as out_err:
+                    logger.warning("Error enabling MPD output %s, trying PipeWire fallback: %s", target_id, out_err)
+                    _try_enable_pipewire_fallback(transport.client)
     except Exception as err:
         logger.debug("Could not switch MPD hardware output: %s", err)
 

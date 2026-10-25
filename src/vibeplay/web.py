@@ -1974,6 +1974,145 @@ def create_app(
             },
         )
 
+    @app.post("/api/desktop/browse-folder")
+    async def api_desktop_browse_folder(request: Request) -> JSONResponse:
+        """Open a native OS file dialog to select a music folder."""
+        try:
+            from vibeplay.desktop.dialogs import choose_directory_dialog
+
+            body = {}
+            if request.headers.get("content-type") == "application/json":
+                try:
+                    body = await request.json()
+                except Exception:
+                    body = {}
+            music_dir_val = getattr(cfg, "music_dir", None)
+            initial_dir = body.get("initial_dir") or str(music_dir_val or Path.home() / "Music")
+            chosen = choose_directory_dialog(title="Select Music Library Folder", initial_dir=initial_dir)
+            if chosen:
+                return JSONResponse(content={"path": chosen, "cancelled": False})
+            return JSONResponse(content={"path": None, "cancelled": True})
+        except Exception as err:
+            logger.error("Error in /api/desktop/browse-folder: %s", err)
+            return JSONResponse(status_code=500, content={"error": str(err), "cancelled": True})
+
+    @app.post("/api/library/scan")
+    async def api_library_scan(request: Request) -> JSONResponse:
+        """Start an asynchronous background scan of a music folder."""
+        try:
+            from vibeplay.jobs import start_background_scan
+
+            scan_path_str: str | None = None
+            ct = request.headers.get("content-type", "")
+            if "application/json" in ct:
+                try:
+                    data = await request.json()
+                    scan_path_str = data.get("path")
+                except Exception:
+                    pass
+            elif "application/x-www-form-urlencoded" in ct or "multipart/form-data" in ct:
+                form = await request.form()
+                scan_path_str = str(form.get("path", "")).strip() or None
+
+            if not scan_path_str:
+                music_dir_val = getattr(cfg, "music_dir", None)
+                scan_path = Path(music_dir_val).expanduser() if music_dir_val else Path.home() / "Music"
+                if not scan_path.exists():
+                    scan_path = Path.cwd()
+            else:
+                scan_path = Path(scan_path_str).expanduser().resolve()
+
+            if not scan_path.exists() or not scan_path.is_dir():
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": f"Path is not a valid directory: {scan_path}"},
+                )
+
+            job_id, started = start_background_scan(resolved_db_path, scan_path)
+            return JSONResponse(
+                status_code=202 if started else 200,
+                content={
+                    "job_id": job_id,
+                    "status": "running" if started else "already_running",
+                    "path": str(scan_path),
+                },
+            )
+        except Exception as err:
+            logger.error("Error initiating library scan: %s", err)
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.post("/api/library/enrich")
+    async def api_library_enrich() -> JSONResponse:
+        """Start asynchronous background metadata enrichment."""
+        try:
+            from vibeplay.jobs import start_background_enrich
+
+            job_id, started = start_background_enrich(resolved_db_path)
+            return JSONResponse(
+                status_code=202 if started else 200,
+                content={
+                    "job_id": job_id,
+                    "status": "running" if started else "already_running",
+                },
+            )
+        except Exception as err:
+            logger.error("Error initiating metadata enrichment: %s", err)
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.post("/api/library/analyze")
+    async def api_library_analyze() -> JSONResponse:
+        """Start asynchronous background vibe feature analysis."""
+        try:
+            from vibeplay.jobs import start_background_analyze
+
+            job_id, started = start_background_analyze(resolved_db_path)
+            return JSONResponse(
+                status_code=202 if started else 200,
+                content={
+                    "job_id": job_id,
+                    "status": "running" if started else "already_running",
+                },
+            )
+        except Exception as err:
+            logger.error("Error initiating feature analysis: %s", err)
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.get("/api/jobs/status")
+    async def api_jobs_status() -> JSONResponse:
+        """Return active and recent background jobs status."""
+        try:
+            from vibeplay.jobs import get_active_jobs, get_recent_jobs
+
+            active = get_active_jobs(resolved_db_path)
+            recent = get_recent_jobs(resolved_db_path, limit=5)
+            return JSONResponse(
+                content={
+                    "active_jobs": active,
+                    "active_count": len(active),
+                    "recent_jobs": recent,
+                }
+            )
+        except Exception as err:
+            logger.error("Error fetching jobs status: %s", err)
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.get("/api/jobs/progress-widget", response_class=HTMLResponse)
+    async def api_jobs_progress_widget(request: Request) -> Response:
+        """Render the live HTMX progress banner micro-component."""
+        from vibeplay.jobs import get_active_jobs, get_recent_jobs
+
+        active = get_active_jobs(resolved_db_path)
+        recent = get_recent_jobs(resolved_db_path, limit=3)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/job_progress.html",
+            context={
+                "active_jobs": active,
+                "recent_jobs": recent,
+                "has_active": len(active) > 0,
+            },
+        )
+
     @app.post("/api/app/quit")
     async def api_app_quit() -> JSONResponse:
         """Signal application shutdown."""
