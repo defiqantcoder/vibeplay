@@ -177,15 +177,9 @@ def test_mark_tracks_missing(tmp_path: Path) -> None:
     init_db(db_file)
 
     with get_connection(db_file) as conn:
-        id1 = insert_track(
-            conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1"
-        )
-        id2 = insert_track(
-            conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2"
-        )
-        insert_track(
-            conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3"
-        )
+        id1 = insert_track(conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1")
+        id2 = insert_track(conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2")
+        insert_track(conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3")
 
         updated = mark_tracks_missing(conn, [id1, id2])
         assert updated == 2
@@ -268,3 +262,54 @@ def test_purge_all_caches(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM network_cache")
         assert cursor.fetchone()[0] == 0
 
+
+def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
+    """Verify that concurrent writes resolve cleanly using exponential backoff retry.
+
+    Multiple worker threads try to write to the same table concurrently,
+    forcing `sqlite3.OperationalError` (database is locked).
+    The `retry_db_locked` decorator should catch this, wait, and retry until successful.
+    """
+    import concurrent.futures
+    import sqlite3
+    import time
+    from pathlib import Path
+
+    from vibeplay.db import get_connection, init_db, insert_track
+
+    db_file = tmp_path / "test_concurrency.db"
+    init_db(db_file)
+
+    num_threads = 10
+    tracks_per_thread = 5
+
+    def worker_insert(thread_idx: int) -> int:
+        success_count = 0
+        with get_connection(db_file, timeout=0.1) as conn:
+            for i in range(tracks_per_thread):
+                # Small delay to ensure threads overlap
+                time.sleep(0.01)
+                try:
+                    insert_track(
+                        conn=conn, path=f"/music/thread{thread_idx}/song{i}.mp3", mtime=1700000000.0, size=5000000, file_hash=f"hash{thread_idx}_{i}"
+                    )
+                    conn.commit()
+                    success_count += 1
+                except sqlite3.OperationalError as e:
+                    # We expect the retry decorator to handle "database is locked".
+                    # If it leaks out, it means it exhausted max retries or didn't trigger.
+                    pass
+        return success_count
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [executor.submit(worker_insert, i) for i in range(num_threads)]
+        results = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+    assert sum(results) == num_threads * tracks_per_thread
+
+    # Verify rows in DB
+    with get_connection(db_file) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM tracks")
+        count = cursor.fetchone()[0]
+        assert count == num_threads * tracks_per_thread
