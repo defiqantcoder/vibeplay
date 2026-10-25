@@ -12,22 +12,16 @@ from fastapi.testclient import TestClient
 from vibeplay.config import Settings
 from vibeplay.db import (
     get_connection,
-    get_playlist,
     get_playlist_tracks,
     init_db,
     insert_or_replace_features,
     insert_track,
 )
 from vibeplay.playlist import (
-    PlaylistRuleConfig,
-    PlaylistTrackItem,
     calculate_playlist_summary,
-    calculate_transition,
     calculate_transition_metrics,
     evaluate_energy_arc,
     evaluate_harmonic_transition,
-    generate_playlist,
-    key_to_camelot,
 )
 from vibeplay.web import create_app
 
@@ -49,14 +43,14 @@ def test_env(tmp_path: Path):
 
     track_metas = [
         # (id, title, artist, album, duration, bpm, key, scale, energy, danceability, genre)
-        (1, "Deep Awakening", "Aura", "Genesis", 240.0, 120.0, "A", "minor", 0.35, 0.50, "Ambient"),      # 8A
-        (2, "Celestial Drift", "Aura", "Genesis", 210.0, 120.5, "C", "major", 0.45, 0.55, "Ambient"),      # 8B (relative)
-        (3, "Solar Flare", "Sol", "Equinox", 200.0, 122.0, "E", "minor", 0.65, 0.70, "House"),            # 9A (+1 boost)
-        (4, "Prism Wave", "Sol", "Equinox", 225.0, 123.0, "B", "minor", 0.75, 0.75, "House"),             # 10A (+2 shift)
-        (5, "Subatomic", "Pulse", "Quantum", 195.0, 126.0, "G", "minor", 0.85, 0.80, "Techno"),           # 6A (clash -2)
-        (6, "Apex Velocity", "Pulse", "Quantum", 215.0, 128.0, "D", "minor", 0.90, 0.85, "Techno"),        # 7A (-1 drop)
-        (7, "Cosmic Horizon", "Nova", "Starlight", 250.0, 130.0, "D#", "minor", 0.80, 0.70, "Trance"),     # 2A (opposite 8A)
-        (8, "Nocturne Echo", "Nova", "Starlight", 180.0, 100.0, "A", "minor", 0.25, 0.40, "Downtempo"),    # 8A tempo drop
+        (1, "Deep Awakening", "Aura", "Genesis", 240.0, 120.0, "A", "minor", 0.35, 0.50, "Ambient"),  # 8A
+        (2, "Celestial Drift", "Aura", "Genesis", 210.0, 120.5, "C", "major", 0.45, 0.55, "Ambient"),  # 8B (relative)
+        (3, "Solar Flare", "Sol", "Equinox", 200.0, 122.0, "E", "minor", 0.65, 0.70, "House"),  # 9A (+1 boost)
+        (4, "Prism Wave", "Sol", "Equinox", 225.0, 123.0, "B", "minor", 0.75, 0.75, "House"),  # 10A (+2 shift)
+        (5, "Subatomic", "Pulse", "Quantum", 195.0, 126.0, "G", "minor", 0.85, 0.80, "Techno"),  # 6A (clash -2)
+        (6, "Apex Velocity", "Pulse", "Quantum", 215.0, 128.0, "D", "minor", 0.90, 0.85, "Techno"),  # 7A (-1 drop)
+        (7, "Cosmic Horizon", "Nova", "Starlight", 250.0, 130.0, "D#", "minor", 0.80, 0.70, "Trance"),  # 2A (opposite 8A)
+        (8, "Nocturne Echo", "Nova", "Starlight", 180.0, 100.0, "A", "minor", 0.25, 0.40, "Downtempo"),  # 8A tempo drop
     ]
 
     with get_connection(db_file) as conn:
@@ -220,10 +214,10 @@ def test_evaluate_harmonic_transition_tempo_categories():
 def test_calculate_transition_metrics_and_summary():
     """Verify transition metrics sequence evaluation and playlist summary aggregation."""
     tracks = [
-        {"track_id": 1, "title": "Track 1", "artist": "Artist A", "duration": 180.0, "bpm": 120.0, "key": "A", "scale": "minor"}, # 8A
-        {"track_id": 2, "title": "Track 2", "artist": "Artist A", "duration": 200.0, "bpm": 120.5, "key": "A", "scale": "minor"}, # 8A (seamless)
-        {"track_id": 3, "title": "Track 3", "artist": "Artist B", "duration": 220.0, "bpm": 122.0, "key": "E", "scale": "minor"}, # 9A (+1 boost)
-        {"track_id": 4, "title": "Track 4", "artist": "Artist C", "duration": 190.0, "bpm": 126.0, "key": "G", "scale": "minor"}, # 6A (clash -2)
+        {"track_id": 1, "title": "Track 1", "artist": "Artist A", "duration": 180.0, "bpm": 120.0, "key": "A", "scale": "minor"},  # 8A
+        {"track_id": 2, "title": "Track 2", "artist": "Artist A", "duration": 200.0, "bpm": 120.5, "key": "A", "scale": "minor"},  # 8A (seamless)
+        {"track_id": 3, "title": "Track 3", "artist": "Artist B", "duration": 220.0, "bpm": 122.0, "key": "E", "scale": "minor"},  # 9A (+1 boost)
+        {"track_id": 4, "title": "Track 4", "artist": "Artist C", "duration": 190.0, "bpm": 126.0, "key": "G", "scale": "minor"},  # 6A (clash -2)
     ]
 
     metrics = calculate_transition_metrics(tracks)

@@ -1,4 +1,3 @@
-
 import pytest
 
 from vibeplay.db import get_connection, init_db, insert_track
@@ -35,12 +34,8 @@ def dup_db(tmp_path):
             artist="A1",
         )
 
-        conn.execute(
-            "INSERT INTO enrichment (track_id, mb_recording_id, source, raw_metadata) VALUES (1, 'mb-123', 'test', '{}')"
-        )
-        conn.execute(
-            "INSERT INTO enrichment (track_id, mb_recording_id, source, raw_metadata) VALUES (2, 'mb-123', 'test', '{}')"
-        )
+        conn.execute("INSERT INTO enrichment (track_id, mb_recording_id, source, raw_metadata) VALUES (1, 'mb-123', 'test', '{}')")
+        conn.execute("INSERT INTO enrichment (track_id, mb_recording_id, source, raw_metadata) VALUES (2, 'mb-123', 'test', '{}')")
 
         # 2. Artist/Title/Duration match
         insert_track(
@@ -89,8 +84,6 @@ def test_find_duplicates(dup_db):
     mb_group = next(g for g in groups if g.reason == "MusicBrainz Recording ID match")
     assert mb_group.keep_track_id == 2  # flac preferred
 
-    text_group = next(
-        g for g in groups if g.reason == "Artist, Title, and Duration match"
-    )
+    text_group = next(g for g in groups if g.reason == "Artist, Title, and Duration match")
     assert text_group.keep_track_id == 4  # higher bitrate preferred
     assert len(text_group.tracks) == 2

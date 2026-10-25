@@ -108,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.release_gate:
         import tempfile
+
         from vibeplay.desktop.release_gate import run_release_gate_checks
 
         print("VibePlay Phase 7 Release Gate Validation:")
@@ -131,9 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.uris:
         from vibeplay.desktop.mime import forward_uris_to_running_instance
 
-        if forward_uris_to_running_instance(
-            args.uris, host=args.host, port=args.port
-        ):
+        if forward_uris_to_running_instance(args.uris, host=args.host, port=args.port):
             logger.info(
                 "Forwarded %d file/URI target(s) to existing instance on %s:%d.",
                 len(args.uris),

@@ -14,20 +14,13 @@ from vibe_dsp.cli import app
 from vibe_dsp.peq import (
     BiquadFilter,
     FilterType,
-    PEQProfile,
-    apply_headroom_calculation,
     apply_peq_preset,
     biquad_frequency_response,
     calculate_anti_clipping_preamp,
-    calculate_composite_curve,
     export_easyeffects_preset,
-    get_active_peq_state,
-    ingest_peq_source,
-    list_available_presets,
     lookup_autoeq_model,
     parse_autoeq_text,
     parse_json_filters,
-    set_active_peq_state,
 )
 
 runner = CliRunner()

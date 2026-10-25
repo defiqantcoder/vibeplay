@@ -33,9 +33,7 @@ def validate_loopback_host(host: str) -> str:
             return str(addr)
     except ValueError:
         pass
-    raise ValueError(
-        f"Security guardrail: IPC client only connects to loopback interfaces, got '{host}'"
-    )
+    raise ValueError(f"Security guardrail: IPC client only connects to loopback interfaces, got '{host}'")
 
 
 def write_ipc_state(
@@ -168,13 +166,9 @@ def parse_desktop_uri(raw: str) -> Path:
     if "://" in cleaned:
         parsed = urlparse(cleaned)
         if parsed.scheme.lower() != "file":
-            raise ValueError(
-                f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed."
-            )
+            raise ValueError(f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed.")
         if parsed.netloc and parsed.netloc.lower() not in ("", "localhost"):
-            raise ValueError(
-                f"Remote file URI host '{parsed.netloc}' is not allowed."
-            )
+            raise ValueError(f"Remote file URI host '{parsed.netloc}' is not allowed.")
         decoded_path = unquote(parsed.path)
         return Path(decoded_path).expanduser().resolve()
 
@@ -231,11 +225,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
                 continue
         else:
             candidate = Path(entry).expanduser()
-            track_path = (
-                candidate.resolve()
-                if candidate.is_absolute()
-                else (base_dir / candidate).resolve()
-            )
+            track_path = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
         tracks.append(track_path)
 
     return tracks

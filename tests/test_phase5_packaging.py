@@ -8,18 +8,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from vibe_dsp.peq import list_available_presets, lookup_autoeq_model
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
 from vibeplay.config import Settings
 from vibeplay.db import init_db
 from vibeplay.desktop.packaging import (
-    BUNDLE_DATAS,
     BUNDLE_ENTRYPOINT,
-    BUNDLE_EXCLUDES,
-    BUNDLE_HIDDEN_IMPORTS,
     BUNDLE_NAME,
     REQUIRED_DSP_PROFILES,
     REQUIRED_STATIC_FILES,
@@ -159,9 +156,7 @@ def test_verify_bundle_assets_in_source_mode():
         assert (report.dsp_profiles_dir / prof).is_file()
 
 
-def test_frozen_meipass_simulation_no_relative_path_assumptions(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
+def test_frozen_meipass_simulation_no_relative_path_assumptions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Simulate a frozen PyInstaller executable running from an empty CWD and verify all assets resolve."""
     fake_meipass = tmp_path / "_MEI99999"
     shutil.copytree(REPO_ROOT / "src/vibeplay/templates", fake_meipass / "vibeplay/templates")
@@ -226,9 +221,7 @@ def test_frozen_meipass_simulation_no_relative_path_assumptions(
     assert len(hd600.filters) > 0
 
 
-def test_verify_bundle_assets_detects_missing_files(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-):
+def test_verify_bundle_assets_detects_missing_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Verify verify_bundle_assets reports missing files when a bundle is incomplete."""
     incomplete_meipass = tmp_path / "_MEI_INCOMPLETE"
     (incomplete_meipass / "vibeplay/templates").mkdir(parents=True)

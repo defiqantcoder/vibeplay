@@ -173,9 +173,7 @@ class TestDesktopSettingsPersistence:
 
     def test_partial_update_and_corrupt_file_fallback(self, tmp_path: Path) -> None:
         cfg_file = tmp_path / "desktop_settings.json"
-        updated = update_desktop_settings(
-            {"alsa_buffer_frames": 512, "theme_id": "wine"}, cfg_file
-        )
+        updated = update_desktop_settings({"alsa_buffer_frames": 512, "theme_id": "wine"}, cfg_file)
         assert updated.alsa_buffer_frames == 512
         assert updated.theme_id == "wine"
         assert updated.alsa_device == "hw:0,0"
@@ -198,9 +196,7 @@ class TestPhase3WebApiAndLiveState:
         app = create_app(db_path=db_file, settings=settings)
         return TestClient(app), db_file, cfg_file, settings
 
-    def test_get_and_post_settings_updates_state_and_persists(
-        self, client_and_paths: tuple[TestClient, Path, Path, Settings]
-    ) -> None:
+    def test_get_and_post_settings_updates_state_and_persists(self, client_and_paths: tuple[TestClient, Path, Path, Settings]) -> None:
         client, db_file, cfg_file, settings = client_and_paths
 
         # 1. GET initial settings
@@ -258,9 +254,7 @@ class TestPhase3WebApiAndLiveState:
         fresh_client = TestClient(fresh_app)
         assert fresh_client.get("/api/settings").json()["settings"]["theme_id"] == "swimming-with-the-whales"
 
-    def test_post_settings_rejects_invalid_values_with_422(
-        self, client_and_paths: tuple[TestClient, Path, Path, Settings]
-    ) -> None:
+    def test_post_settings_rejects_invalid_values_with_422(self, client_and_paths: tuple[TestClient, Path, Path, Settings]) -> None:
         client, _, _, _ = client_and_paths
 
         resp = client.post(
@@ -270,18 +264,14 @@ class TestPhase3WebApiAndLiveState:
         assert resp.status_code == 422
         assert "detail" in resp.json()
 
-    def test_peq_presets_list_and_apply_endpoints(
-        self, client_and_paths: tuple[TestClient, Path, Path, Settings]
-    ) -> None:
+    def test_peq_presets_list_and_apply_endpoints(self, client_and_paths: tuple[TestClient, Path, Path, Settings]) -> None:
         client, _, _, _ = client_and_paths
 
         presets_resp = client.get("/api/dsp/peq/presets")
         assert presets_resp.status_code == 200
         presets = presets_resp.json()["presets"]
         preset_ids = {p["id"] for p in presets}
-        assert {"none", "7hz_zero_2", "moondrop_blessing_2", "sennheiser_hd600", "apple_airpods_pro_2"}.issubset(
-            preset_ids
-        )
+        assert {"none", "7hz_zero_2", "moondrop_blessing_2", "sennheiser_hd600", "apple_airpods_pro_2"}.issubset(preset_ids)
 
         apply_resp = client.post("/api/dsp/peq/apply", json={"preset": "sennheiser_hd600"})
         assert apply_resp.status_code == 200
@@ -328,9 +318,7 @@ class TestPhase3WebApiAndLiveState:
         assert r2.status_code == 200
         assert "Borderline Happy Track" not in r2.text
 
-    def test_settings_dialog_renders_all_phase3_controls(
-        self, client_and_paths: tuple[TestClient, Path, Path, Settings]
-    ) -> None:
+    def test_settings_dialog_renders_all_phase3_controls(self, client_and_paths: tuple[TestClient, Path, Path, Settings]) -> None:
         client, _, _, _ = client_and_paths
         html = client.get("/").text
 
@@ -360,9 +348,7 @@ class TestPhase3WebApiAndLiveState:
         assert 'id="cfg-contrast-mode"' in html
         assert ":user-invalid" in html
 
-    def test_spatial_toggle_persists_state_without_mocks(
-        self, client_and_paths: tuple[TestClient, Path, Path, Settings]
-    ) -> None:
+    def test_spatial_toggle_persists_state_without_mocks(self, client_and_paths: tuple[TestClient, Path, Path, Settings]) -> None:
         client, _, cfg_file, _ = client_and_paths
 
         r1 = client.post("/api/dsp/spatial/toggle")
@@ -374,4 +360,3 @@ class TestPhase3WebApiAndLiveState:
         assert r2.status_code == 200
         assert r2.json()["mode"] == "stereo_direct"
         assert load_desktop_settings(cfg_file).spatial_enabled is False
-

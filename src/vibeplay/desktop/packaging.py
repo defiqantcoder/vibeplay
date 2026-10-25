@@ -6,7 +6,6 @@ import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 BUNDLE_NAME: str = "vibeplay-desktop"
 BUNDLE_ENTRYPOINT: str = "src/vibeplay/desktop/__main__.py"
@@ -270,11 +269,7 @@ def collect_pyinstaller_datas(repo_root: Path | None = None) -> list[tuple[str, 
     Includes required templates, static assets, and DSP profiles, plus optional Essentia models
     and SOFA HRTF files if present on the build host.
     """
-    base = (
-        Path(repo_root).resolve()
-        if repo_root is not None
-        else Path(__file__).resolve().parent.parent.parent.parent
-    )
+    base = Path(repo_root).resolve() if repo_root is not None else Path(__file__).resolve().parent.parent.parent.parent
     datas: list[tuple[str, str]] = []
 
     for src_rel, dest_dir in BUNDLE_DATAS:

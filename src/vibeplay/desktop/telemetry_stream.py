@@ -51,47 +51,57 @@ class TelemetryMonitor:
 
         # XRUN detected
         if current.xruns > last.xruns:
-            events.append((
-                "xrun_detected",
-                {
-                    "count": current.xruns - last.xruns,
-                    "total": current.xruns,
-                }
-            ))
+            events.append(
+                (
+                    "xrun_detected",
+                    {
+                        "count": current.xruns - last.xruns,
+                        "total": current.xruns,
+                    },
+                )
+            )
 
         # DAC lock changed
-        if (current.bit_perfect_locked != last.bit_perfect_locked or
-                current.sample_rate_hz != last.sample_rate_hz or
-                current.bit_depth != last.bit_depth):
-            events.append((
-                "dac_lock_changed",
-                {
-                    "bit_perfect_locked": current.bit_perfect_locked,
-                    "sample_rate_hz": current.sample_rate_hz,
-                    "bit_depth": current.bit_depth,
-                }
-            ))
+        if (
+            current.bit_perfect_locked != last.bit_perfect_locked
+            or current.sample_rate_hz != last.sample_rate_hz
+            or current.bit_depth != last.bit_depth
+        ):
+            events.append(
+                (
+                    "dac_lock_changed",
+                    {
+                        "bit_perfect_locked": current.bit_perfect_locked,
+                        "sample_rate_hz": current.sample_rate_hz,
+                        "bit_depth": current.bit_depth,
+                    },
+                )
+            )
 
         # Telemetry tick on audio state or metric changes
-        if (current.playback_state != last.playback_state or
-                abs(current.headroom_db - last.headroom_db) > 0.1 or
-                current.camelot_key != last.camelot_key or
-                current.buffer_frames != last.buffer_frames):
-            events.append((
-                "telemetry_tick",
-                {
-                    "playback_state": current.playback_state,
-                    "sample_rate_hz": current.sample_rate_hz,
-                    "bit_depth": current.bit_depth,
-                    "buffer_frames": current.buffer_frames,
-                    "period_count": current.period_count,
-                    "jitter_ps": current.jitter_ps,
-                    "dbfs": current.dbfs,
-                    "true_peak_db": current.true_peak_db,
-                    "headroom_db": current.headroom_db,
-                    "camelot_key": current.camelot_key,
-                }
-            ))
+        if (
+            current.playback_state != last.playback_state
+            or abs(current.headroom_db - last.headroom_db) > 0.1
+            or current.camelot_key != last.camelot_key
+            or current.buffer_frames != last.buffer_frames
+        ):
+            events.append(
+                (
+                    "telemetry_tick",
+                    {
+                        "playback_state": current.playback_state,
+                        "sample_rate_hz": current.sample_rate_hz,
+                        "bit_depth": current.bit_depth,
+                        "buffer_frames": current.buffer_frames,
+                        "period_count": current.period_count,
+                        "jitter_ps": current.jitter_ps,
+                        "dbfs": current.dbfs,
+                        "true_peak_db": current.true_peak_db,
+                        "headroom_db": current.headroom_db,
+                        "camelot_key": current.camelot_key,
+                    },
+                )
+            )
 
         self._last_snapshot = current
         return events

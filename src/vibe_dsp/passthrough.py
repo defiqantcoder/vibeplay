@@ -8,11 +8,9 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
-from vibe_dsp.backup import create_backup
-from vibe_dsp.models import AudioEndpoint, CardType
 from vibe_dsp.hardware import scan_hardware
+from vibe_dsp.models import CardType
 
 logger = logging.getLogger(__name__)
 

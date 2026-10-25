@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db
-from vibeplay.desktop.settings import save_desktop_settings, DesktopSettings
+from vibeplay.desktop.settings import DesktopSettings, save_desktop_settings
 from vibeplay.ui.theme import (
     DEFAULT_THEME_ID,
     THEME_PRESETS,
@@ -200,36 +200,18 @@ def test_wcag_contrast_preserved_across_all_themes():
     for preset in THEME_PRESETS:
         ratios = verify_theme_contrast(preset.id)
         # Primary text on base and surface >= 7.0 (AAA)
-        assert ratios["text_on_base"] >= 7.0, (
-            f"{preset.id} primary text on base contrast too low: {ratios['text_on_base']:.2f}"
-        )
-        assert ratios["text_on_surface"] >= 7.0, (
-            f"{preset.id} primary text on surface contrast too low: {ratios['text_on_surface']:.2f}"
-        )
-        assert ratios["text_on_menu"] >= 7.0, (
-            f"{preset.id} primary text on menu contrast too low: {ratios['text_on_menu']:.2f}"
-        )
+        assert ratios["text_on_base"] >= 7.0, f"{preset.id} primary text on base contrast too low: {ratios['text_on_base']:.2f}"
+        assert ratios["text_on_surface"] >= 7.0, f"{preset.id} primary text on surface contrast too low: {ratios['text_on_surface']:.2f}"
+        assert ratios["text_on_menu"] >= 7.0, f"{preset.id} primary text on menu contrast too low: {ratios['text_on_menu']:.2f}"
         # Muted text on base and surface >= 4.5 (AA)
-        assert ratios["muted_on_base"] >= 4.5, (
-            f"{preset.id} muted text on base contrast too low: {ratios['muted_on_base']:.2f}"
-        )
-        assert ratios["muted_on_surface"] >= 4.5, (
-            f"{preset.id} muted text on surface contrast too low: {ratios['muted_on_surface']:.2f}"
-        )
+        assert ratios["muted_on_base"] >= 4.5, f"{preset.id} muted text on base contrast too low: {ratios['muted_on_base']:.2f}"
+        assert ratios["muted_on_surface"] >= 4.5, f"{preset.id} muted text on surface contrast too low: {ratios['muted_on_surface']:.2f}"
         # Primary button text (--on-primary) on --primary background >= 4.5 (AA)
-        assert ratios["button_on_primary"] >= 4.5, (
-            f"{preset.id} button text on primary contrast too low: {ratios['button_on_primary']:.2f}"
-        )
+        assert ratios["button_on_primary"] >= 4.5, f"{preset.id} button text on primary contrast too low: {ratios['button_on_primary']:.2f}"
         # Status indicators on surface >= 3.0 (WCAG UI component & graphical object threshold)
-        assert ratios["status_ok_on_surface"] >= 3.0, (
-            f"{preset.id} ok status contrast too low: {ratios['status_ok_on_surface']:.2f}"
-        )
-        assert ratios["status_warn_on_surface"] >= 3.0, (
-            f"{preset.id} warn status contrast too low: {ratios['status_warn_on_surface']:.2f}"
-        )
-        assert ratios["status_err_on_surface"] >= 3.0, (
-            f"{preset.id} err status contrast too low: {ratios['status_err_on_surface']:.2f}"
-        )
+        assert ratios["status_ok_on_surface"] >= 3.0, f"{preset.id} ok status contrast too low: {ratios['status_ok_on_surface']:.2f}"
+        assert ratios["status_warn_on_surface"] >= 3.0, f"{preset.id} warn status contrast too low: {ratios['status_warn_on_surface']:.2f}"
+        assert ratios["status_err_on_surface"] >= 3.0, f"{preset.id} err status contrast too low: {ratios['status_err_on_surface']:.2f}"
 
 
 def test_root_data_theme_and_api_themes_endpoint(phase4_env):
@@ -292,10 +274,7 @@ def test_no_hardcoded_colors_in_css_or_app_shell():
             if not line or line.startswith("--"):
                 continue
             match = color_literal_re.search(line)
-            assert match is None, (
-                f"Hardcoded color '{match.group(0)}' found outside CSS custom property "
-                f"in {css_file.name}:{line_no} -> {line}"
-            )
+            assert match is None, f"Hardcoded color '{match.group(0)}' found outside CSS custom property in {css_file.name}:{line_no} -> {line}"
 
     # Also scan all HTML templates (excluding styles.html) for inline style color literals
     templates_dir = repo_root / "src/vibeplay/templates"
@@ -307,7 +286,4 @@ def test_no_hardcoded_colors_in_css_or_app_shell():
         for match in inline_style_re.finditer(html_content):
             style_val = match.group(1)
             color_match = color_literal_re.search(style_val)
-            assert color_match is None, (
-                f"Hardcoded inline style color '{color_match.group(0)}' in {html_file.name}: "
-                f'style="{style_val}"'
-            )
+            assert color_match is None, f"Hardcoded inline style color '{color_match.group(0)}' in {html_file.name}: style=\"{style_val}\""

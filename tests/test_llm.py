@@ -263,9 +263,7 @@ def test_llm_cache_hit_and_miss(test_db_with_tracks: tuple[Path, Settings]) -> N
     expected_hash = compute_prompt_hash(model_name, prompt)
 
     # First call: cache miss, provider called
-    plan1 = parse_prompt_to_plan(
-        prompt, db_path=db_file, settings=settings, provider=provider
-    )
+    plan1 = parse_prompt_to_plan(prompt, db_path=db_file, settings=settings, provider=provider)
     assert plan1.name == "Rainy Night Focus"
     assert len(provider.call_history) == 1
 
@@ -277,9 +275,7 @@ def test_llm_cache_hit_and_miss(test_db_with_tracks: tuple[Path, Settings]) -> N
         assert cached_data["name"] == "Rainy Night Focus"
 
     # Second call: cache hit, provider NOT called again
-    plan2 = parse_prompt_to_plan(
-        prompt, db_path=db_file, settings=settings, provider=provider
-    )
+    plan2 = parse_prompt_to_plan(prompt, db_path=db_file, settings=settings, provider=provider)
     assert plan2.name == "Rainy Night Focus"
     assert len(provider.call_history) == 1  # Still 1 call!
 
@@ -294,9 +290,7 @@ def test_pydantic_validation_retry_and_graceful_fallback(
         model_name = "flaky"
         call_count = 0
 
-        def generate_text(
-            self, prompt: str, system_instruction: str | None = None
-        ) -> str:
+        def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
             return ""
 
         def generate_json(
@@ -318,9 +312,7 @@ def test_pydantic_validation_retry_and_graceful_fallback(
             }
 
     provider = FlakyProvider()
-    plan = parse_prompt_to_plan(
-        "chill vibes", db_path=db_file, settings=settings, provider=provider
-    )
+    plan = parse_prompt_to_plan("chill vibes", db_path=db_file, settings=settings, provider=provider)
     assert provider.call_count == 2
     assert plan.name == "Recovered Session"
 
@@ -334,9 +326,7 @@ def test_graceful_fallback_when_retries_exhausted(
     class BrokenProvider(LLMProvider):
         model_name = "broken"
 
-        def generate_text(
-            self, prompt: str, system_instruction: str | None = None
-        ) -> str:
+        def generate_text(self, prompt: str, system_instruction: str | None = None) -> str:
             raise RuntimeError("Fatal provider outage")
 
         def generate_json(
@@ -348,9 +338,7 @@ def test_graceful_fallback_when_retries_exhausted(
             raise RuntimeError("Fatal provider outage")
 
     provider = BrokenProvider()
-    plan = parse_prompt_to_plan(
-        "rainy night focus", db_path=db_file, settings=settings, provider=provider
-    )
+    plan = parse_prompt_to_plan("rainy night focus", db_path=db_file, settings=settings, provider=provider)
     assert plan is not None
     assert plan.name == "Rainy Night Focus"
     assert plan.vibe == "chill"
@@ -478,9 +466,7 @@ def test_five_prompts_match_intent(
     db_file, settings = test_db_with_tracks
     provider = FakeLLMProvider()
 
-    plan = parse_prompt_to_plan(
-        prompt, db_path=db_file, settings=settings, provider=provider
-    )
+    plan = parse_prompt_to_plan(prompt, db_path=db_file, settings=settings, provider=provider)
 
     assert isinstance(plan, PromptPlaylistPlan)
     assert len(plan.name) > 0
@@ -540,9 +526,7 @@ def test_five_prompts_match_intent(
 # ---------------------------------------------------------------------------
 
 
-def test_cli_playlist_with_prompt(
-    test_db_with_tracks: tuple[Path, Settings], monkeypatch: Any
-) -> None:
+def test_cli_playlist_with_prompt(test_db_with_tracks: tuple[Path, Settings], monkeypatch: Any) -> None:
     """Test 'vibeplay playlist --prompt ...' through the CLI."""
     db_file, settings = test_db_with_tracks
     monkeypatch.setattr("vibeplay.cli.get_settings", lambda: settings)
@@ -564,9 +548,7 @@ def test_cli_playlist_with_prompt(
     assert "Playlist Saved" in res.stdout
 
 
-def test_cli_tag_command(
-    test_db_with_tracks: tuple[Path, Settings], monkeypatch: Any
-) -> None:
+def test_cli_tag_command(test_db_with_tracks: tuple[Path, Settings], monkeypatch: Any) -> None:
     """Test 'vibeplay tag --all' through the CLI."""
     db_file, settings = test_db_with_tracks
     monkeypatch.setattr("vibeplay.cli.get_settings", lambda: settings)

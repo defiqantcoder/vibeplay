@@ -5,17 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
 from vibe_dsp.alsa_reservation import (
-    DEFAULT_MPD_CONF_DIR,
     generate_mpd_audio_outputs,
     write_mpd_audio_outputs_config,
 )
 from vibe_dsp.hardware import scan_hardware
-from vibe_dsp.models import CardType
 from vibe_dsp.passthrough import (
     configure_sink_passthrough,
     discover_receiver_endpoints,
@@ -23,7 +20,6 @@ from vibe_dsp.passthrough import (
 from vibe_dsp.peq import apply_peq_preset, get_active_peq_state
 from vibe_dsp.pipewire import apply_wpctl_sink_rate_override
 from vibe_dsp.spatial import (
-    SPATIAL_SINK_NAME,
     get_spatial_virtualization_status,
     set_spatial_virtualization_mode,
 )
@@ -111,9 +107,7 @@ def switch_audio_profile(profile_id: str, options: dict[str, Any] | None = None)
     valid_ids = {p["id"] for p in AVAILABLE_PROFILES}
 
     if clean_id not in valid_ids:
-        raise ProfileSwitchError(
-            f"Invalid profile '{profile_id}'. Available profiles: {', '.join(sorted(valid_ids))}"
-        )
+        raise ProfileSwitchError(f"Invalid profile '{profile_id}'. Available profiles: {', '.join(sorted(valid_ids))}")
 
     state = load_persistent_state()
 
@@ -235,7 +229,7 @@ async def handle_ipc_client(
             success = set_spatial_virtualization_mode(mode)
             state = load_persistent_state()
             state["spatial_mode"] = mode
-            state["spatial_active"] = (mode == "3d_binaural")
+            state["spatial_active"] = mode == "3d_binaural"
             save_persistent_state(state)
             response = {"status": "ok" if success else "warning", "mode": mode, "applied": success}
 
@@ -333,11 +327,13 @@ class DSPClient:
 
     def set_profile(self, profile_id: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Set audio profile."""
-        return self._call_socket_sync({
-            "action": "set_profile",
-            "profile": profile_id,
-            "options": options or {},
-        })
+        return self._call_socket_sync(
+            {
+                "action": "set_profile",
+                "profile": profile_id,
+                "options": options or {},
+            }
+        )
 
     def list_profiles(self) -> list[dict[str, Any]]:
         """List available audio profiles."""

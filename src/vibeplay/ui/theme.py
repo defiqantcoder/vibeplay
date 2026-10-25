@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 DEFAULT_THEME_ID = "god-of-ink"
 
 
@@ -620,10 +619,7 @@ def compute_relative_luminance(hex_color: str) -> float:
         raise ValueError(f"Expected 6-digit hex color, got '{hex_color}'.")
 
     channels = [int(cleaned[i : i + 2], 16) / 255.0 for i in (0, 2, 4)]
-    linear = [
-        c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-        for c in channels
-    ]
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
@@ -657,11 +653,7 @@ def get_theme_css_variables(theme_id: str = "god-of-ink") -> str:
     """Generate CSS variable declarations string for a target theme."""
     theme = get_theme_by_id(theme_id)
     declarations = [f"  {k}: {v};" for k, v in theme.variables.items()]
-    return (
-        f":root[data-theme='{theme.id}'], html[data-theme='{theme.id}'], body[data-theme='{theme.id}'] {{\n"
-        + "\n".join(declarations)
-        + "\n}"
-    )
+    return f":root[data-theme='{theme.id}'], html[data-theme='{theme.id}'], body[data-theme='{theme.id}'] {{\n" + "\n".join(declarations) + "\n}"
 
 
 def generate_all_themes_css() -> str:
