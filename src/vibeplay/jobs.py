@@ -17,12 +17,20 @@ logger = logging.getLogger(__name__)
 _JOB_LOCK = threading.Lock()
 
 
-def _resolve_conn(conn_or_path: sqlite3.Connection | Path | str) -> tuple[sqlite3.Connection, bool]:
+_INITIALIZED_DBS: set[str] = set()
+
+
+def _resolve_conn(
+    conn_or_path: sqlite3.Connection | Path | str,
+) -> tuple[sqlite3.Connection, bool]:
     """Return an active connection and a boolean indicating if it must be closed."""
     if isinstance(conn_or_path, sqlite3.Connection):
         return conn_or_path, False
     path = Path(conn_or_path) if isinstance(conn_or_path, str) else conn_or_path
-    init_db(path)
+    resolved_key = str(path.resolve()) if path.exists() else str(path)
+    if resolved_key not in _INITIALIZED_DBS:
+        init_db(path)
+        _INITIALIZED_DBS.add(resolved_key)
     return get_connection(path), True
 
 

@@ -236,17 +236,18 @@ class TrackRecord:
     tags: str | None = None
 
 
-def get_connection(db_path: Path) -> sqlite3.Connection:
+def get_connection(db_path: Path, timeout: float = 30.0) -> sqlite3.Connection:
     """Create and return a configured SQLite connection.
 
     Args:
         db_path: Path to the SQLite database file.
+        timeout: Timeout in seconds for acquiring locks on the database.
 
     Returns:
         sqlite3.Connection: Connection with WAL mode and row factory enabled.
     """
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA journal_mode = WAL;")

@@ -22,11 +22,14 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual environments
+# Virtual environments and secrets
 .venv/
 venv/
 ENV/
 env/
+.env
+.env.*
+
 
 # IDE and editors
 .idea/

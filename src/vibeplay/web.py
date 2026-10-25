@@ -1216,10 +1216,42 @@ def create_app(
             },
         )
 
+    @app.get("/api/player/output/profiles")
+    async def api_player_output_profiles() -> JSONResponse:
+        """Return list of dynamic audio output profiles and current active profile."""
+        from vibeplay.player import (
+            get_active_output_profile,
+            get_dynamic_output_profiles,
+        )
+
+        return JSONResponse(
+            content={
+                "status": "ok",
+                "active_profile": get_active_output_profile(cfg),
+                "profiles": get_dynamic_output_profiles(cfg),
+            }
+        )
+
     @app.post("/api/player/output", response_class=HTMLResponse)
-    async def api_player_output(request: Request, profile: str = Form(...)) -> Response:
+    async def api_player_output(
+        request: Request, profile: str | None = Form(None)
+    ) -> Response:
         """Switch audio hardware output profile and notify vibe-dsp IPC engine."""
-        set_output_profile(profile, settings=cfg)
+        target_profile = profile
+        if not target_profile:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                try:
+                    body = await request.json()
+                    target_profile = body.get("profile")
+                except Exception:
+                    pass
+        if not target_profile:
+            target_profile = request.query_params.get("profile")
+        if not target_profile:
+            target_profile = "pure-bitperfect"
+
+        set_output_profile(target_profile, settings=cfg)
         try:
             from vibe_dsp.ipc import DSPClient
 
@@ -1232,13 +1264,27 @@ def create_app(
                 "Headphones": "spatial-headphones",
                 "PipeWire Sound Server": "pure-bitperfect",
             }
-            target_id = prof_map.get(profile, profile)
+            target_id = prof_map.get(target_profile, target_profile)
             client = DSPClient()
             client.set_profile(target_id)
         except Exception as err:
             logger.debug("Could not dispatch profile switch to vibe-dsp IPC: %s", err)
 
         playback = get_playback_status(resolved_db_path, cfg)
+
+        accept_header = request.headers.get("accept", "")
+        if (
+            "application/json" in accept_header
+            or request.query_params.get("format") == "json"
+        ):
+            return JSONResponse(
+                content={
+                    "status": "ok",
+                    "active_profile": target_profile,
+                    "playback": playback,
+                }
+            )
+
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -1981,7 +2027,7 @@ def create_app(
             from vibeplay.desktop.dialogs import choose_directory_dialog
 
             body = {}
-            if request.headers.get("content-type") == "application/json":
+            if "application/json" in (request.headers.get("content-type") or ""):
                 try:
                     body = await request.json()
                 except Exception:
