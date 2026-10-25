@@ -15,6 +15,7 @@ from vibeplay.vectors import compute_clusters, invalidate_cluster_cache
 def sample_settings(tmp_path: Path) -> Settings:
     db_file = tmp_path / "vectors_test.db"
     from vibeplay.db import init_db
+
     init_db(db_file)
     return Settings(
         db_path=db_file,
@@ -26,6 +27,7 @@ def sample_settings(tmp_path: Path) -> Settings:
         weight_embedding=1.0,
         pca_embedding_dimensions=2,
     )
+
 
 def populate_test_db(settings: Settings, track_records: list[dict[str, Any]]) -> None:
     with get_connection(settings.db_path) as conn:
@@ -72,6 +74,7 @@ def populate_test_db(settings: Settings, track_records: list[dict[str, Any]]) ->
             )
         conn.commit()
 
+
 def make_synthetic_track_data(
     track_id: int,
     bpm: float = 120.0,
@@ -91,21 +94,18 @@ def make_synthetic_track_data(
         "mood_scores": {"happy": 0.5, "sad": 0.5},
     }
 
+
 def test_compute_clusters_caching(sample_settings: Settings) -> None:
     records = []
     for i in range(1, 11):
-        records.append(
-            make_synthetic_track_data(
-                i, bpm=130.0 + i, energy=0.9, danceability=0.8, artist="ClubCrew"
-            )
-        )
+        records.append(make_synthetic_track_data(i, bpm=130.0 + i, energy=0.9, danceability=0.8, artist="ClubCrew"))
     populate_test_db(sample_settings, records)
 
     invalidate_cluster_cache()
 
     start_time = time.perf_counter()
     result1 = compute_clusters(k=2, algorithm="kmeans", settings=sample_settings)
-    t1 = time.perf_counter() - start_time
+    time.perf_counter() - start_time
 
     start_time = time.perf_counter()
     result2 = compute_clusters(k=2, algorithm="kmeans", settings=sample_settings)
@@ -118,7 +118,7 @@ def test_compute_clusters_caching(sample_settings: Settings) -> None:
     invalidate_cluster_cache()
 
     start_time = time.perf_counter()
-    result3 = compute_clusters(k=2, algorithm="kmeans", settings=sample_settings)
-    t3 = time.perf_counter() - start_time
+    compute_clusters(k=2, algorithm="kmeans", settings=sample_settings)
+    time.perf_counter() - start_time
 
     # We might not be > 5ms every time, so don't assert it strictly, just check it ran without error

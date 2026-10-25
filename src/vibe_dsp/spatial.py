@@ -22,9 +22,7 @@ DEFAULT_SPATIAL_CONF_FILE = "98-spatial-7.1.4.conf"
 SPATIAL_SINK_NAME = "Spatial-7.1.4-Sink"
 
 # Default open-standard KEMAR 7.1.4 HRTF dataset URL
-DEFAULT_SOFA_DOWNLOAD_URL = (
-    "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
-)
+DEFAULT_SOFA_DOWNLOAD_URL = "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
 
 # Standard 7.1.4 Speaker Channels and ITU-R BS.775 / Dolby Atmos Azimuth & Elevation Angles
 # Format: (Channel Name, Azimuth in deg, Elevation in deg, Description)
@@ -224,7 +222,6 @@ def generate_pipewire_spatial_filter_chain_config(
 
     # Build filter-chain node matrix
     nodes_config: list[str] = []
-    links_config: list[str] = []
     inputs_config: list[str] = []
 
     # Digital Preamp / Attenuation node to eliminate inter-sample clipping
@@ -268,7 +265,7 @@ context.modules = [
 {chr(10).join(nodes_config)}
                 ]
                 inputs  = [
-                    {', '.join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
+                    {", ".join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
                 ]
                 outputs = [
                     "spatial_convolver:Out_L"
@@ -331,6 +328,143 @@ def write_spatial_filter_chain(
     target_file.write_text(cfg_text, encoding="utf-8")
     logger.info("Wrote 7.1.4 spatial drop-in to %s", target_file)
     return target_file
+
+
+def get_available_sofa_profiles(custom_dir: Path | None = None) -> list[dict[str, Any]]:
+    """Discover and validate available SOFA HRTF profiles in standard directories.
+
+    Args:
+        custom_dir: Optional additional directory to search for SOFA files.
+
+    Returns:
+        list[dict[str, Any]]: List of validated SOFA profile metadata dictionaries.
+    """
+    search_dirs = [
+        Path("~/.config/vibeplay/hrtf").expanduser(),
+        DEFAULT_HRTF_DIR,
+    ]
+    if custom_dir:
+        search_dirs.insert(0, custom_dir)
+
+    profiles = []
+    seen = set()
+
+    for directory in search_dirs:
+        if not directory.exists():
+            continue
+
+        for sofa_file in directory.glob("*.sofa"):
+            resolved = sofa_file.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+
+            try:
+                info = inspect_sofa_file(resolved).copy()
+                if info.get("is_valid"):
+                    info["name"] = resolved.stem
+                    info["path"] = str(resolved)
+                    info["id"] = resolved.name
+                    profiles.append(info)
+            except Exception as e:
+                logger.debug("Failed to inspect SOFA file %s: %s", resolved, e)
+
+    return profiles
+
+
+def swap_spatial_profile(sofa_path: Path, composite_preamp_db: float = STANDARD_7_1_4_BASE_PREAMP_DB) -> bool:
+    """Dynamically load and swap a custom SOFA profile without re-initializing the PipeWire graph.
+
+    Args:
+        sofa_path: Absolute path to the new HRTF .sofa impulse file.
+        composite_preamp_db: Composite digital attenuation in dB.
+
+    Returns:
+        bool: True if profile was successfully swapped, False otherwise.
+
+    Raises:
+        ValueError: If sofa_path is outside of authorized directories (path traversal protection).
+    """
+    # Path Traversal Protection
+    resolved_path = sofa_path.resolve()
+    allowed_dirs = [
+        Path("~/.config/vibeplay/hrtf").expanduser().resolve(),
+        DEFAULT_HRTF_DIR.resolve()
+    ]
+
+    is_allowed = False
+    for allowed_dir in allowed_dirs:
+        try:
+            if resolved_path.is_relative_to(allowed_dir):
+                is_allowed = True
+                break
+        except AttributeError:
+            # Fallback for Python versions < 3.9
+            if str(allowed_dir) in str(resolved_path.parents):
+                is_allowed = True
+                break
+
+    if not is_allowed:
+        raise ValueError(f"Unauthorized path: SOFA profile must be located in {allowed_dirs}")
+
+    # First, persist the new configuration so it survives reboots
+    try:
+        write_spatial_filter_chain(sofa_path, composite_preamp_db)
+    except Exception as e:
+        logger.error("Failed to write spatial filter chain config: %s", e)
+        return False
+
+    if not shutil.which("pw-cli"):
+        logger.warning("pw-cli not found, cannot swap spatial profile dynamically")
+        return False
+
+    # Extract the args payload that we just generated
+    config_text = generate_pipewire_spatial_filter_chain_config(sofa_path, composite_preamp_db)
+    args_start = config_text.find("args = {")
+    if args_start == -1:
+        logger.error("Could not parse args from generated filter chain config")
+        return False
+    args_payload = config_text[args_start + 7:config_text.rfind("}\n    }\n]")].strip()
+    if not args_payload:
+        logger.error("Could not parse args from generated filter chain config")
+        return False
+
+    try:
+        # Find active module id for the spatial sink
+        proc = subprocess.run(
+            ["pw-cli", "dump", "Module"],
+            capture_output=True, text=True, check=False, timeout=5.0
+        )
+        module_id = None
+        current_id = None
+        for line in proc.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("id "):
+                current_id = line.split(",")[0].replace("id", "").strip()
+            elif "Vibe-DSP 7.1.4 Binaural Spatial Audio Sink" in line and current_id:
+                module_id = current_id
+
+        if module_id:
+            logger.info("Destroying existing spatial module %s", module_id)
+            subprocess.run(["pw-cli", "destroy", str(module_id)], capture_output=True, check=False, timeout=5.0)
+
+        logger.info("Loading new spatial profile from %s", sofa_path)
+        res = subprocess.run(
+            ["pw-cli", "load-module", "libpipewire-module-filter-chain", args_payload],
+            capture_output=True, text=True, check=False, timeout=5.0
+        )
+        if res.returncode != 0:
+            logger.error("Failed to dynamically load spatial module: %s", res.stderr)
+            logger.warning("Rolling back to Stereo Direct to prevent audio breakage")
+            set_spatial_virtualization_mode("stereo_direct")
+            return False
+
+        return True
+    except Exception as e:
+        logger.error("Error swapping spatial profile dynamically: %s", e)
+        logger.warning("Rolling back to Stereo Direct to prevent audio breakage")
+        set_spatial_virtualization_mode("stereo_direct")
+        return False
 
 
 def get_spatial_virtualization_status() -> dict[str, Any]:

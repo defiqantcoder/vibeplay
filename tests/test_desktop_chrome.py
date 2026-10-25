@@ -108,10 +108,13 @@ class TestDesktopApiEndpoints:
         assert "castle-in-the-sky" in theme_ids
 
     def test_player_clear_endpoint(self, desktop_client: TestClient) -> None:
-        resp = desktop_client.post("/api/player/clear")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data.get("status") == "cleared"
+        with patch("vibeplay.player.MPDClient") as mock_mpd:
+            mock_client_instance = MagicMock()
+            mock_mpd.return_value = mock_client_instance
+            resp = desktop_client.post("/api/player/clear")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data.get("status") == "cleared"
 
     def test_dsp_telemetry_endpoint(self, desktop_client: TestClient) -> None:
         resp = desktop_client.get("/api/dsp/telemetry")
@@ -123,8 +126,10 @@ class TestDesktopApiEndpoints:
         assert "active_profile" in data
 
     def test_dsp_spatial_toggle_endpoint(self, desktop_client: TestClient) -> None:
-        with patch("vibe_dsp.spatial.get_spatial_virtualization_status", return_value="stereo_direct"), \
-             patch("vibe_dsp.spatial.set_spatial_virtualization_mode", return_value={"mode": "spatial_binaural", "status": "active"}):
+        with (
+            patch("vibe_dsp.spatial.get_spatial_virtualization_status", return_value="stereo_direct"),
+            patch("vibe_dsp.spatial.set_spatial_virtualization_mode", return_value={"mode": "spatial_binaural", "status": "active"}),
+        ):
             resp = desktop_client.post("/api/dsp/spatial/toggle")
             assert resp.status_code == 200
             data = resp.json()
@@ -152,9 +157,9 @@ class TestDesktopShellRendering:
         # 1. Simulated Window Titlebar
         assert 'class="desktop-titlebar"' in html
         assert 'class="window-controls"' in html
-        assert 'dot-close' in html
-        assert 'dot-minimize' in html
-        assert 'dot-maximize' in html
+        assert "dot-close" in html
+        assert "dot-minimize" in html
+        assert "dot-maximize" in html
         assert "VIBEPLAY" in html
         assert "Active Desktop Session:" in html
 
@@ -255,4 +260,3 @@ class TestDesktopShellRendering:
         assert "BIT DEPTH" in html
         assert "Harmonic Zone:" in html
         assert "Transferred via USB 3.2 Gen2" in html
-

@@ -177,15 +177,9 @@ def test_mark_tracks_missing(tmp_path: Path) -> None:
     init_db(db_file)
 
     with get_connection(db_file) as conn:
-        id1 = insert_track(
-            conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1"
-        )
-        id2 = insert_track(
-            conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2"
-        )
-        insert_track(
-            conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3"
-        )
+        id1 = insert_track(conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1")
+        id2 = insert_track(conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2")
+        insert_track(conn=conn, path="/path/3.mp3", mtime=300, size=3000, file_hash="h3")
 
         updated = mark_tracks_missing(conn, [id1, id2])
         assert updated == 2
@@ -267,4 +261,3 @@ def test_purge_all_caches(tmp_path: Path) -> None:
         assert cursor.fetchone()[0] == 0
         cursor.execute("SELECT COUNT(*) FROM network_cache")
         assert cursor.fetchone()[0] == 0
-

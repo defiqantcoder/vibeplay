@@ -76,14 +76,15 @@ class ClusteringResult:
 class ClusterCacheEntry(TypedDict):
     result: ClusteringResult
 
+
 _CLUSTER_CACHE: dict[str, ClusterCacheEntry] = {}
 _CLUSTER_CACHE_LOCK = threading.Lock()
+
 
 def invalidate_cluster_cache() -> None:
     """Clear the in-memory cluster cache."""
     with _CLUSTER_CACHE_LOCK:
         _CLUSTER_CACHE.clear()
-
 
 
 def _compute_config_signature(settings: Settings) -> str:
@@ -157,15 +158,9 @@ def build_vibe_vectors(
         # Support sqlite3.Row, dict, or tuple/object
         if hasattr(row, "keys"):
             tid = int(row["track_id"])
-            bpm = (
-                float(row["bpm"])
-                if row["bpm"] is not None and row["bpm"] > 0
-                else 120.0
-            )
+            bpm = float(row["bpm"]) if row["bpm"] is not None and row["bpm"] > 0 else 120.0
             loud = float(row["loudness"]) if row["loudness"] is not None else -10.0
-            dance = (
-                float(row["danceability"]) if row["danceability"] is not None else 0.5
-            )
+            dance = float(row["danceability"]) if row["danceability"] is not None else 0.5
             energy = float(row["energy"]) if row["energy"] is not None else 0.5
 
             mood_raw = row["mood_scores"]
@@ -279,18 +274,12 @@ def build_vibe_vectors(
                 pca = PCA(n_components=n_pca_components, random_state=42)
                 emb_pca = pca.fit_transform(scaled_emb).astype(np.float32)
             else:
-                emb_pca = np.zeros(
-                    (n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32
-                )
+                emb_pca = np.zeros((n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32)
         else:
-            emb_pca = np.zeros(
-                (n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32
-            )
+            emb_pca = np.zeros((n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32)
     else:
         # Fallback for single track, zero samples, or constant synthetic embeddings
-        emb_pca = np.zeros(
-            (n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32
-        )
+        emb_pca = np.zeros((n_samples, min(target_pca_dims, max_emb_len)), dtype=np.float32)
 
     # 4. Weight application per feature block
     w_bpm = float(cfg.weight_bpm)
@@ -389,11 +378,7 @@ def get_or_build_vibe_vectors(
                         for r in tracks_rows:
                             tid = int(r["track_id"])
                             try:
-                                mood_dict = (
-                                    json.loads(r["mood_scores"])
-                                    if r["mood_scores"]
-                                    else {}
-                                )
+                                mood_dict = json.loads(r["mood_scores"]) if r["mood_scores"] else {}
                             except Exception:
                                 mood_dict = {}
                             metadata_map[tid] = {
@@ -401,25 +386,15 @@ def get_or_build_vibe_vectors(
                                 "title": r["title"] or "Unknown Title",
                                 "artist": r["artist"] or "Unknown Artist",
                                 "album": r["album"] or "Unknown Album",
-                                "bpm": float(r["bpm"])
-                                if r["bpm"] is not None
-                                else 120.0,
-                                "loudness": float(r["loudness"])
-                                if r["loudness"] is not None
-                                else -10.0,
-                                "danceability": float(r["danceability"])
-                                if r["danceability"] is not None
-                                else 0.5,
-                                "energy": float(r["energy"])
-                                if r["energy"] is not None
-                                else 0.5,
+                                "bpm": float(r["bpm"]) if r["bpm"] is not None else 120.0,
+                                "loudness": float(r["loudness"]) if r["loudness"] is not None else -10.0,
+                                "danceability": float(r["danceability"]) if r["danceability"] is not None else 0.5,
+                                "energy": float(r["energy"]) if r["energy"] is not None else 0.5,
                                 "mood_scores": mood_dict,
                                 "path": r["path"],
                             }
                         return track_ids, vectors, metadata_map
-                    logger.info(
-                        "Vector cache invalidated (checksum or settings changed). Recomputing..."
-                    )
+                    logger.info("Vector cache invalidated (checksum or settings changed). Recomputing...")
             except Exception as err:
                 logger.warning(
                     "Failed to load vector cache from %s: %s. Recomputing...",
@@ -440,9 +415,7 @@ def get_or_build_vibe_vectors(
                 vectors=vectors,
                 cache_key=cache_key,
             )
-            logger.debug(
-                "Saved %d vibe vectors to cache: %s", len(track_ids), cache_path
-            )
+            logger.debug("Saved %d vibe vectors to cache: %s", len(track_ids), cache_path)
         except Exception as err:
             logger.warning("Could not persist vector cache to %s: %s", cache_path, err)
 
@@ -577,10 +550,7 @@ def compute_clusters(
 
     algo = algorithm.lower().strip()
     if algo not in ("kmeans", "hdbscan"):
-
-        raise ValueError(
-            f"Unsupported clustering algorithm: '{algorithm}'. Must be 'kmeans' or 'hdbscan'."
-        )
+        raise ValueError(f"Unsupported clustering algorithm: '{algorithm}'. Must be 'kmeans' or 'hdbscan'.")
 
     # Perform clustering
     if algo == "kmeans":
@@ -593,9 +563,7 @@ def compute_clusters(
         # Normalize centroids
         centroid_norms = np.linalg.norm(centroids, axis=1, keepdims=True)
         centroid_norms[centroid_norms == 0.0] = 1.0
-        normalized_centroids = {
-            label: (centroids[label] / centroid_norms[label]) for label in unique_labels
-        }
+        normalized_centroids = {label: (centroids[label] / centroid_norms[label]) for label in unique_labels}
     else:
         # HDBSCAN
         eff_min_size = max(2, min(min_cluster_size, total_tracks))
@@ -624,11 +592,7 @@ def compute_clusters(
             label_name = f"Cluster {int(cluster_label) + 1}"
 
         # 1. Average BPM
-        member_bpms = [
-            float(metadata_map[tid]["bpm"])
-            for tid in member_track_ids
-            if tid in metadata_map
-        ]
+        member_bpms = [float(metadata_map[tid]["bpm"]) for tid in member_track_ids if tid in metadata_map]
         avg_bpm = float(np.mean(member_bpms)) if member_bpms else 0.0
 
         # 2. Dominant Moods
@@ -638,9 +602,7 @@ def compute_clusters(
             for mood_key in MOOD_KEYS:
                 mood_sums[mood_key] += float(track_moods.get(mood_key, 0.0))
 
-        avg_moods = [
-            (mood_key, mood_sums[mood_key] / member_size) for mood_key in MOOD_KEYS
-        ]
+        avg_moods = [(mood_key, mood_sums[mood_key] / member_size) for mood_key in MOOD_KEYS]
         avg_moods.sort(key=lambda x: x[1], reverse=True)
         dominant_moods = avg_moods[:3]
 
@@ -650,9 +612,7 @@ def compute_clusters(
             art = metadata_map.get(tid, {}).get("artist") or "Unknown"
             artist_counts[art] = artist_counts.get(art, 0) + 1
 
-        top_artists = sorted(artist_counts.items(), key=lambda x: x[1], reverse=True)[
-            :5
-        ]
+        top_artists = sorted(artist_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # 4. Top 5 Representative Tracks (closest to centroid)
         representative_tracks: list[dict[str, Any]] = []
@@ -715,7 +675,6 @@ def compute_clusters(
     )
 
 
-
 def get_vibe_vectors_for_track_ids(
     db_path: Path | None = None,
     track_ids: list[int] | None = None,
@@ -738,6 +697,7 @@ def get_vibe_vectors_for_track_ids(
 
     with get_connection(db_path or cfg.db_path) as conn:
         from vibeplay.db import get_tracks_with_features_by_ids
+
         tracks_rows = get_tracks_with_features_by_ids(conn, track_ids)
 
     if not tracks_rows:

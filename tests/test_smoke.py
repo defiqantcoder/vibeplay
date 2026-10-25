@@ -42,9 +42,7 @@ def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
     """Verify that vibeplay serve invokes run_server with default arguments."""
     called: dict[str, Any] = {}
 
-    def mock_run_server(
-        db_path: Path, host: str = "127.0.0.1", port: int = 8000, **kwargs: Any
-    ) -> None:
+    def mock_run_server(db_path: Path, host: str = "127.0.0.1", port: int = 8000, **kwargs: Any) -> None:
         called["db_path"] = db_path
         called["host"] = host
         called["port"] = port

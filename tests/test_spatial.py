@@ -11,9 +11,11 @@ from vibe_dsp.spatial import (
     calculate_composite_preamp,
     ensure_default_sofa_hrtf,
     generate_pipewire_spatial_filter_chain_config,
+    get_available_sofa_profiles,
     get_spatial_virtualization_status,
     inspect_sofa_file,
     set_spatial_virtualization_mode,
+    swap_spatial_profile,
     write_spatial_filter_chain,
 )
 
@@ -102,9 +104,7 @@ Audio
  │  *   55. Spatial-7.1.4-Sink                  [vol: 1.00]
  │
 """
-    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch(
-        "subprocess.run"
-    ) as mock_run:
+    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stdout=mock_wpctl_output)
         status = get_spatial_virtualization_status()
 
@@ -115,10 +115,14 @@ Audio
 
 def test_set_spatial_virtualization_mode_toggle() -> None:
     """Verify set_spatial_virtualization_mode executes wpctl set-default."""
-    with patch("shutil.which", return_value="/usr/bin/wpctl"), patch(
-        "vibe_dsp.spatial.get_spatial_virtualization_status",
-        return_value={"node_id": 55, "mode": "stereo_direct"},
-    ), patch("subprocess.run") as mock_run:
+    with (
+        patch("shutil.which", return_value="/usr/bin/wpctl"),
+        patch(
+            "vibe_dsp.spatial.get_spatial_virtualization_status",
+            return_value={"node_id": 55, "mode": "stereo_direct"},
+        ),
+        patch("subprocess.run") as mock_run,
+    ):
         mock_run.return_value = MagicMock(returncode=0)
 
         # Enable 3D binaural
@@ -131,3 +135,110 @@ def test_set_spatial_virtualization_mode_toggle() -> None:
             timeout=5.0,
             check=False,
         )
+
+
+def test_get_available_sofa_profiles(tmp_path: Path) -> None:
+    """Verify get_available_sofa_profiles discovers and returns custom SOFA profiles."""
+    # Create mock SOFA files in a temporary custom directory
+    sofa1 = tmp_path / "custom1.sofa"
+    sofa1.write_bytes(b"\x89HDF\r\n\x1a\n" + b"\x00" * 1024)
+
+    sofa2 = tmp_path / "custom2.sofa"
+    sofa2.write_bytes(b"\x89HDF\r\n\x1a\n" + b"\x00" * 1024)
+
+    # Mock inspect_sofa_file to return a valid result
+    with patch("vibe_dsp.spatial.inspect_sofa_file") as mock_inspect:
+        mock_inspect.return_value = {
+            "is_valid": True,
+            "layout": "7.1.4",
+            "channels_supported": 12,
+        }
+
+        profiles = get_available_sofa_profiles(custom_dir=tmp_path)
+        assert len(profiles) >= 2
+
+        names = [p["name"] for p in profiles]
+        assert "custom1" in names
+        assert "custom2" in names
+
+
+def test_swap_spatial_profile_dynamic_load(tmp_path: Path) -> None:
+    """Verify custom SOFA profiles can be swapped without re-initializing the PipeWire graph."""
+    from vibe_dsp.spatial import DEFAULT_HRTF_DIR
+    authorized_dir = DEFAULT_HRTF_DIR
+    authorized_dir.mkdir(parents=True, exist_ok=True)
+    sofa_file = authorized_dir / "custom_spatial.sofa"
+    sofa_file.write_bytes(b"\x89HDF\r\n\x1a\n" + b"\x00" * 1024)
+
+    # Mock subprocess.run for pw-cli commands
+    def mock_subprocess_run(*args, **kwargs):
+        cmd = args[0]
+        if "dump" in cmd and "Module" in cmd:
+            # Mock the dump output showing the active spatial module
+            stdout = "id 42, type PipeWire:Interface:Module\n"
+            stdout += "    module.name = \"libpipewire-module-filter-chain\"\n"
+            stdout += "    node.description = \"Vibe-DSP 7.1.4 Binaural Spatial Audio Sink\"\n"
+            stdout += '    module.name = "libpipewire-module-filter-chain"\n'
+            stdout += '    node.description = "Vibe-DSP 7.1.4 Binaural Spatial Audio Sink"\n'
+            return MagicMock(returncode=0, stdout=stdout)
+        elif "destroy" in cmd:
+            return MagicMock(returncode=0, stdout="")
+        elif "load-module" in cmd:
+            return MagicMock(returncode=0, stdout="")
+        return MagicMock(returncode=0, stdout="")
+
+    with patch("vibe_dsp.spatial.shutil.which", return_value="/usr/bin/pw-cli"):
+        with patch("vibe_dsp.spatial.subprocess.run", side_effect=mock_subprocess_run) as mock_run:
+            with patch("vibe_dsp.spatial.write_spatial_filter_chain") as mock_write:
+                res = swap_spatial_profile(sofa_file, -10.0)
+
+                assert res is True
+                mock_write.assert_called_once_with(sofa_file, -10.0)
+
+                # Check that pw-cli destroy was called with the correct module ID (42)
+                destroy_call = any("destroy" in call.args[0] and "42" in call.args[0] for call in mock_run.mock_calls if call.args)
+                assert destroy_call is True
+
+                # Check that pw-cli load-module was called
+                load_call = any(
+                    "load-module" in call.args[0] and "libpipewire-module-filter-chain" in call.args[0] for call in mock_run.mock_calls if call.args
+                )
+                assert load_call is True
+
+def test_swap_spatial_profile_path_traversal(tmp_path: Path) -> None:
+    """Verify swap_spatial_profile raises ValueError if SOFA path is outside authorized directories."""
+    unauthorized_sofa = tmp_path / "hacked.sofa"
+    unauthorized_sofa.write_bytes(b"bad")
+    import pytest
+    with pytest.raises(ValueError, match="Unauthorized path: SOFA profile must be located in"):
+        swap_spatial_profile(unauthorized_sofa, -10.0)
+
+def test_swap_spatial_profile_fallback(tmp_path: Path) -> None:
+    """Verify swap_spatial_profile rolls back to stereo_direct if pw-cli load-module fails."""
+    from vibe_dsp.spatial import DEFAULT_HRTF_DIR
+    authorized_dir = DEFAULT_HRTF_DIR
+    authorized_dir.mkdir(parents=True, exist_ok=True)
+    authorized_sofa = authorized_dir / "valid_fallback_test.sofa"
+    authorized_sofa.write_bytes(b"\x89HDF\r\n\x1a\n" + b"\x00" * 1024)
+
+    def mock_subprocess_run(*args, **kwargs):
+        cmd = args[0]
+        if "dump" in cmd:
+            stdout = "id 42, type PipeWire:Interface:Module\n"
+            stdout += "    module.name = \"libpipewire-module-filter-chain\"\n"
+            stdout += "    node.description = \"Vibe-DSP 7.1.4 Binaural Spatial Audio Sink\"\n"
+            return MagicMock(returncode=0, stdout=stdout)
+        elif "destroy" in cmd:
+            return MagicMock(returncode=0, stdout="")
+        elif "load-module" in cmd:
+            # Simulate failure when loading module
+            return MagicMock(returncode=1, stderr="failed to load")
+        return MagicMock(returncode=0, stdout="")
+
+    with patch("vibe_dsp.spatial.shutil.which", return_value="/usr/bin/pw-cli"):
+        with patch("vibe_dsp.spatial.subprocess.run", side_effect=mock_subprocess_run):
+            with patch("vibe_dsp.spatial.write_spatial_filter_chain"):
+                with patch("vibe_dsp.spatial.set_spatial_virtualization_mode") as mock_fallback:
+                    res = swap_spatial_profile(authorized_sofa, -10.0)
+                    assert res is False
+                    mock_fallback.assert_called_once_with("stereo_direct")

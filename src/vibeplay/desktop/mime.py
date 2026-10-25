@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import logging
 import os
@@ -22,7 +21,6 @@ DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser(
 
 from vibeplay.desktop.security import (
     ensure_secure_directory,
-    is_loopback_host,
     secure_chmod,
     validate_loopback_host,
 )
@@ -159,13 +157,9 @@ def parse_desktop_uri(raw: str) -> Path:
     if "://" in cleaned:
         parsed = urlparse(cleaned)
         if parsed.scheme.lower() != "file":
-            raise ValueError(
-                f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed."
-            )
+            raise ValueError(f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed.")
         if parsed.netloc and parsed.netloc.lower() not in ("", "localhost"):
-            raise ValueError(
-                f"Remote file URI host '{parsed.netloc}' is not allowed."
-            )
+            raise ValueError(f"Remote file URI host '{parsed.netloc}' is not allowed.")
         decoded_path = unquote(parsed.path)
         return Path(decoded_path).expanduser().resolve()
 
@@ -222,11 +216,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
                 continue
         else:
             candidate = Path(entry).expanduser()
-            track_path = (
-                candidate.resolve()
-                if candidate.is_absolute()
-                else (base_dir / candidate).resolve()
-            )
+            track_path = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
         tracks.append(track_path)
 
     return tracks
