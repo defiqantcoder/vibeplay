@@ -1,0 +1,47 @@
+app-id: org.vibeplay.VibePlay
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+command: vibeplay-desktop
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+  - --share=network
+  - --filesystem=xdg-music:ro
+  - --filesystem=host:ro
+
+modules:
+  - name: alsa-lib
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://www.alsa-project.org/files/pub/lib/alsa-lib-1.2.11.tar.bz2
+        sha256: 9f3f2fefdbf8615b13ea2f65a12f7344fb179e8c46fcf88bd2146973e6cb9d11
+
+  - name: mpd
+    buildsystem: meson
+    config-opts:
+      - -Dalsa=enabled
+      - -Ddbus=disabled
+      - -Dzeroconf=disabled
+      - -Dicu=disabled
+    sources:
+      - type: archive
+        url: https://www.musicpd.org/download/mpd/0.23/mpd-0.23.15.tar.xz
+        sha256: e8db1451f041ff62227d89601d51a660a9f5dcc1783457199c0850c900e5728a
+
+  - name: vibeplay
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 dist/vibeplay-desktop /app/bin/vibeplay-desktop
+      - install -Dm644 packaging/vibeplay.desktop /app/share/applications/org.vibeplay.VibePlay.desktop
+      - install -Dm644 packaging/icons/vibeplay.svg /app/share/icons/hicolor/scalable/apps/org.vibeplay.VibePlay.svg
+      - install -Dm644 packaging/flatpak/org.vibeplay.VibePlay.metainfo.xml /app/share/metainfo/org.vibeplay.VibePlay.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
