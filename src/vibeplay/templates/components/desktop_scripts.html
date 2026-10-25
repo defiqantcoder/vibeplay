@@ -179,7 +179,7 @@ function closeSettingsDialog() {
 }
 
 function switchSettingsTab(tabId) {
-  const tabs = ['transport', 'dsp', 'analyzer', 'theme'];
+  const tabs = ['transport', 'dsp', 'analyzer', 'theme', 'ai'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const panel = document.getElementById(`panel-${t}`);
@@ -192,6 +192,54 @@ function switchSettingsTab(tabId) {
       else panel.classList.remove('active');
     }
   });
+}
+
+function openSettingsTab(tabName) {
+  toggleSettingsDialog(tabName);
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) btn.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    if (btn) btn.textContent = 'Show';
+  }
+}
+
+function testAiConnection() {
+  const key = document.getElementById('cfg-gemini-key')?.value || '';
+  const model = document.getElementById('cfg-gemini-model')?.value || 'gemini-2.5-flash';
+  const statusEl = document.getElementById('ai-test-status');
+  if (statusEl) {
+    statusEl.textContent = 'Testing connection...';
+    statusEl.style.color = 'var(--primary)';
+  }
+  fetch('/api/ai/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: key, model: model }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!statusEl) return;
+      if (data.ok) {
+        statusEl.textContent = `✓ ${data.message || 'Connected successfully'}`;
+        statusEl.style.color = 'var(--tertiary)';
+      } else {
+        statusEl.textContent = `✕ ${data.message || 'Verification failed'}`;
+        statusEl.style.color = 'var(--error)';
+      }
+    })
+    .catch(() => {
+      if (statusEl) {
+        statusEl.textContent = '✕ Network error testing API key';
+        statusEl.style.color = 'var(--error)';
+      }
+    });
 }
 
 function setSettingsStatus(msg, isError = false) {
@@ -241,6 +289,10 @@ function gatherSettingsFormPayload() {
     theme_id: activeTheme,
     custom_accent_color: getVal('cfg-custom-accent', '#6874a6'),
     contrast_mode: getVal('cfg-contrast-mode', 'standard'),
+    llm_provider: getVal('cfg-llm-provider', 'gemini'),
+    gemini_api_key: getVal('cfg-gemini-key', ''),
+    gemini_model: getVal('cfg-gemini-model', 'gemini-2.5-flash'),
+    acoustid_api_key: getVal('cfg-acoustid-key', ''),
   };
 }
 
@@ -299,6 +351,11 @@ function syncDomWithSettings(s) {
   setVal('cfg-custom-accent', s.custom_accent_color);
   setVal('cfg-custom-accent-picker', s.custom_accent_color);
   setVal('cfg-contrast-mode', s.contrast_mode);
+
+  setVal('cfg-llm-provider', s.llm_provider);
+  setVal('cfg-gemini-key', s.gemini_api_key);
+  setVal('cfg-gemini-model', s.gemini_model);
+  setVal('cfg-acoustid-key', s.acoustid_api_key);
 
   updateAudioDeviceConfig();
 }
@@ -405,6 +462,14 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (!throttleKey(200)) return;
     toggleSettingsDialog();
+    return;
+  }
+
+  // Ctrl+H: Toggle Telemetry HUD Deck
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
+    e.preventDefault();
+    if (!throttleKey(200)) return;
+    toggleTelemetryHud();
     return;
   }
 
@@ -537,6 +602,67 @@ function adjustVolume(delta) {
     });
   }
 }
+
+let volumeDebounceTimer = null;
+function handleVolumeInput(slider) {
+  const val = parseInt(slider.value, 10);
+  const readout = document.getElementById('volume-readout');
+  if (readout) readout.textContent = val + '%';
+  if (volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
+  volumeDebounceTimer = setTimeout(() => {
+    fetch('/api/player/volume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `volume=${val}`
+    }).catch(() => {});
+  }, 40);
+}
+
+function toggleTelemetryHud() {
+  closeAllMenus();
+  const deck = document.getElementById('telemetry-hud-deck');
+  if (!deck) return;
+  deck.classList.toggle('hidden');
+  const isHidden = deck.classList.contains('hidden');
+  try {
+    localStorage.setItem('vibeplay_hide_telemetry_hud', isHidden ? '1' : '0');
+  } catch (e) {}
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hide_telemetry_hud: isHidden }),
+  }).catch(() => {});
+}
+
+function initTelemetryHudState() {
+  const deck = document.getElementById('telemetry-hud-deck');
+  if (!deck) return;
+  try {
+    const saved = localStorage.getItem('vibeplay_hide_telemetry_hud');
+    if (saved === '1') {
+      deck.classList.add('hidden');
+    }
+  } catch (e) {}
+}
+
+let lastJobTableRefresh = 0;
+document.addEventListener('htmx:afterSwap', (event) => {
+  if (event.detail && event.detail.target && event.detail.target.id === 'job-progress-container') {
+    const isIdle = event.detail.target.classList.contains('idle');
+    const now = Date.now();
+    if (isIdle || now - lastJobTableRefresh > 3500) {
+      lastJobTableRefresh = now;
+      const tableContainer = document.getElementById('library-table-container');
+      if (tableContainer && window.htmx) {
+        htmx.ajax('GET', '/api/library/table', { target: '#library-table-container', swap: 'innerHTML' });
+      }
+      const clusterContainer = document.getElementById('clusters-container');
+      if (clusterContainer && window.htmx) {
+        htmx.ajax('GET', '/api/clusters/cards', { target: '#clusters-container', swap: 'innerHTML' });
+      }
+    }
+  }
+});
 
 function triggerClearQueue() {
   closeAllMenus();
@@ -785,6 +911,7 @@ function toggleShortcutsHelp() {
     "• Ctrl+R: Rescan Music Library\n" +
     "• Ctrl+O: Add Music Directory\n" +
     "• Ctrl+,: Preferences & Hardware Settings\n" +
+    "• Ctrl+H: Toggle Telemetry HUD Deck\n" +
     "• Ctrl+Q: Exit Vibeplay\n" +
     "• Space / F10: Play / Pause\n" +
     "• F9 / Ctrl+Left: Previous Track\n" +
@@ -1143,4 +1270,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDesktopSettingsFromServer();
   initTelemetryStream();
   initInspectorState();
+  initTelemetryHudState();
 });

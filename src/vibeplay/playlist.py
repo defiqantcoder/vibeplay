@@ -135,6 +135,43 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "romantic": {
         "mood_min": {"romantic": 0.45},
     },
+    "cyberpunk_neon": {
+        "energy_min": 0.70,
+        "danceability_min": 0.60,
+        "bpm_min": 125.0,
+        "mood_min": {"electronic": 0.50, "aggressive": 0.30},
+    },
+    "jazz_club": {
+        "energy_max": 0.55,
+        "bpm_max": 120.0,
+        "mood_min": {"acoustic": 0.45, "relaxed": 0.35},
+    },
+    "heavy_bass": {
+        "energy_min": 0.75,
+        "danceability_min": 0.65,
+        "mood_min": {"electronic": 0.40},
+    },
+    "meditation": {
+        "energy_max": 0.30,
+        "danceability_max": 0.30,
+        "mood_min": {"acoustic": 0.40, "relaxed": 0.50},
+    },
+    "sunshine_groove": {
+        "energy_min": 0.55,
+        "danceability_min": 0.65,
+        "mood_min": {"happy": 0.45},
+    },
+    "hypnotic_trance": {
+        "bpm_min": 130.0,
+        "bpm_max": 142.0,
+        "energy_min": 0.75,
+        "mood_min": {"electronic": 0.50},
+    },
+    "coffee_shop": {
+        "energy_max": 0.50,
+        "bpm_max": 115.0,
+        "mood_min": {"acoustic": 0.50, "relaxed": 0.40},
+    },
 }
 
 
@@ -248,12 +285,21 @@ def fold_bpm(bpm: float | None) -> float:
     return val
 
 
-def bpm_transition_score(bpm1: float | None, bpm2: float | None) -> float:
+def bpm_transition_score(
+    bpm1: float | None,
+    bpm2: float | None,
+    energy1: float | None = None,
+    energy2: float | None = None,
+    allow_half_double_time: bool = False,
+) -> float:
     """Calculate transition smoothness score between two tempos using octave folding.
 
     Args:
         bpm1: Tempo of starting track.
         bpm2: Tempo of incoming track.
+        energy1: Optional energy value for starting track in [0.0, 1.0].
+        energy2: Optional energy value for incoming track in [0.0, 1.0].
+        allow_half_double_time: Whether half-time/double-time octave jumps are allowed without penalty.
 
     Returns:
         float: Transition score in [0.0, 1.0].
@@ -263,7 +309,22 @@ def bpm_transition_score(bpm1: float | None, bpm2: float | None) -> float:
     f1 = fold_bpm(bpm1)
     f2 = fold_bpm(bpm2)
     diff = abs(f1 - f2)
-    return max(0.0, 1.0 - (diff / 30.0))
+    base_score = max(0.0, 1.0 - (diff / 30.0))
+
+    # Detect if an octave fold took place between consecutive tracks (~2x or ~0.5x tempo difference)
+    ratio = max(float(bpm1), float(bpm2)) / min(float(bpm1), float(bpm2))
+    is_octave_jump = ratio >= 1.65
+
+    if is_octave_jump:
+        energy_aligned = False
+        if energy1 is not None and energy2 is not None:
+            energy_aligned = abs(float(energy1) - float(energy2)) <= 0.15
+
+        if not allow_half_double_time and not energy_aligned:
+            # Apply penalty to smoothness score for jarring tempo/energy jump
+            base_score = max(0.0, base_score - 0.25)
+
+    return round(base_score, 4)
 
 
 @dataclass
@@ -284,6 +345,7 @@ class TrackTransition:
     quality: str | None = None
     badge_class: str | None = None
     clash_level: int = 0
+    is_octave_fold: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Convert transition to dictionary representation."""
@@ -299,6 +361,9 @@ def evaluate_harmonic_transition(
     to_bpm: float | None = None,
     from_camelot: str | None = None,
     to_camelot: str | None = None,
+    from_energy: float | None = None,
+    to_energy: float | None = None,
+    allow_half_double_time: bool = False,
 ) -> dict[str, Any]:
     """Evaluate harmonic compatibility and tempo transition between two tracks.
 
@@ -376,13 +441,21 @@ def evaluate_harmonic_transition(
             clash_level = 2
 
     # BPM Evaluation
+    is_octave_fold = False
     if from_bpm is not None and to_bpm is not None and from_bpm > 0 and to_bpm > 0:
+        ratio = max(float(from_bpm), float(to_bpm)) / min(float(from_bpm), float(to_bpm))
+        if ratio >= 1.65:
+            is_octave_fold = True
+
         f1 = fold_bpm(from_bpm)
         f2 = fold_bpm(to_bpm)
         bpm_diff = round(abs(f2 - f1), 1)
         bpm_pct = round(abs(f2 - f1) / f1 * 100.0, 1) if f1 > 0 else 0.0
 
-        if bpm_pct <= 1.5:
+        if is_octave_fold:
+            bpm_status = "Half-Time / Double-Time"
+            bpm_badge = "score-mid" if not allow_half_double_time else "score-high"
+        elif bpm_pct <= 1.5:
             bpm_status = "Smooth Lock"
             bpm_badge = "score-high"
         elif bpm_pct <= 4.0:
@@ -395,7 +468,14 @@ def evaluate_harmonic_transition(
             bpm_status = "Tempo Jump"
             bpm_badge = "score-low"
 
-        bpm_score = max(0.0, 100.0 - (bpm_diff / 30.0) * 100.0)
+        score_val = bpm_transition_score(
+            from_bpm,
+            to_bpm,
+            energy1=from_energy,
+            energy2=to_energy,
+            allow_half_double_time=allow_half_double_time,
+        )
+        bpm_score = round(score_val * 100.0, 1)
     else:
         bpm_diff = 0.0
         bpm_pct = 0.0
@@ -441,11 +521,13 @@ def evaluate_harmonic_transition(
         "quality": overall_quality,
         "badge_class": overall_badge_class,
         "clash_level": clash_level,
+        "is_octave_fold": is_octave_fold,
     }
 
 
 def calculate_transition_metrics(
     tracks: list[dict[str, Any]] | list[PlaylistTrackItem],
+    allow_half_double_time: bool = False,
 ) -> list[dict[str, Any]]:
     """Compute rich harmonic and tempo transition details between consecutive tracks."""
     transitions: list[dict[str, Any]] = []
@@ -467,6 +549,8 @@ def calculate_transition_metrics(
         c2 = _get(t2, "camelot") or key_to_camelot(k2, s2)
         bpm1 = _get(t1, "bpm")
         bpm2 = _get(t2, "bpm")
+        e1 = _get(t1, "energy")
+        e2 = _get(t2, "energy")
 
         eval_result = evaluate_harmonic_transition(
             from_key=k1,
@@ -477,6 +561,9 @@ def calculate_transition_metrics(
             to_bpm=bpm2,
             from_camelot=c1,
             to_camelot=c2,
+            from_energy=e1,
+            to_energy=e2,
+            allow_half_double_time=allow_half_double_time,
         )
 
         item = {
@@ -609,6 +696,7 @@ class PlaylistRuleConfig(BaseModel):
     limit: int = 25
     minutes: float | None = None
     max_artist_tracks: int = 2
+    allow_half_double_time: bool = False
 
 
 def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
@@ -635,6 +723,16 @@ def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
         return 0.85 - 0.60 * t
     elif clean_arc in ("peak", "warmup_peak_cooldown", "wave", "peak_hour_wave", "peak_wave"):
         return 0.35 + 0.55 * math.sin(math.pi * t)
+    elif clean_arc in ("double_peak", "two_peaks", "twin_peaks"):
+        return min(1.0, max(0.20, 0.40 + 0.45 * (math.sin(2.0 * math.pi * t) ** 2)))
+    elif clean_arc in ("sunrise_roller", "roller", "rolling"):
+        return min(1.0, max(0.20, 0.30 + 0.50 * t + 0.15 * math.sin(4.0 * math.pi * t)))
+    elif clean_arc in ("deep_dive", "dive", "abyss"):
+        return min(1.0, max(0.15, 0.80 - 0.55 * math.sin(math.pi * t)))
+    elif clean_arc in ("heartbeat_wave", "pulse_wave", "heartbeat"):
+        return min(1.0, max(0.20, 0.60 + 0.25 * math.sin(3.0 * math.pi * t)))
+    elif clean_arc in ("slow_burn", "burn", "crescendo"):
+        return min(1.0, max(0.20, 0.25 + 0.65 * (t ** 3)))
     elif clean_arc in ("steady", "plateau", "steady_pulse"):
         return 0.60
     elif clean_arc in ("late_night_chill", "night_chill", "chill", "late_night"):
@@ -648,6 +746,7 @@ def calculate_transition(
     to_meta: dict[str, Any],
     from_vector: np.ndarray | None = None,
     to_vector: np.ndarray | None = None,
+    allow_half_double_time: bool = False,
 ) -> TrackTransition:
     """Calculate transition smoothness scores between two tracks.
 
@@ -656,6 +755,7 @@ def calculate_transition(
         to_meta: Metadata dictionary of destination track.
         from_vector: Vibe vector of originating track.
         to_vector: Vibe vector of destination track.
+        allow_half_double_time: Whether octave jumps are permitted without penalty.
 
     Returns:
         TrackTransition: Populated transition metrics.
@@ -675,13 +775,20 @@ def calculate_transition(
             quality="Start",
             badge_class="score-high",
             clash_level=0,
+            is_octave_fold=False,
         )
 
     # Cosine similarity over unit-normalized vibe vectors
     dot = float(np.dot(from_vector, to_vector))
     vibe_sim = float(np.clip(dot, 0.0, 1.0))
 
-    bpm_score = bpm_transition_score(from_meta.get("bpm"), to_meta.get("bpm"))
+    bpm_score = bpm_transition_score(
+        from_meta.get("bpm"),
+        to_meta.get("bpm"),
+        energy1=from_meta.get("energy"),
+        energy2=to_meta.get("energy"),
+        allow_half_double_time=allow_half_double_time,
+    )
 
     c1 = key_to_camelot(from_meta.get("key"), from_meta.get("scale"))
     c2 = key_to_camelot(to_meta.get("key"), to_meta.get("scale"))
@@ -698,6 +805,9 @@ def calculate_transition(
         to_bpm=to_meta.get("bpm"),
         from_camelot=c1,
         to_camelot=c2,
+        from_energy=from_meta.get("energy"),
+        to_energy=to_meta.get("energy"),
+        allow_half_double_time=allow_half_double_time,
     )
 
     return TrackTransition(
@@ -715,6 +825,7 @@ def calculate_transition(
         quality=eval_harm["quality"],
         badge_class=eval_harm["badge_class"],
         clash_level=eval_harm["clash_level"],
+        is_octave_fold=eval_harm.get("is_octave_fold", False),
     )
 
 
@@ -822,15 +933,60 @@ def generate_playlist(
         config_rules.year_max = rules.year_max
         config_rules.genre_include = rules.genre_include
         config_rules.genre_exclude = rules.genre_exclude
+        config_rules.allow_half_double_time = rules.allow_half_double_time
 
     # Load vectors and metadata
     track_ids, vectors, meta_map = get_or_build_vibe_vectors(
         db_path=db_path, settings=cfg
     )
     if len(track_ids) == 0:
-        raise ValueError(
-            "Cannot generate playlist: no analyzed audio tracks found in library."
-        )
+        with get_connection(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(tracks)")
+            cols = {row[1] for row in cursor.fetchall()}
+            if "status" in cols:
+                cursor.execute(
+                    "SELECT id, path, title, artist, album, duration FROM tracks WHERE status = 'active' ORDER BY id ASC"
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, path, title, artist, album, duration FROM tracks ORDER BY id ASC"
+                )
+            raw_tracks = cursor.fetchall()
+
+        if not raw_tracks:
+            raise ValueError(
+                "Cannot generate playlist: no audio tracks found in library. Please scan your music folder first."
+            )
+
+        synth_ids = []
+        synth_meta_map = {}
+        synth_vectors = []
+        for r in raw_tracks:
+            tid = int(r[0])
+            p = Path(r[1])
+            synth_ids.append(tid)
+            synth_meta_map[tid] = {
+                "track_id": tid,
+                "title": r[2] or p.stem,
+                "artist": r[3] or "Unknown Artist",
+                "album": r[4] or "Unknown Album",
+                "duration": float(r[5] or 180.0),
+                "bpm": 120.0,
+                "key": "C",
+                "scale": "major",
+                "camelot": "8B",
+                "energy": 0.50,
+                "danceability": 0.50,
+                "path": str(p),
+            }
+            v = np.zeros(64, dtype=np.float32)
+            v[0] = 1.0
+            synth_vectors.append(v)
+
+        track_ids = np.array(synth_ids, dtype=int)
+        vectors = np.array(synth_vectors, dtype=np.float32)
+        meta_map = synth_meta_map
 
     # Apply vibe preset filters if vibe is specified
     if config_rules.vibe:
@@ -1078,7 +1234,14 @@ def generate_playlist(
     curr_vec = vectors[id_to_vec_idx[curr_id]]
     curr_artist = curr_meta.get("artist") or "Unknown Artist"
 
-    init_trans = calculate_transition(None, curr_meta, None, curr_vec)
+    arc_allows_hd = bool(
+        config_rules.arc
+        and config_rules.arc.lower().strip().replace("-", "_")
+        in ("half_time", "double_time", "half_double", "tempo_shift", "half_double_time")
+    )
+    allow_hd = config_rules.allow_half_double_time or arc_allows_hd
+
+    init_trans = calculate_transition(None, curr_meta, None, curr_vec, allow_half_double_time=allow_hd)
     playlist_items.append(
         PlaylistTrackItem(
             position=1,
@@ -1151,7 +1314,9 @@ def generate_playlist(
             cand_vec = vectors[id_to_vec_idx[cid]]
 
             # Transition smoothness score
-            trans = calculate_transition(prev_meta, cand_meta, prev_vec, cand_vec)
+            trans = calculate_transition(
+                prev_meta, cand_meta, prev_vec, cand_vec, allow_half_double_time=allow_hd
+            )
 
             # Vibe alignment with overall reference
             theme_sim = float(np.clip(float(np.dot(cand_vec, ref_vector)), 0.0, 1.0))

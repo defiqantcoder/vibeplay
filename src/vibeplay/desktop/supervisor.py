@@ -130,6 +130,9 @@ pid_file            "{mpd_dir_str}/pid"
 state_file          "{mpd_dir_str}/state"
 sticker_file        "{mpd_dir_str}/sticker.sql"
 
+follow_outside_symlinks "yes"
+follow_inside_symlinks  "yes"
+
 bind_to_address     "{host}"
 port                "{port}"
 log_level           "default"
@@ -147,6 +150,8 @@ audio_output {
     type            "pipewire"
     name            "PipeWire Sound Server"
     enabled         "yes"
+    dop             "no"
+    format          "*:*:*"
 }
 
 # Audio Output 2: Bit-Perfect ALSA Direct Default
@@ -257,6 +262,18 @@ class DesktopSupervisor:
                 info["bit_perfect_ready"] = True
                 if audit.unlocked_rates:
                     info["sample_rates"] = [str(r) for r in audit.unlocked_rates]
+                try:
+                    from vibe_dsp.alsa_reservation import (
+                        generate_mpd_audio_outputs,
+                        write_mpd_audio_outputs_config,
+                    )
+
+                    outputs_content = generate_mpd_audio_outputs(
+                        ep, audit.fallback_endpoint
+                    )
+                    write_mpd_audio_outputs_config(outputs_content)
+                except Exception as out_err:
+                    logger.debug("Could not write dynamic MPD audio outputs: %s", out_err)
         except Exception as err:
             logger.debug("Hardware scan details unavailable: %s", err)
 

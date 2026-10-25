@@ -31,6 +31,10 @@
         <span class="tab-icon">🎨</span>
         <span>Theme Engine</span>
       </button>
+      <button type="button" class="settings-tab-btn" id="tab-btn-ai" onclick="switchSettingsTab('ai')">
+        <span class="tab-icon">✨</span>
+        <span>AI & Integrations</span>
+      </button>
     </div>
 
     <!-- Tab Panels Body -->
@@ -377,6 +381,67 @@
               <option value="high-contrast" {% if desktop_settings and desktop_settings.contrast_mode == 'high-contrast' %}selected{% endif %}>High-Contrast Mastering (Enhanced Borders & Text)</option>
             </select>
             <p class="section-help">Boosts tonal border luminance and text contrast for bright mastering rooms.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. AI & Metadata Integrations Tab -->
+      <div class="settings-panel" id="panel-ai">
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-gemini-api-key">Google Gemini API Key</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="password"
+                     id="cfg-gemini-api-key"
+                     class="settings-input font-mono"
+                     placeholder="AIzaSy..."
+                     value="{{ desktop_settings.gemini_api_key if desktop_settings and desktop_settings.gemini_api_key else '' }}"
+                     onchange="saveDesktopSettings()">
+              <button type="button" class="btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 11px;" onclick="togglePasswordVisibility('cfg-gemini-api-key', this)">Show</button>
+            </div>
+            <p class="section-help">Required for natural language playlist generation and harmonic prompts. Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">aistudio.google.com/apikey</a>.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-llm-provider">AI Curation Mode</label>
+            <select id="cfg-llm-provider" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="gemini" {% if not desktop_settings or desktop_settings.llm_provider == 'gemini' %}selected{% endif %}>Google Gemini (Cloud AI Curated)</option>
+              <option value="off" {% if desktop_settings and desktop_settings.llm_provider == 'off' %}selected{% endif %}>Offline / Deterministic Rule-Based Only</option>
+            </select>
+            <p class="section-help">Choose between LLM semantic track selection or local mathematical constraint solving.</p>
+          </div>
+        </div>
+
+        <div class="panel-grid-2" style="margin-top: 1rem;">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-gemini-model">Gemini Model Tier</label>
+            <select id="cfg-gemini-model" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="gemini-2.5-flash" {% if not desktop_settings or desktop_settings.gemini_model == 'gemini-2.5-flash' %}selected{% endif %}>gemini-2.5-flash (Fast &amp; Accurate — Recommended)</option>
+              <option value="gemini-2.5-pro" {% if desktop_settings and desktop_settings.gemini_model == 'gemini-2.5-pro' %}selected{% endif %}>gemini-2.5-pro (Deep Harmonic Reasoning)</option>
+              <option value="gemini-1.5-flash" {% if desktop_settings and desktop_settings.gemini_model == 'gemini-1.5-flash' %}selected{% endif %}>gemini-1.5-flash (Legacy High Speed)</option>
+            </select>
+            <p class="section-help">Flash provides instant results; Pro performs comprehensive reasoning over large libraries.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-acoustid-api-key">AcoustID API Key (Fingerprinting)</label>
+            <input type="text"
+                   id="cfg-acoustid-api-key"
+                   class="settings-input font-mono"
+                   placeholder="Optional API key..."
+                   value="{{ desktop_settings.acoustid_api_key if desktop_settings and desktop_settings.acoustid_api_key else '' }}"
+                   onchange="saveDesktopSettings()">
+            <p class="section-help">For online Chromaprint fingerprinting via MusicBrainz. If blank, local tag fallback is used.</p>
+          </div>
+        </div>
+
+        <div class="panel-section" style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-container-low); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-weight: 600; font-size: 13px;">Test AI Connection</span>
+              <div class="text-muted text-xs" id="ai-test-status">Verify your Gemini API key and model connectivity</div>
+            </div>
+            <button type="button" class="btn-secondary" id="btn-test-ai" onclick="testAiConnection()">Verify API Key</button>
           </div>
         </div>
       </div>

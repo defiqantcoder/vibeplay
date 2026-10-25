@@ -234,3 +234,46 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// Settings & Telemetry HUD Helpers (Web Shell Fallback)
+if (typeof window.openSettingsTab !== 'function') {
+  window.openSettingsTab = function(tabName) {
+    if (typeof toggleSettingsDialog === 'function') {
+      toggleSettingsDialog(tabName);
+    }
+  };
+}
+
+if (typeof window.handleVolumeInput !== 'function') {
+  let appVolumeTimer = null;
+  window.handleVolumeInput = function(slider) {
+    const val = parseInt(slider.value, 10);
+    const readout = document.getElementById('volume-readout');
+    if (readout) readout.textContent = val + '%';
+    if (appVolumeTimer) clearTimeout(appVolumeTimer);
+    appVolumeTimer = setTimeout(() => {
+      fetch('/api/player/volume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `volume=${val}`
+      }).catch(() => {});
+    }, 40);
+  };
+}
+
+if (typeof window.toggleTelemetryHud !== 'function') {
+  window.toggleTelemetryHud = function() {
+    const deck = document.getElementById('telemetry-hud-deck');
+    if (!deck) return;
+    deck.classList.toggle('hidden');
+    const isHidden = deck.classList.contains('hidden');
+    try {
+      localStorage.setItem('vibeplay_hide_telemetry_hud', isHidden ? '1' : '0');
+    } catch (e) {}
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hide_telemetry_hud: isHidden }),
+    }).catch(() => {});
+  };
+}
+

@@ -197,6 +197,71 @@
             </p>
             <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary);">0.45 ➔ 0.20 Ambient Decay</div>
           </label>
+
+          <!-- Arc 5: Double Peak -->
+          <label class="arc-card {% if current_arc == 'double_peak' %}active{% endif %}">
+            <input type="radio" name="arc" value="double_peak" {% if current_arc == 'double_peak' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Double Peak</span>
+              <svg class="icon" style="width: 16px; height: 16px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M4 18h2V6l3 5 3-5v12h2V6l3 5 3-5v12h2V4l-4 7-3-5-3 5-4-7z"/></svg>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+              Two energetic climaxes separated by an atmospheric breakdown.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--secondary);">Twin Apex (~0.85 / ~0.90)</div>
+          </label>
+
+          <!-- Arc 6: Sunrise Roller -->
+          <label class="arc-card {% if current_arc == 'sunrise_roller' %}active{% endif %}">
+            <input type="radio" name="arc" value="sunrise_roller" {% if current_arc == 'sunrise_roller' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Sunrise Roller</span>
+              <svg class="icon" style="width: 16px; height: 16px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5 0 .65.13 1.26.36 1.83l2.92-2.92c.39-.39 1.02-.39 1.41 0l3.14 3.14c.73-.59 1.17-1.48 1.17-2.05 0-2.76-2.24-5-5-5zm-1.28 10.95L8.3 15.53C8.1 14.73 8 13.88 8 13c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.1 1.73-.3 2.53l-2.42 2.42c-.78.78-2.05.78-2.56 0zM1 18h22v2H1z"/></svg>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+              Uplifting progression rising into bright morning euphoria.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">0.35 ➔ 0.85 Rolling Lift</div>
+          </label>
+
+          <!-- Arc 7: Deep Dive -->
+          <label class="arc-card {% if current_arc == 'deep_dive' %}active{% endif %}">
+            <input type="radio" name="arc" value="deep_dive" {% if current_arc == 'deep_dive' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Deep Dive</span>
+              <svg class="icon" style="width: 16px; height: 16px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M16 13h-3V3h-2v10H8l4 4 4-4zM4 19v2h16v-2H4z"/></svg>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+              Hypnotic descent into sub-bass depths and minimal textures.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary);">0.70 ➔ 0.30 Deep Plunge</div>
+          </label>
+
+          <!-- Arc 8: Heartbeat Wave -->
+          <label class="arc-card {% if current_arc == 'heartbeat_wave' %}active{% endif %}">
+            <input type="radio" name="arc" value="heartbeat_wave" {% if current_arc == 'heartbeat_wave' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Heartbeat Wave</span>
+              <svg class="icon" style="width: 16px; height: 16px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M3 12h3.5l2.5-6 4 13 3-9 2 4H21v-2h-4.5l-2.5 5.5-3-11.5-4 9H3v2z"/></svg>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+              Pulsing rhythmic oscillations cycling between peaks and valleys.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--secondary);">Cyclic Dynamic Waves</div>
+          </label>
+
+          <!-- Arc 9: Slow Burn -->
+          <label class="arc-card {% if current_arc == 'slow_burn' %}active{% endif %}">
+            <input type="radio" name="arc" value="slow_burn" {% if current_arc == 'slow_burn' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Slow Burn</span>
+              <svg class="icon" style="width: 16px; height: 16px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+              Extended subtle build with incremental tension leading to a late peak.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">0.30 ➔ 0.95 Late Climax</div>
+          </label>
         </div>
       </div>
 

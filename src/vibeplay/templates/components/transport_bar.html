@@ -56,20 +56,29 @@
 
       <!-- Volume -->
       <div class="volume-stack">
-        <svg class="icon" style="width: 18px; height: 18px; fill: var(--text-muted);" viewBox="0 0 24 24">
-          {% if playback.volume == 0 %}
-            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-          {% else %}
-            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-          {% endif %}
-        </svg>
+        <span class="btn-icon-mute"
+              hx-post="/api/player/mute-toggle"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML"
+              style="cursor: pointer; display: inline-flex; align-items: center;"
+              title="Toggle Mute (Ctrl+M)">
+          <svg class="icon" style="width: 18px; height: 18px; fill: var(--text-muted);" viewBox="0 0 24 24">
+            {% if playback.volume == 0 %}
+              <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            {% else %}
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            {% endif %}
+          </svg>
+        </span>
         <form hx-post="/api/player/volume" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0;">
           <input type="range"
                  name="volume"
+                 id="global-volume-slider"
                  class="volume-slider"
                  min="0"
                  max="100"
                  value="{{ playback.volume }}"
+                 oninput="handleVolumeInput(this)"
                  onchange="this.form.requestSubmit()"
                  title="Volume: {{ playback.volume }}%">
         </form>
@@ -77,16 +86,29 @@
 
       <!-- Audio Output Profile Selector (Custom Popup to prevent WebKit premature close) -->
       <div class="audio-output-dropdown-container">
-        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleAudioOutputDropdown(event)" title="Select Audio Output Device">
+        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleAudioOutputDropdown(event)" title="Select Audio Output Device (Click to expand options)">
           <span class="pulse-dot" style="width: 5px; height: 5px; margin-right: 2px;"></span>
           <span class="active-output-text truncate" style="max-width: 140px;">{{ playback.output_profile }}</span>
           <svg class="icon icon-xs" style="width: 12px; height: 12px; margin-left: 2px;" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </button>
         <div class="audio-output-menu" id="audio-output-menu">
           {% for prof in playback.output_profiles %}
+            {% set prof_lower = prof | lower %}
+            {% if "spatial" in prof_lower %}
+              {% set prof_tip = "7.1.4 3D Spatial Binaural: Convolves multi-channel audio using KEMAR HRTF impulses into immersive 3D audio for stereo headphones. Requires PipeWire output." %}
+            {% elif "letshuoer" in prof_lower or "dt01" in prof_lower %}
+              {% set prof_tip = "Letshuoer USB DAC (Bit-Perfect Direct ALSA hw:1,0): Hardware direct bitstream delivery bypassing software mixers and volume attenuation." %}
+            {% elif "bit-perfect" in prof_lower or "pure" in prof_lower %}
+              {% set prof_tip = "Pure Bit-Perfect (Direct ALSA): Bit-accurate raw streaming directly to audio hardware without resampling." %}
+            {% elif "passthrough" in prof_lower or "receiver" in prof_lower or "hdmi" in prof_lower %}
+              {% set prof_tip = "AV Receiver Passthrough: Encoded digital multi-channel bitstream passed to HDMI receiver processor." %}
+            {% else %}
+              {% set prof_tip = "PipeWire Sound Server: System low-latency audio engine with multi-application sharing and software mixing." %}
+            {% endif %}
             <button type="button"
                     class="audio-output-item {% if prof == playback.output_profile %}active{% endif %}"
-                    onclick="selectAudioOutput('{{ prof }}')">
+                    onclick="selectAudioOutput('{{ prof }}')"
+                    title="{{ prof_tip }}">
               <span class="truncate">{{ prof }}</span>
               {% if prof == playback.output_profile %}
                 <span class="dot-indicator dot-green"></span>
