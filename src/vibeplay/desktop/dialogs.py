@@ -66,6 +66,7 @@ def choose_directory_dialog(
     if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
         try:
             import gi
+
             gi.require_version("Gtk", "3.0")
             from gi.repository import Gtk
 

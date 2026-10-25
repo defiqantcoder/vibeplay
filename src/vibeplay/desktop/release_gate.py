@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import os
 import stat
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
-import warnings
+from vibeplay.desktop.security import is_loopback_host
 
 # Suppress harmless StarletteDeprecationWarning when TestClient is loaded
 warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")
@@ -35,20 +36,15 @@ class ReleaseGateReport:
     checks: list[GateCheckResult]
 
 
-def validate_loopback_host(host: str) -> bool:
-    """Strictly verify if the host is a loopback address."""
-    return host in ("127.0.0.1", "localhost", "::1")
-
-
 def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | None = None) -> ReleaseGateReport:
     """Run all Phase 7 desktop invariant release gate checks."""
     checks = []
 
     # 1. Loopback Security Invariant
     try:
-        assert validate_loopback_host("127.0.0.1") is True, "127.0.0.1 must be allowed"
-        assert validate_loopback_host("localhost") is True, "localhost must be allowed"
-        assert validate_loopback_host("0.0.0.0") is False, "0.0.0.0 must be rejected"
+        assert is_loopback_host("127.0.0.1") is True, "127.0.0.1 must be allowed"
+        assert is_loopback_host("localhost") is True, "localhost must be allowed"
+        assert is_loopback_host("0.0.0.0") is False, "0.0.0.0 must be rejected"
         checks.append(GateCheckResult("Loopback Security Invariant", True, "Passed loopback validation"))
     except AssertionError as e:
         checks.append(GateCheckResult("Loopback Security Invariant", False, str(e)))

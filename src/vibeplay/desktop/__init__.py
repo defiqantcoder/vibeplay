@@ -40,8 +40,8 @@ from vibeplay.desktop.release_gate import (
     GateCheckResult,
     ReleaseGateReport,
     run_release_gate_checks,
-    validate_loopback_host,
 )
+from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -97,5 +97,6 @@ __all__ = [
     "save_desktop_settings",
     "update_desktop_settings",
     "validate_loopback_host",
+    "is_loopback_host",
     "verify_bundle_assets",
 ]

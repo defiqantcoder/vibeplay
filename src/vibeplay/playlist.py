@@ -155,12 +155,7 @@ def key_to_camelot(key: str | None, scale: str | None) -> str | None:
     raw_scale = str(scale).strip().lower() if scale else ""
 
     # Parse compound formats like 'Am', 'C#m', 'C minor'
-    if (
-        raw_key.endswith("m")
-        and not raw_key.endswith("maj")
-        and not raw_key.endswith("major")
-        and len(raw_key) > 1
-    ):
+    if raw_key.endswith("m") and not raw_key.endswith("maj") and not raw_key.endswith("major") and len(raw_key) > 1:
         raw_scale = "minor"
         raw_key = raw_key[:-1]
     elif raw_key.lower().endswith(" minor") or raw_key.lower().endswith(" min"):
@@ -530,7 +525,6 @@ def calculate_playlist_summary(
     }
 
 
-
 @dataclass
 class PlaylistTrackItem:
     """A track entry within a sequenced playlist."""
@@ -824,13 +818,9 @@ def generate_playlist(
         config_rules.genre_exclude = rules.genre_exclude
 
     # Load vectors and metadata
-    track_ids, vectors, meta_map = get_or_build_vibe_vectors(
-        db_path=db_path, settings=cfg
-    )
+    track_ids, vectors, meta_map = get_or_build_vibe_vectors(db_path=db_path, settings=cfg)
     if len(track_ids) == 0:
-        raise ValueError(
-            "Cannot generate playlist: no analyzed audio tracks found in library."
-        )
+        raise ValueError("Cannot generate playlist: no analyzed audio tracks found in library.")
 
     # Apply vibe preset filters if vibe is specified
     if config_rules.vibe:
@@ -876,9 +866,7 @@ def generate_playlist(
             "key": r["key"],
             "scale": r["scale"],
             "energy": float(r["energy"]) if r["energy"] is not None else 0.5,
-            "danceability": float(r["danceability"])
-            if r["danceability"] is not None
-            else 0.5,
+            "danceability": float(r["danceability"]) if r["danceability"] is not None else 0.5,
             "loudness": float(r["loudness"]) if r["loudness"] is not None else -10.0,
             "mood_scores": json.loads(r["mood_scores"]) if r["mood_scores"] else {},
         }
@@ -898,9 +886,7 @@ def generate_playlist(
                 break
         if chosen_cluster:
             candidate_ids = set(chosen_cluster.track_ids)
-            logger.info(
-                "Filtered to %d tracks in cluster %d", len(candidate_ids), target_cid
-            )
+            logger.info("Filtered to %d tracks in cluster %d", len(candidate_ids), target_cid)
         else:
             logger.warning("Cluster %d not found; using all library tracks", target_cid)
             candidate_ids = set(rich_tracks_by_id.keys())
@@ -912,79 +898,39 @@ def generate_playlist(
 
             # Tempo bounds
             bpm = meta.get("bpm")
-            if (
-                config_rules.bpm_min is not None
-                and bpm is not None
-                and bpm < config_rules.bpm_min
-            ):
+            if config_rules.bpm_min is not None and bpm is not None and bpm < config_rules.bpm_min:
                 continue
-            if (
-                config_rules.bpm_max is not None
-                and bpm is not None
-                and bpm > config_rules.bpm_max
-            ):
+            if config_rules.bpm_max is not None and bpm is not None and bpm > config_rules.bpm_max:
                 continue
 
             # Energy bounds
             energy = meta.get("energy")
-            if (
-                config_rules.energy_min is not None
-                and energy is not None
-                and energy < config_rules.energy_min
-            ):
+            if config_rules.energy_min is not None and energy is not None and energy < config_rules.energy_min:
                 continue
-            if (
-                config_rules.energy_max is not None
-                and energy is not None
-                and energy > config_rules.energy_max
-            ):
+            if config_rules.energy_max is not None and energy is not None and energy > config_rules.energy_max:
                 continue
 
             # Danceability bounds
             dance = meta.get("danceability")
-            if (
-                config_rules.danceability_min is not None
-                and dance is not None
-                and dance < config_rules.danceability_min
-            ):
+            if config_rules.danceability_min is not None and dance is not None and dance < config_rules.danceability_min:
                 continue
-            if (
-                config_rules.danceability_max is not None
-                and dance is not None
-                and dance > config_rules.danceability_max
-            ):
+            if config_rules.danceability_max is not None and dance is not None and dance > config_rules.danceability_max:
                 continue
 
             # Year bounds
             year = meta.get("year")
-            if (
-                config_rules.year_min is not None
-                and year is not None
-                and year < config_rules.year_min
-            ):
+            if config_rules.year_min is not None and year is not None and year < config_rules.year_min:
                 continue
-            if (
-                config_rules.year_max is not None
-                and year is not None
-                and year > config_rules.year_max
-            ):
+            if config_rules.year_max is not None and year is not None and year > config_rules.year_max:
                 continue
 
             # Genre include / exclude
-            combined_genre_text = (
-                f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}"
-            ).lower()
+            combined_genre_text = (f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}").lower()
             if config_rules.genre_include:
-                if not any(
-                    gi.lower() in combined_genre_text
-                    for gi in config_rules.genre_include
-                ):
+                if not any(gi.lower() in combined_genre_text for gi in config_rules.genre_include):
                     continue
             if config_rules.genre_exclude:
-                if any(
-                    ge.lower() in combined_genre_text
-                    for ge in config_rules.genre_exclude
-                ):
+                if any(ge.lower() in combined_genre_text for ge in config_rules.genre_exclude):
                     continue
 
             # Mood minimums
@@ -1008,16 +954,12 @@ def generate_playlist(
 
     # Fallback if filters were too restrictive
     if len(candidate_ids) == 0:
-        logger.warning(
-            "Rules yielded 0 candidates; falling back to full library tracks."
-        )
+        logger.warning("Rules yielded 0 candidates; falling back to full library tracks.")
         candidate_ids = set(rich_tracks_by_id.keys())
 
     # Build reference vibe vector
     if active_seeds:
-        seed_vectors = [
-            vectors[id_to_vec_idx[s]] for s in active_seeds if s in id_to_vec_idx
-        ]
+        seed_vectors = [vectors[id_to_vec_idx[s]] for s in active_seeds if s in id_to_vec_idx]
         if seed_vectors:
             ref_vector = np.mean(seed_vectors, axis=0)
             norm = np.linalg.norm(ref_vector)
@@ -1027,9 +969,7 @@ def generate_playlist(
             ref_vector = vectors[0]
     else:
         # Average vector across candidates
-        cand_indices = [
-            id_to_vec_idx[cid] for cid in candidate_ids if cid in id_to_vec_idx
-        ]
+        cand_indices = [id_to_vec_idx[cid] for cid in candidate_ids if cid in id_to_vec_idx]
         if cand_indices:
             ref_vector = np.mean(vectors[cand_indices], axis=0)
             norm = np.linalg.norm(ref_vector)
@@ -1104,10 +1044,7 @@ def generate_playlist(
 
     # Greedy sequencing for remaining slots
     while len(playlist_items) < limit:
-        if (
-            target_duration_seconds is not None
-            and current_duration >= target_duration_seconds
-        ):
+        if target_duration_seconds is not None and current_duration >= target_duration_seconds:
             break
 
         prev_meta = curr_meta
@@ -1115,23 +1052,13 @@ def generate_playlist(
         step_idx = len(playlist_items)
 
         # Filter remaining candidates by deduplication
-        available_cids = [
-            cid
-            for cid in candidate_ids
-            if cid not in used_track_ids
-            and _get_dedup_key(rich_tracks_by_id[cid]) not in used_dedup_keys
-        ]
+        available_cids = [cid for cid in candidate_ids if cid not in used_track_ids and _get_dedup_key(rich_tracks_by_id[cid]) not in used_dedup_keys]
         if not available_cids:
             break
 
         # Filter by artist count constraint
         eligible_cids = [
-            cid
-            for cid in available_cids
-            if artist_counts.get(
-                rich_tracks_by_id[cid].get("artist") or "Unknown Artist", 0
-            )
-            < max_artist_tracks
+            cid for cid in available_cids if artist_counts.get(rich_tracks_by_id[cid].get("artist") or "Unknown Artist", 0) < max_artist_tracks
         ]
         pool = eligible_cids if eligible_cids else available_cids
 
@@ -1140,11 +1067,7 @@ def generate_playlist(
         best_candidate_score = -float("inf")
         best_candidate_trans: TrackTransition | None = None
 
-        target_arc_energy = (
-            evaluate_energy_arc(config_rules.arc, step_idx, limit)
-            if config_rules.arc
-            else None
-        )
+        target_arc_energy = evaluate_energy_arc(config_rules.arc, step_idx, limit) if config_rules.arc else None
 
         for cid in pool:
             cand_meta = rich_tracks_by_id[cid]
@@ -1163,11 +1086,7 @@ def generate_playlist(
             else:
                 score = 0.60 * trans.total_score + 0.40 * theme_sim
 
-            if (
-                config_rules.max_bpm_delta is not None
-                and prev_meta.get("bpm")
-                and cand_meta.get("bpm")
-            ):
+            if config_rules.max_bpm_delta is not None and prev_meta.get("bpm") and cand_meta.get("bpm"):
                 b_diff = abs(fold_bpm(prev_meta["bpm"]) - fold_bpm(cand_meta["bpm"]))
                 if b_diff > config_rules.max_bpm_delta:
                     penalty = (b_diff - config_rules.max_bpm_delta) / 20.0
@@ -1211,16 +1130,11 @@ def generate_playlist(
         current_duration += curr_meta["duration"]
 
     # Calculate average transition score
-    transitions = [
-        item.transition.total_score for item in playlist_items if item.transition
-    ]
+    transitions = [item.transition.total_score for item in playlist_items if item.transition]
     avg_trans_score = float(np.mean(transitions)) if transitions else 1.0
 
     # Persist to database
-    desc = (
-        description
-        or f"Generated by vibeplay ({mode} mode, {len(playlist_items)} tracks)"
-    )
+    desc = description or f"Generated by vibeplay ({mode} mode, {len(playlist_items)} tracks)"
     rules_json = config_rules.model_dump_json()
 
     with get_connection(db_path) as conn:

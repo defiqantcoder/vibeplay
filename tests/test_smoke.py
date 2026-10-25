@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 import vibeplay
 from vibeplay.cli import app
 from vibeplay.db import init_db
+from vibeplay.desktop.security import is_loopback_host
 
 runner = CliRunner()
 
@@ -42,9 +43,7 @@ def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
     """Verify that vibeplay serve invokes run_server with default arguments."""
     called: dict[str, Any] = {}
 
-    def mock_run_server(
-        db_path: Path, host: str = "127.0.0.1", port: int = 8000, **kwargs: Any
-    ) -> None:
+    def mock_run_server(db_path: Path, host: str = "127.0.0.1", port: int = 8000, **kwargs: Any) -> None:
         called["db_path"] = db_path
         called["host"] = host
         called["port"] = port
@@ -53,7 +52,7 @@ def test_serve_cli_invokes_run_server(monkeypatch: Any) -> None:
     monkeypatch.setattr("vibeplay.web.run_server", mock_run_server)
     result = runner.invoke(app, ["serve", "--port", "8008"])
     assert result.exit_code == 0
-    assert called["host"] == "127.0.0.1"
+    assert is_loopback_host(called["host"])
     assert called["port"] == 8008
     assert "Web UI starting" in result.stdout
 
