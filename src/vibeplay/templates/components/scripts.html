@@ -121,23 +121,15 @@ function submitNewPlaylistOrder() {
   if (!container) return;
   const items = container.querySelectorAll('.playlist-track-row');
   const trackIds = Array.from(items).map(i => i.getAttribute('data-track-id')).filter(Boolean);
-  const playlistId = container.getAttribute('data-playlist-id') || '';
+  const playlistId = container.getAttribute('data-playlist-id');
 
-  // Update position numbers immediately for instant visual feedback
-  items.forEach((item, idx) => {
-    item.setAttribute('data-position', idx + 1);
-  });
-
-  if (trackIds.length > 0 && window.htmx) {
-    const targetEl = document.getElementById('guided-playlist-builder-root') ? '#guided-playlist-builder-root' : '#playlist-builder-container';
-    const swapMode = targetEl === '#guided-playlist-builder-root' ? 'outerHTML' : 'innerHTML';
-    htmx.ajax('POST', '/api/playlist/builder/reorder', {
-      target: targetEl,
-      swap: swapMode,
+  if (playlistId && trackIds.length > 0 && window.htmx) {
+    htmx.ajax('POST', '/api/playlist/reorder', {
+      target: '#playlist-builder-container',
+      swap: 'innerHTML',
       values: {
         playlist_id: playlistId,
         track_ids: trackIds.join(','),
-        step: 4,
       }
     });
   }
@@ -145,9 +137,7 @@ function submitNewPlaylistOrder() {
 
 // Re-initialize drag and drop after HTMX swaps
 document.addEventListener('htmx:afterSwap', (event) => {
-  if (event.detail.target.id === 'playlist-builder-container' ||
-      event.detail.target.id === 'tab-builder' ||
-      event.detail.target.id === 'guided-playlist-builder-root') {
+  if (event.detail.target.id === 'playlist-builder-container' || event.detail.target.id === 'tab-builder') {
     initPlaylistDragDrop();
   }
   if (event.detail.target.id === 'track-detail-modal') {

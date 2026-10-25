@@ -112,7 +112,6 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
             "components/cluster_cards.html",
             "components/track_detail.html",
             "components/playlist_builder.html",
-            "components/playlist_seed_results.html",
         ]
 
         required_static = [

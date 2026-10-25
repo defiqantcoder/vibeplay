@@ -234,259 +234,10 @@ class TrackTransition:
     bpm_score: float
     key_score: float
     total_score: float
-    harmonic_label: str | None = None
-    harmonic_badge: str | None = None
-    harmonic_type: str | None = None
-    bpm_delta: float | None = None
-    bpm_delta_pct: float | None = None
-    quality: str | None = None
-    badge_class: str | None = None
-    clash_level: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         """Convert transition to dictionary representation."""
         return asdict(self)
-
-
-def evaluate_harmonic_transition(
-    from_key: str | None = None,
-    from_scale: str | None = None,
-    to_key: str | None = None,
-    to_scale: str | None = None,
-    from_bpm: float | None = None,
-    to_bpm: float | None = None,
-    from_camelot: str | None = None,
-    to_camelot: str | None = None,
-) -> dict[str, Any]:
-    """Evaluate harmonic compatibility and tempo transition between two tracks.
-
-    Handles Camelot wheel notation ([1-12][A-B]), detecting exact harmonic matches,
-    relative major/minor matches, +1 energy boosts, -1 energy drops, and harmonic clashes.
-    Also calculates folded tempo delta and provides color-coded badge classes.
-    """
-    c1 = (from_camelot or key_to_camelot(from_key, from_scale) or "").strip().upper()
-    c2 = (to_camelot or key_to_camelot(to_key, to_scale) or "").strip().upper()
-
-    # Camelot Evaluation
-    if not c1 or not c2 or len(c1) < 2 or len(c2) < 2:
-        harmonic_type = "unknown"
-        relation_label = "Neutral / Key Unknown"
-        harmonic_badge = "neutral"
-        harmonic_score = 70.0
-        clash_level = 0
-    else:
-        try:
-            n1, m1 = int(c1[:-1]), c1[-1]
-            n2, m2 = int(c2[:-1]), c2[-1]
-        except (ValueError, IndexError):
-            n1, m1, n2, m2 = 0, "", 0, ""
-
-        if n1 <= 0 or n1 > 12 or n2 <= 0 or n2 > 12 or m1 not in ("A", "B") or m2 not in ("A", "B"):
-            harmonic_type = "unknown"
-            relation_label = "Neutral / Key Unknown"
-            harmonic_badge = "neutral"
-            harmonic_score = 70.0
-            clash_level = 0
-        elif n1 == n2 and m1 == m2:
-            harmonic_type = "exact"
-            relation_label = f"{c1} -> {c2} [Exact Harmonic Match]"
-            harmonic_badge = "seamless"
-            harmonic_score = 100.0
-            clash_level = 0
-        elif n1 == n2 and m1 != m2:
-            harmonic_type = "relative"
-            relation_label = f"{c1} -> {c2} [Exact Harmonic Match]"
-            harmonic_badge = "seamless"
-            harmonic_score = 95.0
-            clash_level = 0
-        elif m1 == m2 and (n2 - n1) % 12 == 1:
-            harmonic_type = "boost"
-            relation_label = f"{c1} -> {c2} [+1 Energy Boost]"
-            harmonic_badge = "harmonic-boost"
-            harmonic_score = 90.0
-            clash_level = 0
-        elif m1 == m2 and (n1 - n2) % 12 == 1:
-            harmonic_type = "drop"
-            relation_label = f"{c1} -> {c2} [-1 Energy Drop]"
-            harmonic_badge = "acceptable"
-            harmonic_score = 85.0
-            clash_level = 0
-        elif m1 != m2 and ((n2 - n1) % 12 == 1 or (n1 - n2) % 12 == 1):
-            harmonic_type = "pivot"
-            relation_label = f"{c1} -> {c2} [Diagonal Mode Shift ±1]"
-            harmonic_badge = "acceptable"
-            harmonic_score = 75.0
-            clash_level = 1
-        else:
-            fwd = (n2 - n1) % 12
-            bwd = (n1 - n2) % 12
-            if fwd <= 6:
-                sign = "+"
-                steps = fwd
-            else:
-                sign = "-"
-                steps = bwd
-
-            harmonic_type = "clash"
-            relation_label = f"{c1} -> {c2} [Harmonic Clash {sign}{steps}]"
-            harmonic_badge = "clash"
-            harmonic_score = max(20.0, 60.0 - steps * 8.0)
-            clash_level = 2
-
-    # BPM Evaluation
-    if from_bpm is not None and to_bpm is not None and from_bpm > 0 and to_bpm > 0:
-        f1 = fold_bpm(from_bpm)
-        f2 = fold_bpm(to_bpm)
-        bpm_diff = round(abs(f2 - f1), 1)
-        bpm_pct = round(abs(f2 - f1) / f1 * 100.0, 1) if f1 > 0 else 0.0
-
-        if bpm_pct <= 1.5:
-            bpm_status = "Smooth Lock"
-            bpm_badge = "score-high"
-        elif bpm_pct <= 4.0:
-            bpm_status = "Mixable"
-            bpm_badge = "score-high"
-        elif bpm_pct <= 8.0:
-            bpm_status = "Moderate Shift"
-            bpm_badge = "score-mid"
-        else:
-            bpm_status = "Tempo Jump"
-            bpm_badge = "score-low"
-
-        bpm_score = max(0.0, 100.0 - (bpm_diff / 30.0) * 100.0)
-    else:
-        bpm_diff = 0.0
-        bpm_pct = 0.0
-        bpm_status = "BPM Neutral"
-        bpm_badge = "score-mid"
-        bpm_score = 70.0
-
-    total_score = round(0.60 * harmonic_score + 0.40 * bpm_score, 1)
-
-    if total_score >= 85.0:
-        overall_quality = "Seamless"
-        overall_badge_class = "score-high"
-    elif total_score >= 70.0:
-        overall_quality = "Harmonic"
-        overall_badge_class = "score-high"
-    elif total_score >= 50.0:
-        overall_quality = "Acceptable"
-        overall_badge_class = "score-mid"
-    else:
-        overall_quality = "Harmonic Clash"
-        overall_badge_class = "score-low"
-
-    return {
-        "from_camelot": c1 or None,
-        "to_camelot": c2 or None,
-        "from_key": from_key,
-        "to_key": to_key,
-        "from_scale": from_scale,
-        "to_scale": to_scale,
-        "harmonic_type": harmonic_type,
-        "relation_label": relation_label,
-        "harmonic_badge": harmonic_badge,
-        "harmonic_score": round(harmonic_score, 1),
-        "from_bpm": from_bpm,
-        "to_bpm": to_bpm,
-        "bpm_delta": bpm_diff,
-        "bpm_delta_pct": bpm_pct,
-        "bpm_status": bpm_status,
-        "bpm_badge": bpm_badge,
-        "bpm_score": round(bpm_score, 1),
-        "total_score": total_score,
-        "normalized_score": round(total_score / 100.0, 4),
-        "quality": overall_quality,
-        "badge_class": overall_badge_class,
-        "clash_level": clash_level,
-    }
-
-
-def calculate_transition_metrics(
-    tracks: list[dict[str, Any]] | list[PlaylistTrackItem],
-) -> list[dict[str, Any]]:
-    """Compute rich harmonic and tempo transition details between consecutive tracks."""
-    transitions: list[dict[str, Any]] = []
-    if len(tracks) < 2:
-        return transitions
-
-    for idx in range(len(tracks) - 1):
-        t1 = tracks[idx]
-        t2 = tracks[idx + 1]
-
-        def _get(obj: Any, key: str) -> Any:
-            if isinstance(obj, dict):
-                return obj.get(key)
-            return getattr(obj, key, None)
-
-        k1, s1 = _get(t1, "key"), _get(t1, "scale")
-        k2, s2 = _get(t2, "key"), _get(t2, "scale")
-        c1 = _get(t1, "camelot") or key_to_camelot(k1, s1)
-        c2 = _get(t2, "camelot") or key_to_camelot(k2, s2)
-        bpm1 = _get(t1, "bpm")
-        bpm2 = _get(t2, "bpm")
-
-        eval_result = evaluate_harmonic_transition(
-            from_key=k1,
-            from_scale=s1,
-            to_key=k2,
-            to_scale=s2,
-            from_bpm=bpm1,
-            to_bpm=bpm2,
-            from_camelot=c1,
-            to_camelot=c2,
-        )
-
-        item = {
-            "from_index": idx + 1,
-            "to_index": idx + 2,
-            "from_track_id": _get(t1, "track_id"),
-            "to_track_id": _get(t2, "track_id"),
-            "from_title": _get(t1, "title") or "Unknown Title",
-            "to_title": _get(t2, "title") or "Unknown Title",
-            "from_artist": _get(t1, "artist") or "Unknown Artist",
-            "to_artist": _get(t2, "artist") or "Unknown Artist",
-            **eval_result,
-        }
-        transitions.append(item)
-
-    return transitions
-
-
-def calculate_playlist_summary(
-    tracks: list[Any],
-    transitions: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """Calculate aggregate telemetry metrics for a sequenced playlist."""
-    if transitions is None:
-        transitions = calculate_transition_metrics(tracks)
-
-    def _get_dur(t: Any) -> float:
-        if isinstance(t, dict):
-            return float(t.get("duration") or 0.0)
-        return float(getattr(t, "duration", 0.0) or 0.0)
-
-    total_dur = sum(_get_dur(t) for t in tracks)
-    scores = [tr["total_score"] for tr in transitions]
-    avg_score = round(float(np.mean(scores)), 1) if scores else 100.0
-
-    seamless_cnt = sum(1 for tr in transitions if tr.get("harmonic_badge") == "seamless")
-    boost_cnt = sum(1 for tr in transitions if tr.get("harmonic_badge") == "harmonic-boost")
-    acceptable_cnt = sum(1 for tr in transitions if tr.get("harmonic_badge") == "acceptable")
-    clash_cnt = sum(1 for tr in transitions if tr.get("harmonic_badge") == "clash")
-
-    return {
-        "track_count": len(tracks),
-        "total_duration": total_dur,
-        "total_duration_formatted": f"{int(total_dur // 60)}m {int(total_dur % 60):02d}s",
-        "avg_transition_score": avg_score,
-        "normalized_avg_score": round(avg_score / 100.0, 2),
-        "seamless_count": seamless_cnt,
-        "boost_count": boost_cnt,
-        "acceptable_count": acceptable_cnt,
-        "clash_count": clash_cnt,
-    }
-
 
 
 @dataclass
@@ -552,7 +303,6 @@ class PlaylistRuleConfig(BaseModel):
     vibe: str | None = None
     bpm_min: float | None = None
     bpm_max: float | None = None
-    max_bpm_delta: float | None = None
     key: str | None = None
     scale: str | None = None
     mood_min: dict[str, float] = Field(default_factory=dict)
@@ -573,8 +323,7 @@ def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
     """Calculate target energy value at a normalized position along an energy arc.
 
     Args:
-        arc_name: Arc identifier ('ramp_up', 'energy_ramp', 'peak', 'peak_hour_wave',
-            'steady', 'steady_pulse', 'late_night_chill', 'cooldown').
+        arc_name: Arc identifier ('ramp_up', 'cooldown', 'peak', 'steady').
         step: 0-indexed step in the playlist sequence.
         total_steps: Total target track count.
 
@@ -587,16 +336,14 @@ def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
         t = step / (total_steps - 1)
 
     clean_arc = arc_name.lower().strip().replace("-", "_")
-    if clean_arc in ("ramp_up", "ramp", "energy_ramp"):
+    if clean_arc in ("ramp_up", "ramp"):
         return 0.25 + 0.65 * t
     elif clean_arc in ("cooldown", "cool_down"):
         return 0.85 - 0.60 * t
-    elif clean_arc in ("peak", "warmup_peak_cooldown", "wave", "peak_hour_wave", "peak_wave"):
+    elif clean_arc in ("peak", "warmup_peak_cooldown", "wave"):
         return 0.35 + 0.55 * math.sin(math.pi * t)
-    elif clean_arc in ("steady", "plateau", "steady_pulse"):
+    elif clean_arc in ("steady", "plateau"):
         return 0.60
-    elif clean_arc in ("late_night_chill", "night_chill", "chill", "late_night"):
-        return max(0.20, 0.45 - 0.25 * t)
     logger.warning("Unrecognized arc '%s'; using steady arc (0.60)", arc_name)
     return 0.60
 
@@ -627,12 +374,6 @@ def calculate_transition(
             bpm_score=1.0,
             key_score=1.0,
             total_score=1.0,
-            harmonic_label="Start Track",
-            harmonic_badge="neutral",
-            harmonic_type="start",
-            quality="Start",
-            badge_class="score-high",
-            clash_level=0,
         )
 
     # Cosine similarity over unit-normalized vibe vectors
@@ -647,17 +388,6 @@ def calculate_transition(
 
     total_score = 0.45 * vibe_sim + 0.30 * bpm_score + 0.25 * key_score
 
-    eval_harm = evaluate_harmonic_transition(
-        from_key=from_meta.get("key"),
-        from_scale=from_meta.get("scale"),
-        to_key=to_meta.get("key"),
-        to_scale=to_meta.get("scale"),
-        from_bpm=from_meta.get("bpm"),
-        to_bpm=to_meta.get("bpm"),
-        from_camelot=c1,
-        to_camelot=c2,
-    )
-
     return TrackTransition(
         from_track_id=int(from_meta["track_id"]),
         to_track_id=to_id,
@@ -665,14 +395,6 @@ def calculate_transition(
         bpm_score=round(bpm_score, 4),
         key_score=round(key_score, 4),
         total_score=round(total_score, 4),
-        harmonic_label=eval_harm["relation_label"],
-        harmonic_badge=eval_harm["harmonic_badge"],
-        harmonic_type=eval_harm["harmonic_type"],
-        bpm_delta=eval_harm["bpm_delta"],
-        bpm_delta_pct=eval_harm["bpm_delta_pct"],
-        quality=eval_harm["quality"],
-        badge_class=eval_harm["badge_class"],
-        clash_level=eval_harm["clash_level"],
     )
 
 
@@ -1120,16 +842,6 @@ def generate_playlist(
                 score = 0.45 * trans.total_score + 0.25 * theme_sim + 0.30 * arc_score
             else:
                 score = 0.60 * trans.total_score + 0.40 * theme_sim
-
-            if (
-                config_rules.max_bpm_delta is not None
-                and prev_meta.get("bpm")
-                and cand_meta.get("bpm")
-            ):
-                b_diff = abs(fold_bpm(prev_meta["bpm"]) - fold_bpm(cand_meta["bpm"]))
-                if b_diff > config_rules.max_bpm_delta:
-                    penalty = (b_diff - config_rules.max_bpm_delta) / 20.0
-                    score -= min(0.40, penalty)
 
             if score > best_candidate_score:
                 best_candidate_score = score

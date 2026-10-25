@@ -27,29 +27,7 @@ When building `vibeplay.spec`:
 
 ---
 
-## 3. Package Distribution Formats
-
-### A. Debian / Ubuntu Package (`.deb`)
-Native `.deb` package built using `dpkg-deb`:
-- Built via `scripts/build-deb.sh`
-- Output: `dist/vibeplay_0.1.0_amd64.deb`
-- Installs to `/usr/bin/vibeplay-desktop`, `/usr/share/applications/vibeplay.desktop`, `/usr/share/icons/hicolor/scalable/apps/vibeplay.svg`, and `/usr/lib/systemd/user/vibeplay.service`.
-- Dependencies: `libc6`, `libwebkit2gtk-4.1-0`, `mpd`, `libasound2`, `libnotify-bin`.
-- Installation:
-  ```bash
-  sudo apt install ./dist/vibeplay_0.1.0_amd64.deb
-  # or
-  sudo dpkg -i dist/vibeplay_0.1.0_amd64.deb
-  ```
-
-### B. Flatpak Manifest
-- Specification: `packaging/flatpak/com.vibeplay.VibePlay.yaml`
-- Target runtime: `org.gnome.Platform//46`
-- Sandboxed hardware access: `--device=all` (ALSA), `--socket=pulseaudio`, `--socket=wayland`, `--socket=x11`, `--filesystem=xdg-music:ro`.
-
----
-
-## 4. Exclusions
+## 3. Exclusions
 To optimize binary size and security:
 - Testing tools: `pytest`, `pytest-cov`.
 - Build tooling: `uv_build`, `wheel`, `pip`.
