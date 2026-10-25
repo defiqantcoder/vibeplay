@@ -87,3 +87,8 @@ build/
 # Benchmark and temporary performance artifacts
 *performance_report*.md
 
+# Internal specifications and agent docs
+AGENTS.md
+DESIGN.md
+SPEC.md
+
