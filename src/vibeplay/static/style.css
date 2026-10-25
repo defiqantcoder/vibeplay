@@ -299,6 +299,7 @@ input, select {
   width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
+  padding-bottom: 110px; /* Offset to guarantee clearance above 84px fixed bottom transport bar */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -2371,6 +2372,7 @@ input:checked + .slider:before {
   gap: 1.25rem;
   align-items: flex-start;
   width: 100%;
+  padding-bottom: 96px;
 }
 
 .workspace-sidebar {
@@ -2379,6 +2381,10 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
 }
 
 .workspace-center {

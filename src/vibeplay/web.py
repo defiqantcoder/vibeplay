@@ -121,12 +121,28 @@ def get_filtered_tracks(
         params.append(bpm_max)
 
     sort_clause = {
+        "title_asc": "ORDER BY LOWER(COALESCE(v.title, t.path)) ASC",
+        "title_desc": "ORDER BY LOWER(COALESCE(v.title, t.path)) DESC",
+        "artist_asc": "ORDER BY LOWER(COALESCE(v.artist, '')) ASC",
+        "artist_desc": "ORDER BY LOWER(COALESCE(v.artist, '')) DESC",
+        "album_asc": "ORDER BY LOWER(COALESCE(v.album, '')) ASC",
+        "album_desc": "ORDER BY LOWER(COALESCE(v.album, '')) DESC",
         "bpm_asc": "ORDER BY f.bpm ASC",
         "bpm_desc": "ORDER BY f.bpm DESC",
+        "harmonic_asc": "ORDER BY f.key ASC, f.scale ASC",
+        "harmonic_desc": "ORDER BY f.key DESC, f.scale DESC",
+        "key_asc": "ORDER BY f.key ASC, f.scale ASC",
+        "key_desc": "ORDER BY f.key DESC, f.scale DESC",
+        "energy_asc": "ORDER BY f.energy ASC",
         "energy_desc": "ORDER BY f.energy DESC",
-        "title_asc": "ORDER BY LOWER(v.title) ASC",
-        "artist_asc": "ORDER BY LOWER(v.artist) ASC",
+        "danceability_asc": "ORDER BY f.danceability ASC",
+        "danceability_desc": "ORDER BY f.danceability DESC",
+        "duration_asc": "ORDER BY t.duration ASC",
+        "duration_desc": "ORDER BY t.duration DESC",
+        "format_asc": "ORDER BY t.bitrate ASC, t.duration ASC",
+        "format_desc": "ORDER BY t.bitrate DESC, t.duration DESC",
         "id_asc": "ORDER BY t.id ASC",
+        "id_desc": "ORDER BY t.id DESC",
     }.get(sort, "ORDER BY t.id ASC")
 
     query += f" {sort_clause}"
@@ -138,8 +154,6 @@ def get_filtered_tracks(
     tracks: list[dict[str, Any]] = []
     key_filter = key.strip().upper() if key and key.strip() else None
     mood_filter = mood.strip().lower() if mood and mood.strip() else None
-    if mood_filter == "chill":
-        mood_filter = "relaxed"
 
     for r in raw_rows:
         row_dict = dict(r)
@@ -160,7 +174,7 @@ def get_filtered_tracks(
             if key_filter != track_key and key_filter != track_cam:
                 continue
 
-        # Filter by mood if requested (>= mood_threshold)
+        # Filter by mood if requested
         if mood_filter:
             mood_scores = {}
             if row_dict.get("mood_scores"):
@@ -168,7 +182,36 @@ def get_filtered_tracks(
                     mood_scores = json.loads(row_dict["mood_scores"])
                 except Exception:
                     pass
-            if mood_scores.get(mood_filter, 0.0) < mood_threshold:
+
+            if mood_filter == "chill":
+                if row_dict.get("energy") and float(row_dict["energy"]) > 0.55:
+                    continue
+                if mood_scores.get("relaxed", 0.0) < 0.30:
+                    continue
+            elif mood_filter in ("energetic", "workout"):
+                if (row_dict.get("energy") and float(row_dict["energy"]) < 0.60) and mood_scores.get("party", 0.0) < 0.35:
+                    continue
+            elif mood_filter in ("melancholic", "sad", "melancholy"):
+                if mood_scores.get("sad", 0.0) < mood_threshold and (row_dict.get("energy") and float(row_dict["energy"]) > 0.60):
+                    continue
+            elif mood_filter == "euphoric":
+                if mood_scores.get("happy", 0.0) < 0.35 and mood_scores.get("party", 0.0) < 0.30:
+                    continue
+            elif mood_filter in ("focus", "deep_focus", "ambient"):
+                if row_dict.get("energy") and float(row_dict["energy"]) > 0.50:
+                    continue
+            elif mood_filter in ("dark", "dark_intense"):
+                if mood_scores.get("aggressive", 0.0) < 0.30 and (row_dict.get("energy") and float(row_dict["energy"]) < 0.60):
+                    continue
+            elif mood_filter == "lofi":
+                bpm = float(row_dict.get("bpm") or 0.0)
+                if bpm > 0 and (bpm < 65.0 or bpm > 105.0):
+                    continue
+            elif mood_filter == "driving":
+                bpm = float(row_dict.get("bpm") or 0.0)
+                if bpm > 0 and (bpm < 105.0 or bpm > 140.0):
+                    continue
+            elif mood_scores.get(mood_filter, 0.0) < mood_threshold:
                 continue
 
         tracks.append(row_dict)
@@ -485,6 +528,13 @@ def create_app(
             context={
                 "tracks": tracks,
                 "playback": playback,
+                "current_sort": sort,
+                "q": q or "",
+                "artist": artist or "",
+                "key": key or "",
+                "mood": mood or "",
+                "bpm_min": bpm_min,
+                "bpm_max": bpm_max,
             },
         )
 
@@ -1169,7 +1219,7 @@ def create_app(
     @app.post("/api/player/output", response_class=HTMLResponse)
     async def api_player_output(request: Request, profile: str = Form(...)) -> Response:
         """Switch audio hardware output profile and notify vibe-dsp IPC engine."""
-        set_output_profile(profile)
+        set_output_profile(profile, settings=cfg)
         try:
             from vibe_dsp.ipc import DSPClient
 
@@ -1180,6 +1230,7 @@ def create_app(
                 "USB DAC (Bit-Perfect)": "pure-bitperfect",
                 "Direct ALSA (hw:0,0)": "pure-bitperfect",
                 "Headphones": "spatial-headphones",
+                "PipeWire Sound Server": "pure-bitperfect",
             }
             target_id = prof_map.get(profile, profile)
             client = DSPClient()
@@ -1196,9 +1247,21 @@ def create_app(
             },
         )
 
+    @app.get("/api/player/scrub", response_class=HTMLResponse)
+    async def api_player_scrub(request: Request) -> Response:
+        """Return rendered scrub row micro-component for isolated 1s polling."""
+        playback = get_playback_status(resolved_db_path, cfg)
+        return templates.TemplateResponse(
+            request=request,
+            name="components/transport_scrub.html",
+            context={
+                "playback": playback,
+            },
+        )
+
     @app.get("/api/player/transport", response_class=HTMLResponse)
     async def api_player_transport(request: Request) -> Response:
-        """Return rendered transport footer bar for 2s polling."""
+        """Return rendered transport footer bar."""
         playback = get_playback_status(resolved_db_path, cfg)
         return templates.TemplateResponse(
             request=request,

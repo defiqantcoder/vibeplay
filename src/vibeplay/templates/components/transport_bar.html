@@ -1,33 +1,6 @@
-<div class="transport-footer"
-     hx-get="/api/player/transport"
-     hx-trigger="every 2s"
-     hx-swap="outerHTML">
-  
+<div class="transport-footer" id="transport-footer-bar">
   <!-- Scrub Timeline -->
-  <div class="transport-scrub-row">
-    <span class="timecode">
-      {% set el_m = (playback.elapsed // 60)|int %}
-      {% set el_s = (playback.elapsed % 60)|int %}
-      {{ "%02d:%02d"|format(el_m, el_s) }}
-    </span>
-    
-    <div class="scrub-bar"
-         title="Click to Seek"
-         onclick="const rect = this.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)); const total = {{ playback.duration or 0 }}; if (total > 0 && window.htmx) { htmx.ajax('POST', '/api/player/seek', { target: '#transport-footer-container', swap: 'innerHTML', values: { seconds: (pct * total).toFixed(1) } }); }"
-         style="cursor: pointer;">
-      {% set pct = 0 %}
-      {% if playback.duration and playback.duration > 0 %}
-        {% set pct = ((playback.elapsed / playback.duration) * 100)|round(1) %}
-      {% endif %}
-      <div class="scrub-fill" style="width: {{ pct }}%;"></div>
-    </div>
-    
-    <span class="timecode">
-      {% set dur_m = (playback.duration // 60)|int %}
-      {% set dur_s = (playback.duration % 60)|int %}
-      {{ "%02d:%02d"|format(dur_m, dur_s) }}
-    </span>
-  </div>
+  {% include "components/transport_scrub.html" %}
 
   <!-- Main Controls Row -->
   <div class="transport-main-row">

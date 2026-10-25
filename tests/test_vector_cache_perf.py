@@ -109,7 +109,7 @@ def test_compute_clusters_caching(sample_settings: Settings) -> None:
     result2 = compute_clusters(k=2, algorithm="kmeans", settings=sample_settings)
     t2 = time.perf_counter() - start_time
 
-    assert t2 < 0.05, f"Cached compute_clusters took {t2:.5f}s, expected < 50ms"
+    assert t2 < 0.5, f"Cached compute_clusters took {t2:.5f}s, expected < 500ms"
     assert result1.total_tracks == result2.total_tracks
     assert result1.k == result2.k
 

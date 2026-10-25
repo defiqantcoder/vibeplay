@@ -1,226 +1,156 @@
 # vibeplay
 
-Local-first music library scanner, metadata enricher, audio feature analyzer, and vibe-based smart playlist generator for Ubuntu 24.04.
+[![CI](https://github.com/defiqantcoder/vibeplay/actions/workflows/ci.yml/badge.svg)](https://github.com/defiqantcoder/vibeplay/actions)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)
+![Ubuntu 24.04](https://img.shields.io/badge/platform-Ubuntu%2024.04%20LTS-orange.svg)
+![Architecture](https://img.shields.io/badge/arch-x86__64-informational.svg)
+![Packaging](https://img.shields.io/badge/package-Debian%20%7C%20Flatpak-purple.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)
 
-## Core Principles
-
-- **Strictly Read-Only:** vibeplay **NEVER** modifies, moves, renames, retags, or deletes your audio files. Your music collection remains untouched.
-- **Local-First & Private:** Analysis metrics, acoustic features, and generated playlists reside strictly in your local SQLite database. No audio files or raw audio waveforms are uploaded to the cloud.
-- **Incremental & Fast:** Uses file sizes, modification timestamps (`mtime`), and hashes to avoid redundant work across scans.
-
----
-
-## Tech Stack
-
-- **Runtime & Packaging:** Python 3.12, managed with [uv](https://docs.astral.sh/uv/)
-- **Database:** SQLite via Python standard library `sqlite3` (WAL mode enabled)
-- **Tag Extraction:** [mutagen](https://mutagen.readthedocs.io/)
-- **Fingerprinting & Enrichment:** [pyacoustid](https://github.com/beetbox/pyacoustid) (Chromaprint/fpcalc), [musicbrainzngs](https://python-musicbrainzngs.readthedocs.io/)
-- **Audio Analysis:** [Essentia](https://essentia.upf.edu/) (primary extractor) with [librosa](https://librosa.org/) (fallback)
-- **Vibe Modeling & Clustering:** [scikit-learn](https://scikit-learn.org/)
-- **Configuration & Validation:** [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
-- **Command-Line Interface:** [Typer](https://typer.tiangolo.com/)
-- **Testing:** [pytest](https://docs.pytest.org/)
+> **Audiophile Precision Music Player & Acoustic Intelligence Suite for Linux (Ubuntu 24.04)**
+> Direct bit-perfect ALSA hardware reservation, real-time audio telemetry visualizers, Camelot harmonic key mixing, unsupervised acoustic clustering, and a native desktop studio experience.
 
 ---
 
-## Installation & Setup on Ubuntu 24.04
+## 🌟 Core Highlights
 
-### 1. Prerequisites (Ubuntu 24.04)
+- 🛡️ **Bit-Perfect Hardware Reservation (`hw:`) & PipeWire Fallback:** Direct hardware communication bypassing operating system resampling and mixers, with auto-fallback to PipeWire so audio never cuts out.
+- ⚡ **Real-Time Telemetry Deck:** Live Server-Sent Events (SSE) telemetry feeding a responsive SVG oscilloscope, 9-segment VU headroom meter, live Camelot harmonic sync wheel, and acoustic cluster distribution histogram.
+- 🎛️ **4-Step Guided Smart Playlist Builder:**
+  1. **Seed Track Picker:** Real-time search across library tracks with live BPM and Camelot notation.
+  2. **Vibe Trajectories & Moods:** 15 distinct moods (`Chill`, `Energetic`, `Melancholic`, `Euphoric`, `Deep Focus`, `Dark & Intense`, `Ambient`, `Lo-Fi`, `Driving`, etc.) and energy curve arcs (`Energy Ramp`, `Peak-Hour Wave`, `Steady Pulse`, `Late Night Chill`).
+  3. **Harmonic Transition Preview:** Automatic evaluation of Camelot key transitions (energy boosts, relative majors/minors, harmonic shifts, tempo deltas).
+  4. **HTML5 Native Drag-and-Drop Reordering:** Live recalculation of sequence transition scores on drop.
+- 🎨 **"God of Ink" Design System:** 6 audiophile dark themes (`God of Ink`, `Wine / Uncut Amethyst`, `Obsidian / Lavender`, `Swimming with the Whales`, `Mint City`, `Slate Audiophile`) adhering to WCAG 2.1 contrast standards with zero hardcoded CSS colors.
+- 🧠 **Local-First & Machine Learning Driven:** Acoustic feature extraction using Essentia 2.1 and Librosa (BPM, Key, Scale, Loudness, Danceability, Moods, and Audio Embeddings). Track clusters modeled with K-Means and HDBSCAN, fully cached in-memory.
+- 🔒 **Desktop Security Invariants:** Loopback-only binding (`127.0.0.1` / `localhost`), ephemeral IPC session tokens, and atomic settings storage with `chmod 600` permissions.
 
-Ensure Python 3.12 and `uv` are installed:
+---
 
+## 🚀 Installation & Getting Started
+
+### Option A: Install Debian Package (Recommended for Ubuntu 24.04)
+
+Download or build the standalone Debian package:
+
+```bash
+# 1. Download or build the .deb package
+./scripts/build-deb.sh
+
+# 2. Install the package
+sudo dpkg -i dist/vibeplay_0.1.0_amd64.deb
+
+# 3. Launch from your desktop application launcher or terminal
+vibeplay desktop
 ```
-# Install uv if not already installed
-curl -LsSf https://astral.sh/uv/install.sh > install.sh && chmod +x install.sh && ./install.sh
-```
 
-Install `ffmpeg` and `libsndfile1` (required for audio processing) and optionally `fpcalc` for acoustic fingerprinting:
-```
-sudo apt update && sudo apt install -y ffmpeg libsndfile1 libchromaprint-tools
-```
+### Option B: Run from Source with `uv`
 
-### 2. Configure Environment
+Ensure Python 3.12, `uv`, and multimedia system libraries are installed:
 
-Copy the example environment file:
-```
-cp .env.example .env
-```
+```bash
+# 1. Install system prerequisites
+sudo apt update && sudo apt install -y ffmpeg libsndfile1 libchromaprint-tools mpd
 
-Optionally set your `ACOUSTID_API_KEY` or `GEMINI_API_KEY` inside `.env`. Secrets are always read from environment variables or `.env` and never hardcoded.
+# 2. Install Astral uv (fast Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-### 3. Install Dependencies
-
-Sync virtual environment and project dependencies using `uv`:
-```
+# 3. Clone and sync dependencies
+git clone https://github.com/defiqantcoder/vibeplay.git
+cd vibeplay
 uv sync
+
+# 4. Launch Desktop Application
+uv run vibeplay desktop
 ```
 
 ---
 
-## Usage Walkthrough
+## 🎹 Studio Keyboard Shortcuts
 
-All commands are accessible via the `vibeplay` CLI runner:
+| Shortcut | Description | Action |
+| :--- | :--- | :--- |
+| <kbd>Space</kbd> / <kbd>F9</kbd> | Play / Pause | Toggle active playback |
+| <kbd>F10</kbd> | Previous Track | Skip to previous queued track |
+| <kbd>F11</kbd> | Next Track | Skip to next queued track |
+| <kbd>Ctrl</kbd> + <kbd>O</kbd> | Open Files / Library | Open local file or music folder |
+| <kbd>Ctrl</kbd> + <kbd>,</kbd> | Preferences / DSP | Open Verbose Hardware & DSP Popover |
+| <kbd>Ctrl</kbd> + <kbd>R</kbd> | Rescan Library | Refresh music library and metadata |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> | Quit Application | Safely tear down MPD and close window |
+| <kbd>F5</kbd> | Master Console | Switch to Library Master Console |
+| <kbd>F6</kbd> | Acoustic Clustermap | Switch to Vibe Clusters View |
+| <kbd>F7</kbd> | Energy Architect | Switch to Guided Playlist Builder |
+| <kbd>Esc</kbd> | Dismiss Overlays | Close active modal, dialog, or popover |
 
-### Show Help and Available Commands
-```
-uv run vibeplay --help
-```
+---
 
-### 1. Scan your library
-Scan your music directory recursively, index audio files, and extract tags into the local SQLite database.
-```
+## 💻 CLI Commands Reference
+
+`vibeplay` provides a complete command-line interface for headless automation, background indexing, and batch processing:
+
+```bash
+# Scan a music directory recursively and index audio files
 uv run vibeplay scan /path/to/your/music
-```
 
-### 2. Enrich Metadata (Optional)
-Fingerprint audio tracks and query MusicBrainz for canonical metadata.
-```
+# Fingerprint tracks with AcoustID and enrich with MusicBrainz metadata
 uv run vibeplay enrich
-```
 
-### 3. Analyze Audio
-Analyze audio files to extract acoustic features, rhythm, and embeddings. This requires `ffmpeg` and `libsndfile1` to be installed.
-```
+# Extract rhythm, key, BPM, and mood features using Essentia
 uv run vibeplay analyze
-```
 
-### 4. Create Vibe Clusters
-Compute normalized vibe vectors and generate track clusters based on the analyzed features.
-```
+# Compute unsupervised acoustic clusters (K-Means / HDBSCAN)
 uv run vibeplay clusters
-```
 
-### 5. Generate Playlists
-Generate a smart playlist based on seed track, target vibe, or arc.
-```
+# Generate smart playlists from CLI
 uv run vibeplay playlist --name "Chill Evening" --vibe chill
-uv run vibeplay playlist --name "Workout" --arc peak
-```
+uv run vibeplay playlist --name "Energy Workout" --arc peak
 
-### 6. Export Playlists
-Export a saved playlist to an M3U, M3U8, JSON, or CSV file.
-```
+# Export playlist to format (m3u, m3u8, json, csv)
 uv run vibeplay export 1 --format m3u8
-```
 
-### 7. Find Duplicates
-Find likely duplicate tracks in the library based on MusicBrainz ID or acoustic features.
-```
+# Detect duplicates by AcoustID and acoustic similarity
 uv run vibeplay duplicates
-```
 
-### 8. Web Interface
-Launch the local FastAPI web server and user interface.
-```
-uv run vibeplay serve
+# Run automated release gate validation checks
+uv run vibeplay desktop --release-gate
 ```
 
 ---
 
-## CI / CD Workflow
+## 🏗️ Architecture Overview
 
-This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs automatically on push and pull requests to the `main` branch. It performs the following steps on an `ubuntu-24.04` runner:
-1.  Sets up Python 3.12.
-2.  Installs `uv`, `ffmpeg`, and `libsndfile1`.
-3.  Syncs project dependencies using `uv`.
-4.  Lints and checks formatting using `ruff`.
-5.  Runs the test suite and generates a coverage report using `pytest-cov`.
-
----
-
-## Automation & Scheduling
-
-You can automate the scanning, enrichment, and analysis of your library using a simple shell script and a cron job or systemd timer.
-
-### Example Automation Script (`auto_vibeplay.sh`)
-
-```
-#!/bin/bash
-# auto_vibeplay.sh
-
-MUSIC_DIR="/path/to/your/music"
-cd /path/to/vibeplay
-
-# 1. Scan for new/changed files
-uv run vibeplay scan "$MUSIC_DIR"
-
-# 2. Enrich new tracks
-uv run vibeplay enrich
-
-# 3. Analyze audio features
-uv run vibeplay analyze
-
-# 4. Update clusters
-uv run vibeplay clusters
-```
-
-Make the script executable:
-```
-chmod +x auto_vibeplay.sh
-```
-
-### Systemd User Service for Web UI (`vibeplay.service`)
-
-You can run the `vibeplay serve` web UI as a background service. Create `~/.config/systemd/user/vibeplay.service`:
-
-```ini
-[Unit]
-Description=Vibeplay Web UI
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/path/to/vibeplay
-ExecStart=/home/youruser/.cargo/bin/uv run vibeplay serve
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-```
-
-Enable and start the service:
-```
-systemctl --user enable vibeplay.service
-systemctl --user start vibeplay.service
+```mermaid
+graph TD
+    UI["Desktop UI Shell<br/>(WebKit2GTK / HTML5 / HTMX / SVG)"] -->|Loopback HTTP / SSE| API["FastAPI Application Server<br/>(127.0.0.1:Ephemeral Port)"]
+    API -->|Metadata & Vectors| DB[("SQLite Database<br/>(WAL Mode, Schema 003)")]
+    API -->|Real-Time Telemetry| SSE["SSE Telemetry Stream<br/>(telemetry_tick / dac_lock / xrun)"]
+    API -->|Transport Commands| MPD["Music Player Daemon<br/>(Loopback Subprocess)"]
+    MPD -->|Bit-Perfect Mode| ALSA["ALSA Direct Sink<br/>(hw:X,Y / Exclusive Lock)"]
+    MPD -->|Shared / System Mode| PW["PipeWire Universal Sink<br/>(Sound Server Fallback)"]
+    API -->|Parametric EQ / Profile| DSP["vibe-dsp Engine<br/>(AutoEQ / SOFA 3D / PEQ)"]
+    API -->|Feature Extraction| ESS["Essentia 2.1 / Librosa<br/>(BPM, Camelot, Mood, Vectors)"]
 ```
 
 ---
 
-## Troubleshooting
+## 🧪 Testing & Validation
 
--   **`FileNotFoundError: [Errno 2] No such file or directory: 'ffmpeg'`**:
-    -   **Cause**: `ffmpeg` is not installed or not in your system's PATH. It is required for the audio analysis phase.
-    -   **Solution**: Run `sudo apt-get install ffmpeg` (Ubuntu/Debian) or install via your system's package manager.
--   **`mutagen could not recognize audio format`**:
-    -   **Cause**: The file might be corrupted, have an unsupported extension, or lack valid metadata headers.
-    -   **Solution**: Ensure the file plays correctly in a standard media player. If the file is valid but unsupported, `vibeplay` will safely log an error and skip it during scanning.
--   **`ModuleNotFoundError` when running commands**:
-    -   **Cause**: Virtual environment is not synced.
-    -   **Solution**: Run `uv sync` to ensure all dependencies are installed. Ensure you are using `uv run` to execute commands within the virtual environment context.
--   **Slow analysis process**:
-    -   **Cause**: Audio analysis is computationally intensive.
-    -   **Solution**: `vibeplay` uses incremental scanning and analysis. Only new or modified files will be processed on subsequent runs. Be patient during the initial `analyze` run.
--   **No clusters generated**:
-    -   **Cause**: You must run `vibeplay analyze` before running `vibeplay clusters`.
+Run the test suite via `pytest`:
 
----
-
-## Running Tests
-
-Run the test suite via pytest:
-```
+```bash
+# Run all unit and integration tests
 uv run pytest
-```
 
-Generate a coverage report:
-```
+# Run with test coverage report
 uv run pytest --cov=src/vibeplay --cov-report=term-missing
+
+# Run release gate audit (validates loopback, permissions, themes, and templates)
+uv run vibeplay desktop --release-gate
 ```
 
 ---
 
-## Documentation
+## 📄 License
 
-See [SPEC.md](SPEC.md) for full architectural design, SQLite schema details, module definitions, and the multi-phase implementation roadmap.
+Distributed under the **MIT License**. See `LICENSE` for more information.

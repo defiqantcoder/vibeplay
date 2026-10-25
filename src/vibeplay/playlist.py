@@ -72,6 +72,52 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
         "mood_min": {"relaxed": 0.35},
         "danceability_max": 0.65,
     },
+    "energetic": {
+        "energy_min": 0.70,
+        "bpm_min": 115.0,
+    },
+    "workout": {
+        "energy_min": 0.70,
+        "bpm_min": 115.0,
+    },
+    "melancholic": {
+        "mood_min": {"sad": 0.35},
+        "energy_max": 0.55,
+    },
+    "melancholy": {
+        "mood_min": {"sad": 0.35},
+        "energy_max": 0.55,
+    },
+    "euphoric": {
+        "mood_min": {"happy": 0.35, "party": 0.30},
+        "energy_min": 0.60,
+    },
+    "deep_focus": {
+        "energy_max": 0.45,
+        "danceability_max": 0.50,
+        "mood_min": {"relaxed": 0.30},
+    },
+    "dark_intense": {
+        "mood_min": {"aggressive": 0.35},
+        "energy_min": 0.65,
+    },
+    "ambient": {
+        "energy_max": 0.40,
+        "danceability_max": 0.45,
+        "mood_min": {"acoustic": 0.35},
+    },
+    "lofi": {
+        "bpm_min": 70.0,
+        "bpm_max": 95.0,
+        "energy_max": 0.55,
+        "mood_min": {"relaxed": 0.35},
+    },
+    "driving": {
+        "bpm_min": 110.0,
+        "bpm_max": 135.0,
+        "energy_min": 0.60,
+        "danceability_min": 0.55,
+    },
     "party": {
         "energy_min": 0.60,
         "mood_min": {"party": 0.35},
@@ -85,13 +131,9 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
         "mood_min": {"electronic": 0.45},
         "energy_min": 0.45,
     },
-    "workout": {
-        "energy_min": 0.70,
-        "bpm_min": 115.0,
-    },
-    "melancholy": {
-        "mood_min": {"sad": 0.35},
-        "energy_max": 0.55,
+    "happy": {
+        "mood_min": {"happy": 0.40},
+        "energy_min": 0.50,
     },
 }
 

@@ -326,8 +326,9 @@ def play_track(
         }
 
 
-ACTIVE_OUTPUT_PROFILE = "Pure Bit-Perfect (Direct ALSA)"
+ACTIVE_OUTPUT_PROFILE = "PipeWire Sound Server"
 OUTPUT_PROFILES = [
+    "PipeWire Sound Server",
     "Pure Bit-Perfect (Direct ALSA)",
     "7.1.4 Spatial Headphones (SOFA 3D)",
     "AV Receiver Passthrough (HDMI)",
@@ -338,12 +339,144 @@ OUTPUT_PROFILES = [
 ]
 
 
-def set_output_profile(profile_name: str) -> str:
-    """Set the active hardware audio output profile."""
+def _try_enable_pipewire_fallback(client: Any) -> bool:
+    """Find and enable PipeWire output in MPD, disabling all direct ALSA outputs."""
+    try:
+        outputs = client.outputs()
+        pw_id = None
+        for out in outputs:
+            name = str(out.get("outputname", "")).lower()
+            if "pipewire" in name:
+                pw_id = str(out.get("outputid", out.get("id")))
+                break
+        if pw_id is not None:
+            for out in outputs:
+                oid = str(out.get("outputid", out.get("id")))
+                if oid == pw_id:
+                    client.enableoutput(oid)
+                else:
+                    client.disableoutput(oid)
+            logger.info("Fell back to PipeWire output (ID: %s)", pw_id)
+            return True
+    except Exception as err:
+        logger.debug("Could not switch to PipeWire fallback: %s", err)
+    return False
+
+
+def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
+    """Dynamically scan hardware endpoints and MPD outputs to return selectable audio outputs."""
+    profiles: list[str] = []
+    cfg = settings or get_settings()
+
+    # 1. Query live MPD outputs if daemon is connected
+    try:
+        with get_mpd_transport(cfg) as transport:
+            if transport.client:
+                mpd_outs = transport.client.outputs()
+                for out in mpd_outs:
+                    name = out.get("outputname")
+                    if name and name not in profiles:
+                        profiles.append(name)
+    except Exception:
+        pass
+
+    # 2. Probe system hardware endpoints
+    try:
+        from vibe_dsp.hardware import scan_hardware
+
+        audit = scan_hardware()
+        if audit.active_dac:
+            dac_label = f"USB DAC Bit-Perfect ({audit.active_dac.card_name})"
+            if dac_label not in profiles:
+                profiles.insert(0, dac_label)
+        if audit.fallback_endpoint:
+            fb_label = f"Speakers / Analog ({audit.fallback_endpoint.card_name})"
+            if fb_label not in profiles:
+                profiles.append(fb_label)
+    except Exception:
+        pass
+
+    # 3. Always ensure default universal options exist
+    universal_options = [
+        "PipeWire Sound Server",
+        "Pure Bit-Perfect (Direct ALSA)",
+        "7.1.4 Spatial Headphones (SOFA 3D)",
+    ]
+    for opt in universal_options:
+        if opt not in profiles:
+            profiles.append(opt)
+
+    return profiles
+
+
+def get_active_output_profile(settings: Settings | None = None) -> str:
+    """Return the name of the currently active MPD audio output."""
+    cfg = settings or get_settings()
+    try:
+        with get_mpd_transport(cfg) as transport:
+            if transport.client:
+                mpd_outs = transport.client.outputs()
+                for out in mpd_outs:
+                    if str(out.get("outputenabled", "0")) == "1":
+                        return str(out.get("outputname", ACTIVE_OUTPUT_PROFILE))
+    except Exception:
+        pass
+    return ACTIVE_OUTPUT_PROFILE
+
+
+def set_output_profile(
+    profile_name: str, settings: Settings | None = None
+) -> str:
+    """Set the active hardware audio output profile and dynamically configure MPD outputs."""
     global ACTIVE_OUTPUT_PROFILE
-    if profile_name in OUTPUT_PROFILES or profile_name in {"pure-bitperfect", "spatial-headphones", "receiver-passthrough"}:
-        ACTIVE_OUTPUT_PROFILE = profile_name
-        logger.info("Active audio output profile switched to: %s", profile_name)
+    ACTIVE_OUTPUT_PROFILE = profile_name
+    logger.info("Active audio output profile switched to: %s", profile_name)
+
+    cfg = settings or get_settings()
+    try:
+        with get_mpd_transport(cfg) as transport:
+            if not transport.client:
+                return ACTIVE_OUTPUT_PROFILE
+            mpd_outputs = transport.client.outputs()
+            if not mpd_outputs:
+                return ACTIVE_OUTPUT_PROFILE
+
+            target_id: str | None = None
+            # Exact name match
+            for out in mpd_outputs:
+                if out.get("outputname") == profile_name:
+                    target_id = str(out.get("outputid", out.get("id")))
+                    break
+
+            # Keyword match
+            if target_id is None:
+                p_lower = profile_name.lower()
+                for out in mpd_outputs:
+                    o_name = str(out.get("outputname", "")).lower()
+                    if "pipewire" in p_lower and "pipewire" in o_name:
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+                    elif ("dac" in p_lower or "bit-perfect" in p_lower) and ("direct" in o_name or "alsa" in o_name):
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+                    elif ("speaker" in p_lower or "headphone" in p_lower) and ("speaker" in o_name or "pipewire" in o_name):
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+
+            if target_id is None and mpd_outputs:
+                target_id = str(mpd_outputs[0].get("outputid", mpd_outputs[0].get("id")))
+
+            if target_id is not None:
+                for out in mpd_outputs:
+                    oid = str(out.get("outputid", out.get("id")))
+                    if oid == target_id:
+                        transport.client.enableoutput(oid)
+                    else:
+                        transport.client.disableoutput(oid)
+                logger.info("Switched MPD active output ID to %s (%s)", target_id, profile_name)
+    except Exception as err:
+        logger.debug("Could not switch MPD hardware output: %s", err)
+
     return ACTIVE_OUTPUT_PROFILE
 
 
@@ -373,22 +506,45 @@ def toggle_pause(
                 # State is 'stop'
                 if queue_len > 0:
                     if transport.client:
-                        transport.client.play(0)
+                        try:
+                            transport.client.play(0)
+                        except Exception as play_err:
+                            logger.warning(
+                                "MPD play failed on primary output, falling back to PipeWire: %s",
+                                play_err,
+                            )
+                            _try_enable_pipewire_fallback(transport.client)
+                            transport.client.play(0)
                 else:
-                    # Queue is empty - auto-seed active tracks from database
+                    # Queue is empty - auto-seed tracks from database
                     db_p = db_path or cfg.db_path
                     if db_p.exists():
                         with get_connection(db_p) as conn:
                             cursor = conn.cursor()
-                            cursor.execute(
-                                "SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50"
-                            )
+                            cursor.execute("PRAGMA table_info(tracks)")
+                            cols = {row[1] for row in cursor.fetchall()}
+                            if "status" in cols:
+                                cursor.execute(
+                                    "SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50"
+                                )
+                            else:
+                                cursor.execute(
+                                    "SELECT path FROM tracks ORDER BY id ASC LIMIT 50"
+                                )
                             rows = cursor.fetchall()
                             if rows:
                                 paths = [r[0] for r in rows if r[0]]
                                 transport.add_tracks(paths)
                                 if transport.client:
-                                    transport.client.play(0)
+                                    try:
+                                        transport.client.play(0)
+                                    except Exception as play_err:
+                                        logger.warning(
+                                            "MPD play failed, falling back to PipeWire: %s",
+                                            play_err,
+                                        )
+                                        _try_enable_pipewire_fallback(transport.client)
+                                        transport.client.play(0)
             return transport.status()
     except Exception as err:
         logger.debug("MPD toggle_pause unavailable: %s", err)
@@ -559,8 +715,8 @@ def get_playback_status(
                 "bit_perfect": True,
                 "buffer_health": "100% Bit-Perfect Locked",
                 "jitter_ppm": 0.02,
-                "output_profile": ACTIVE_OUTPUT_PROFILE,
-                "output_profiles": OUTPUT_PROFILES,
+                "output_profile": get_active_output_profile(cfg),
+                "output_profiles": get_dynamic_output_profiles(cfg),
                 "daemon_online": True,
             }
     except Exception:
@@ -582,8 +738,8 @@ def get_playback_status(
             "bit_perfect": True,
             "buffer_health": "Standby (Direct ALSA Ready)",
             "jitter_ppm": 0.02,
-            "output_profile": ACTIVE_OUTPUT_PROFILE,
-            "output_profiles": OUTPUT_PROFILES,
+            "output_profile": get_active_output_profile(cfg),
+            "output_profiles": get_dynamic_output_profiles(cfg),
             "daemon_online": False,
         }
 

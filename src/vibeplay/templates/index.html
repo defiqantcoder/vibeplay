@@ -314,14 +314,21 @@
       <!-- Mood Filter -->
       <select name="mood" class="select-input">
         <option value="">All Moods</option>
+        <option value="chill">Chill (Low Energy, High Relaxed)</option>
+        <option value="energetic">Energetic / Workout (High Energy, Fast BPM)</option>
+        <option value="melancholic">Melancholic / Sad (Deep Mood, Reflective)</option>
+        <option value="euphoric">Euphoric / Peak Joy (Happy + Party)</option>
+        <option value="deep_focus">Deep Focus / Study (Subtle Energy)</option>
+        <option value="dark_intense">Dark &amp; Intense (Aggressive Drives)</option>
+        <option value="ambient">Ambient / Atmospheric (Acoustic Low Energy)</option>
+        <option value="lofi">Lo-Fi Chillhop (70-95 BPM)</option>
+        <option value="driving">Driving / Roadtrip (110-135 BPM)</option>
         <option value="happy">Happy (≥ 50%)</option>
         <option value="relaxed">Relaxed (≥ 50%)</option>
-        <option value="chill">Chill (Low Energy, High Relaxed)</option>
         <option value="party">Party (≥ 50%)</option>
         <option value="aggressive">Aggressive (≥ 50%)</option>
         <option value="acoustic">Acoustic (≥ 50%)</option>
         <option value="electronic">Electronic (≥ 50%)</option>
-        <option value="sad">Sad / Melancholy (≥ 50%)</option>
       </select>
     </div>
 
@@ -357,12 +364,24 @@
       
       <!-- Sort selection -->
       <select name="sort" class="select-input">
-        <option value="id_asc">Sort: Default ID</option>
+        <option value="id_asc">Sort: Track ID (Asc)</option>
+        <option value="id_desc">Sort: Track ID (Desc)</option>
+        <option value="title_asc">Sort: Title (A-Z)</option>
+        <option value="title_desc">Sort: Title (Z-A)</option>
+        <option value="artist_asc">Sort: Artist (A-Z)</option>
+        <option value="artist_desc">Sort: Artist (Z-A)</option>
+        <option value="album_asc">Sort: Album (A-Z)</option>
+        <option value="album_desc">Sort: Album (Z-A)</option>
         <option value="bpm_asc">Sort: BPM (Low to High)</option>
         <option value="bpm_desc">Sort: BPM (High to Low)</option>
+        <option value="harmonic_asc">Sort: Harmonic Key (Asc)</option>
+        <option value="harmonic_desc">Sort: Harmonic Key (Desc)</option>
         <option value="energy_desc">Sort: Energy (Highest)</option>
-        <option value="title_asc">Sort: Title (A-Z)</option>
-        <option value="artist_asc">Sort: Artist (A-Z)</option>
+        <option value="energy_asc">Sort: Energy (Lowest)</option>
+        <option value="danceability_desc">Sort: Danceability (Highest)</option>
+        <option value="danceability_asc">Sort: Danceability (Lowest)</option>
+        <option value="duration_desc">Sort: Duration (Longest)</option>
+        <option value="duration_asc">Sort: Duration (Shortest)</option>
       </select>
     </div>
   </form>

@@ -152,6 +152,7 @@ def _default_audio_outputs_fallback() -> str:
 audio_output {
     type            "pipewire"
     name            "PipeWire Sound Server"
+    enabled         "yes"
 }
 
 # Audio Output 2: Bit-Perfect ALSA Direct Default
@@ -163,6 +164,7 @@ audio_output {
     auto_channels   "no"
     auto_format     "no"
     mixer_type      "none"
+    enabled         "no"
 }
 """
 

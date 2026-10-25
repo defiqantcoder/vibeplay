@@ -2,15 +2,60 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th style="width: 40px; text-align: center;">#</th>
-        <th>Track &amp; Stream Source</th>
-        <th>Artist</th>
-        <th>Album</th>
-        <th style="text-align: right; width: 75px;">BPM</th>
-        <th style="text-align: center; width: 85px;">Harmonic</th>
-        <th style="text-align: right; width: 110px;">Energy Vector</th>
-        <th style="text-align: right; width: 110px;">Danceability</th>
-        <th style="text-align: right; width: 115px;">Format</th>
+        <th style="width: 45px; text-align: center; cursor: pointer;"
+            title="Sort by ID"
+            hx-get="/api/library/table?sort={% if current_sort == 'id_asc' %}id_desc{% else %}id_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          # {% if current_sort == 'id_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'id_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="cursor: pointer;"
+            title="Sort by Title"
+            hx-get="/api/library/table?sort={% if current_sort == 'title_asc' %}title_desc{% else %}title_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Track &amp; Stream Source {% if current_sort == 'title_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'title_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="cursor: pointer;"
+            title="Sort by Artist"
+            hx-get="/api/library/table?sort={% if current_sort == 'artist_asc' %}artist_desc{% else %}artist_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Artist {% if current_sort == 'artist_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'artist_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="cursor: pointer;"
+            title="Sort by Album"
+            hx-get="/api/library/table?sort={% if current_sort == 'album_asc' %}album_desc{% else %}album_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Album {% if current_sort == 'album_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'album_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="text-align: right; width: 75px; cursor: pointer;"
+            title="Sort by BPM"
+            hx-get="/api/library/table?sort={% if current_sort == 'bpm_asc' %}bpm_desc{% else %}bpm_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          BPM {% if current_sort == 'bpm_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'bpm_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="text-align: center; width: 85px; cursor: pointer;"
+            title="Sort by Harmonic Key"
+            hx-get="/api/library/table?sort={% if current_sort == 'harmonic_asc' %}harmonic_desc{% else %}harmonic_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Harmonic {% if current_sort == 'harmonic_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'harmonic_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
+        <th style="text-align: right; width: 110px; cursor: pointer;"
+            title="Sort by Energy"
+            hx-get="/api/library/table?sort={% if current_sort == 'energy_desc' %}energy_asc{% else %}energy_desc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Energy {% if current_sort == 'energy_desc' %}<span style="color: var(--primary);">▼</span>{% elif current_sort == 'energy_asc' %}<span style="color: var(--primary);">▲</span>{% endif %}
+        </th>
+        <th style="text-align: right; width: 110px; cursor: pointer;"
+            title="Sort by Danceability"
+            hx-get="/api/library/table?sort={% if current_sort == 'danceability_desc' %}danceability_asc{% else %}danceability_desc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Danceability {% if current_sort == 'danceability_desc' %}<span style="color: var(--primary);">▼</span>{% elif current_sort == 'danceability_asc' %}<span style="color: var(--primary);">▲</span>{% endif %}
+        </th>
+        <th style="text-align: right; width: 115px; cursor: pointer;"
+            title="Sort by Duration"
+            hx-get="/api/library/table?sort={% if current_sort == 'duration_asc' %}duration_desc{% else %}duration_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          Format {% if current_sort == 'duration_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'duration_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+        </th>
         <th style="text-align: center; width: 90px;">Actions</th>
       </tr>
     </thead>
