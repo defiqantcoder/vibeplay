@@ -1,12 +1,45 @@
 """Database access and schema management for vibeplay with versioned migrations."""
 
+import functools
 import json
 import logging
+import random
 import sqlite3
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def retry_db_locked(max_retries: int = 5, base_delay: float = 0.1, max_delay: float = 2.0):
+    """Decorator that retries SQLite operations that fail due to database locking.
+
+    Uses exponential backoff with jitter to resolve write contentions gracefully.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    if "database is locked" in str(e).lower() and retries < max_retries:
+                        delay = min(max_delay, base_delay * (2**retries))
+                        jitter = random.uniform(0, 0.1 * delay)
+                        sleep_time = delay + jitter
+                        logger.warning("Database locked in %s, retrying %d/%d after %.2fs...", func.__name__, retries + 1, max_retries, sleep_time)
+                        time.sleep(sleep_time)
+                        retries += 1
+                    else:
+                        raise
+
+        return wrapper
+
+    return decorator
+
 
 MIGRATIONS: list[tuple[int, str, str]] = [
     (
@@ -236,7 +269,7 @@ class TrackRecord:
     tags: str | None = None
 
 
-def get_connection(db_path: Path, timeout: float = 30.0) -> sqlite3.Connection:
+def get_connection(db_path: Path, timeout: float = 10.0) -> sqlite3.Connection:
     """Create and return a configured SQLite connection.
 
     Args:
@@ -251,6 +284,7 @@ def get_connection(db_path: Path, timeout: float = 30.0) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA journal_mode = WAL;")
+    conn.execute("PRAGMA busy_timeout = 10000;")
     return conn
 
 
@@ -348,6 +382,7 @@ def get_existing_tracks(conn: sqlite3.Connection) -> dict[str, TrackRecord]:
     return tracks
 
 
+@retry_db_locked()
 def insert_track(
     conn: sqlite3.Connection,
     path: str,
@@ -434,6 +469,7 @@ def insert_track(
     return cursor.lastrowid or 0
 
 
+@retry_db_locked()
 def update_track(
     conn: sqlite3.Connection,
     track_id: int,
@@ -526,6 +562,7 @@ def update_track(
     )
 
 
+@retry_db_locked()
 def mark_tracks_missing(conn: sqlite3.Connection, track_ids: list[int]) -> int:
     """Mark a list of track IDs as missing without deleting rows.
 
@@ -590,6 +627,7 @@ def get_cached_response(
     return row["response_json"] if row else None
 
 
+@retry_db_locked()
 def set_cached_response(
     conn: sqlite3.Connection,
     cache_key: str,
@@ -652,6 +690,7 @@ def get_unenriched_tracks(
     return cursor.fetchall()
 
 
+@retry_db_locked()
 def insert_or_replace_enrichment(
     conn: sqlite3.Connection,
     track_id: int,
@@ -792,6 +831,7 @@ def get_enrichment_report(
     return cursor.fetchall()
 
 
+@retry_db_locked()
 def insert_or_replace_features(
     conn: sqlite3.Connection,
     track_id: int,
@@ -957,9 +997,7 @@ def get_tracks_with_features(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def get_tracks_with_features_by_ids(
-    conn: sqlite3.Connection, track_ids: list[int]
-) -> list[sqlite3.Row]:
+def get_tracks_with_features_by_ids(conn: sqlite3.Connection, track_ids: list[int]) -> list[sqlite3.Row]:
     """Retrieve track metadata and features for specific track IDs.
 
     Args:
@@ -1035,6 +1073,7 @@ def get_features_checksum(conn: sqlite3.Connection) -> str:
     return hasher.hexdigest()
 
 
+@retry_db_locked()
 def create_playlist(
     conn: sqlite3.Connection,
     name: str,
@@ -1063,6 +1102,7 @@ def create_playlist(
     return cursor.lastrowid or 0
 
 
+@retry_db_locked()
 def add_tracks_to_playlist(
     conn: sqlite3.Connection,
     playlist_id: int,
@@ -1182,6 +1222,7 @@ def list_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return cursor.fetchall()
 
 
+@retry_db_locked()
 def delete_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     """Delete a playlist and its associated tracks.
 
@@ -1228,16 +1269,13 @@ def get_llm_cache(
             return None
         return row["response"]
 
-    cursor.execute(
-        "SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,)
-    )
+    cursor.execute("SELECT response FROM llm_cache WHERE prompt_hash = ?", (prompt_hash,))
     row = cursor.fetchone()
     return row["response"] if row else None
 
 
-def cleanup_expired_caches(
-    conn: sqlite3.Connection, max_age_days: int = 30
-) -> dict[str, int]:
+@retry_db_locked()
+def cleanup_expired_caches(conn: sqlite3.Connection, max_age_days: int = 30) -> dict[str, int]:
     """Prune cached LLM prompts and network metadata responses older than max_age_days.
 
     Enforces privacy data retention policies and removes stale cached API data.
@@ -1250,14 +1288,10 @@ def cleanup_expired_caches(
         dict[str, int]: Deleted records count {'llm_cache': N, 'network_cache': M}.
     """
     cursor = conn.cursor()
-    cursor.execute(
-        f"DELETE FROM llm_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
-    )
+    cursor.execute(f"DELETE FROM llm_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')")
     llm_count = cursor.rowcount
 
-    cursor.execute(
-        f"DELETE FROM network_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')"
-    )
+    cursor.execute(f"DELETE FROM network_cache WHERE created_at < datetime('now', '-{int(max_age_days)} days')")
     net_count = cursor.rowcount
 
     logger.info(
@@ -1269,6 +1303,7 @@ def cleanup_expired_caches(
     return {"llm_cache": max(0, llm_count), "network_cache": max(0, net_count)}
 
 
+@retry_db_locked()
 def purge_all_caches(conn: sqlite3.Connection) -> dict[str, int]:
     """Purge all cached LLM prompts and network API responses unconditionally.
 
@@ -1293,9 +1328,8 @@ def purge_all_caches(conn: sqlite3.Connection) -> dict[str, int]:
     return {"llm_cache": max(0, llm_count), "network_cache": max(0, net_count)}
 
 
-def set_llm_cache(
-    conn: sqlite3.Connection, prompt_hash: str, prompt: str, response: str, model: str
-) -> None:
+@retry_db_locked()
+def set_llm_cache(conn: sqlite3.Connection, prompt_hash: str, prompt: str, response: str, model: str) -> None:
     """Insert or replace a cached LLM response.
 
     Args:
@@ -1315,6 +1349,7 @@ def set_llm_cache(
     )
 
 
+@retry_db_locked()
 def update_track_vibe_tags(
     conn: sqlite3.Connection,
     track_id: int,
