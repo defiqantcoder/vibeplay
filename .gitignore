@@ -70,6 +70,20 @@ dist/
 build/
 *.deb
 *.spec
+!packaging/vibeplay.spec
 *.AppImage
 *.tar.gz
 *.zip
+
+# Office and binary planning documents
+*.odt
+*.doc
+*.docx
+*.pdf
+
+# Agent and assistant workspace state
+.agents/
+
+# Benchmark and temporary performance artifacts
+*performance_report*.md
+
