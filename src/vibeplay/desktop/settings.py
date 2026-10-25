@@ -17,9 +17,7 @@ from vibeplay.ui.theme import THEME_PRESETS
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DESKTOP_SETTINGS_PATH = Path(
-    "~/.config/vibeplay/desktop_settings.json"
-).expanduser()
+DEFAULT_DESKTOP_SETTINGS_PATH = Path("~/.config/vibeplay/desktop_settings.json").expanduser()
 
 VALID_ALSA_BUFFER_FRAMES = {32, 64, 128, 256, 512, 1024, 2048}
 VALID_SAMPLE_RATE_LOCKS = {
@@ -159,18 +157,14 @@ class DesktopSettings(BaseModel):
     def validate_alsa_device(cls, v: str) -> str:
         cleaned = v.strip()
         if not _ALSA_DEVICE_PATTERN.match(cleaned):
-            raise ValueError(
-                f"Invalid ALSA device '{v}'. Expected 'hw:X,Y', 'plughw:X,Y', 'default', or 'pipewire'."
-            )
+            raise ValueError(f"Invalid ALSA device '{v}'. Expected 'hw:X,Y', 'plughw:X,Y', 'default', or 'pipewire'.")
         return cleaned
 
     @field_validator("alsa_buffer_frames")
     @classmethod
     def validate_buffer_frames(cls, v: int) -> int:
         if v not in VALID_ALSA_BUFFER_FRAMES:
-            raise ValueError(
-                f"Invalid buffer frame size {v}. Must be one of {sorted(VALID_ALSA_BUFFER_FRAMES)}."
-            )
+            raise ValueError(f"Invalid buffer frame size {v}. Must be one of {sorted(VALID_ALSA_BUFFER_FRAMES)}.")
         return v
 
     @field_validator("alsa_sample_rate_lock")
@@ -178,9 +172,7 @@ class DesktopSettings(BaseModel):
     def validate_sample_rate_lock(cls, v: str) -> str:
         cleaned = str(v).strip().lower()
         if cleaned not in VALID_SAMPLE_RATE_LOCKS:
-            raise ValueError(
-                f"Invalid sample rate lock '{v}'. Must be one of {sorted(VALID_SAMPLE_RATE_LOCKS)}."
-            )
+            raise ValueError(f"Invalid sample rate lock '{v}'. Must be one of {sorted(VALID_SAMPLE_RATE_LOCKS)}.")
         return cleaned
 
     @field_validator("dsp_profile")
@@ -188,9 +180,7 @@ class DesktopSettings(BaseModel):
     def validate_dsp_profile(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if cleaned not in VALID_DSP_PROFILES:
-            raise ValueError(
-                f"Invalid DSP profile '{v}'. Must be one of {sorted(VALID_DSP_PROFILES)}."
-            )
+            raise ValueError(f"Invalid DSP profile '{v}'. Must be one of {sorted(VALID_DSP_PROFILES)}.")
         return cleaned
 
     @field_validator("peq_profile")
@@ -205,14 +195,9 @@ class DesktopSettings(BaseModel):
             from vibe_dsp.peq import list_available_presets
 
             raw_presets = list_available_presets()
-            available = {
-                (p["name"].lower() if isinstance(p, dict) else str(p).lower())
-                for p in raw_presets
-            } | {"none"}
+            available = {(p["name"].lower() if isinstance(p, dict) else str(p).lower()) for p in raw_presets} | {"none"}
             if len(available) > 1 and cleaned not in available:
-                raise ValueError(
-                    f"Unknown PEQ preset '{v}'. Available presets: {sorted(available)}."
-                )
+                raise ValueError(f"Unknown PEQ preset '{v}'. Available presets: {sorted(available)}.")
         except ImportError:
             pass
         return cleaned
@@ -222,9 +207,7 @@ class DesktopSettings(BaseModel):
     def validate_spatial_mode(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if cleaned not in VALID_SPATIAL_MODES:
-            raise ValueError(
-                f"Invalid spatial mode '{v}'. Must be one of {sorted(VALID_SPATIAL_MODES)}."
-            )
+            raise ValueError(f"Invalid spatial mode '{v}'. Must be one of {sorted(VALID_SPATIAL_MODES)}.")
         return cleaned
 
     @field_validator("analyzer_backend")
@@ -232,9 +215,7 @@ class DesktopSettings(BaseModel):
     def validate_analyzer_backend(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if cleaned not in VALID_ANALYZER_BACKENDS:
-            raise ValueError(
-                f"Invalid analyzer backend '{v}'. Must be one of {sorted(VALID_ANALYZER_BACKENDS)}."
-            )
+            raise ValueError(f"Invalid analyzer backend '{v}'. Must be one of {sorted(VALID_ANALYZER_BACKENDS)}.")
         return cleaned
 
     @field_validator("theme_id")
@@ -242,9 +223,7 @@ class DesktopSettings(BaseModel):
     def validate_theme_id(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if cleaned not in VALID_THEME_IDS:
-            raise ValueError(
-                f"Invalid theme_id '{v}'. Must be one of {sorted(VALID_THEME_IDS)}."
-            )
+            raise ValueError(f"Invalid theme_id '{v}'. Must be one of {sorted(VALID_THEME_IDS)}.")
         return cleaned
 
     @field_validator("custom_accent_color")
@@ -252,9 +231,7 @@ class DesktopSettings(BaseModel):
     def validate_custom_accent_color(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if not _HEX_COLOR_PATTERN.match(cleaned):
-            raise ValueError(
-                f"Invalid hex color '{v}'. Expected 6-digit hex format '#rrggbb'."
-            )
+            raise ValueError(f"Invalid hex color '{v}'. Expected 6-digit hex format '#rrggbb'.")
         return cleaned
 
     @field_validator("contrast_mode")
@@ -262,9 +239,7 @@ class DesktopSettings(BaseModel):
     def validate_contrast_mode(cls, v: str) -> str:
         cleaned = v.strip().lower()
         if cleaned not in VALID_CONTRAST_MODES:
-            raise ValueError(
-                f"Invalid contrast_mode '{v}'. Must be one of {sorted(VALID_CONTRAST_MODES)}."
-            )
+            raise ValueError(f"Invalid contrast_mode '{v}'. Must be one of {sorted(VALID_CONTRAST_MODES)}.")
         return cleaned
 
 
@@ -288,9 +263,7 @@ def load_desktop_settings(path: Path | None = None) -> DesktopSettings:
         return DesktopSettings()
 
 
-def save_desktop_settings(
-    settings: DesktopSettings, path: Path | None = None
-) -> Path:
+def save_desktop_settings(settings: DesktopSettings, path: Path | None = None) -> Path:
     """Atomically write validated desktop settings to disk with 0600 permissions and 0700 parent directory."""
     target = (path or DEFAULT_DESKTOP_SETTINGS_PATH).expanduser().resolve()
     ensure_secure_directory(target.parent, 0o700)
@@ -319,9 +292,7 @@ def save_desktop_settings(
     return target
 
 
-def update_desktop_settings(
-    updates: dict[str, Any], path: Path | None = None
-) -> DesktopSettings:
+def update_desktop_settings(updates: dict[str, Any], path: Path | None = None) -> DesktopSettings:
     """Apply a partial or full dictionary of updates to persisted desktop settings, validate, and save."""
     current = load_desktop_settings(path)
     merged = current.model_dump()

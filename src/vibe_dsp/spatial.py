@@ -22,9 +22,7 @@ DEFAULT_SPATIAL_CONF_FILE = "98-spatial-7.1.4.conf"
 SPATIAL_SINK_NAME = "Spatial-7.1.4-Sink"
 
 # Default open-standard KEMAR 7.1.4 HRTF dataset URL
-DEFAULT_SOFA_DOWNLOAD_URL = (
-    "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
-)
+DEFAULT_SOFA_DOWNLOAD_URL = "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
 
 # Standard 7.1.4 Speaker Channels and ITU-R BS.775 / Dolby Atmos Azimuth & Elevation Angles
 # Format: (Channel Name, Azimuth in deg, Elevation in deg, Description)
@@ -268,7 +266,7 @@ context.modules = [
 {chr(10).join(nodes_config)}
                 ]
                 inputs  = [
-                    {', '.join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
+                    {", ".join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
                 ]
                 outputs = [
                     "spatial_convolver:Out_L"

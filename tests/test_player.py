@@ -105,9 +105,7 @@ def test_mpd_transport_connection_failure() -> None:
         mock_client.connect.side_effect = ConnectionRefusedError("Connection refused")
 
         transport = MPDTransport(host="localhost", port=6600)
-        with pytest.raises(
-            PlaybackError, match="Could not connect to Music Player Daemon"
-        ):
+        with pytest.raises(PlaybackError, match="Could not connect to Music Player Daemon"):
             transport.connect()
 
 
@@ -170,4 +168,3 @@ def test_adjust_volume_step_and_mute() -> None:
         # Toggle unmute: should restore last volume (70)
         toggle_mute()
         assert vol_state["volume"] == "70"
-

@@ -136,9 +136,7 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
     channels = 2
 
     # Extract format lines
-    format_matches = re.findall(
-        r"Format:\s+([A-Za-z0-9_]+)", stream_content, re.IGNORECASE
-    )
+    format_matches = re.findall(r"Format:\s+([A-Za-z0-9_]+)", stream_content, re.IGNORECASE)
     for fmt in format_matches:
         formats.add(fmt.upper())
 
@@ -176,6 +174,31 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
         "bit_depths": sorted(bit_depths),
         "channels": channels,
     }
+
+
+def parse_aplay_l() -> list[dict[str, Any]]:
+    """Parse aplay -l output as a fallback or supplement for hardware detection."""
+    import re
+    import subprocess
+
+    devices: list[dict[str, Any]] = []
+    try:
+        res = subprocess.run(["aplay", "-l"], capture_output=True, text=True, check=False)
+        for line in res.stdout.splitlines():
+            # card 1: KA15 [FIIO KA15], device 0: USB Audio [USB Audio]
+            match = re.search(r"card\s+(\d+):\s*[^\[]+\[([^\]]+)\],\s*device\s+(\d+):\s*[^\[]+\[([^\]]+)\]", line)
+            if match:
+                devices.append(
+                    {
+                        "card_index": int(match.group(1)),
+                        "card_name": match.group(2).strip(),
+                        "device_index": int(match.group(3)),
+                        "device_name": match.group(4).strip(),
+                    }
+                )
+    except Exception as err:
+        logger.debug("aplay -l parsing failed: %s", err)
+    return devices
 
 
 def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
@@ -218,6 +241,27 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
         except Exception as err:
             logger.warning("Could not read %s: %s", pcm_file, err)
 
+    aplay_devices = parse_aplay_l()
+
+    # Merge aplay -l devices if they are not in pcm_devices
+    for adev in aplay_devices:
+        exists = any(p["card_index"] == adev["card_index"] and p["device_index"] == adev["device_index"] for p in pcm_devices)
+        if not exists:
+            pcm_devices.append({"card_index": adev["card_index"], "device_index": adev["device_index"], "device_name": adev["device_name"]})
+
+        # Ensure card exists in parsed_cards
+        card_exists = any(c["card_index"] == adev["card_index"] for c in parsed_cards)
+        if not card_exists:
+            parsed_cards.append(
+                {
+                    "card_index": adev["card_index"],
+                    "card_id": adev["card_name"].replace(" ", ""),
+                    "driver": "USB-Audio" if "USB" in adev["card_name"] else "Unknown",
+                    "card_name": adev["card_name"],
+                    "extra_info": "Detected via aplay -l",
+                }
+            )
+
     for card in parsed_cards:
         c_idx = card["card_index"]
         c_id = card["card_id"]
@@ -231,12 +275,7 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
         usb_id = usb_id_file.read_text().strip() if usb_id_file.exists() else None
         usb_bus = usb_bus_file.read_text().strip() if usb_bus_file.exists() else None
 
-        is_usb_class = bool(
-            usb_id
-            or usb_bus
-            or c_driver.lower() == "usb-audio"
-            or "usb" in card["extra_info"].lower()
-        )
+        is_usb_class = bool(usb_id or usb_bus or c_driver.lower() == "usb-audio" or "usb" in card["extra_info"].lower())
 
         # Find playback device numbers for this card
         card_pcms = [p for p in pcm_devices if p["card_index"] == c_idx]
@@ -259,9 +298,7 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
                 stream_files = sorted(card_dir.glob("stream*"))
                 if stream_files:
                     try:
-                        stream_text = stream_files[0].read_text(
-                            encoding="utf-8", errors="replace"
-                        )
+                        stream_text = stream_files[0].read_text(encoding="utf-8", errors="replace")
                         caps = parse_usb_stream_capabilities(stream_text)
                         rates = caps["rates"]
                         formats = caps["formats"]
@@ -302,11 +339,7 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
                 priority = 20
 
             # Derive node name pattern
-            node_name = (
-                f"alsa_output.usb-{c_id}.analog-stereo"
-                if card_type == CardType.USB_DAC
-                else f"alsa_output.pci-{c_id}.analog-stereo"
-            )
+            node_name = f"alsa_output.usb-{c_id}.analog-stereo" if card_type == CardType.USB_DAC else f"alsa_output.pci-{c_id}.analog-stereo"
 
             endpoint = AudioEndpoint(
                 card_index=c_idx,
