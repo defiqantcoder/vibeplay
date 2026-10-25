@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 # Resolve repository and src directories whether invoked via PyInstaller (SPECPATH) or Python
-_SPEC_DIR = Path(globals().get("SPECPATH", Path(__file__).resolve().parent)).resolve()
+_SPEC_DIR = Path(globals().get("SPECPATH") or (Path.cwd() / "packaging")).resolve()
 REPO_ROOT = _SPEC_DIR.parent
 SRC_DIR = REPO_ROOT / "src"
 

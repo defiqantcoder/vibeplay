@@ -61,20 +61,19 @@ mkdir -p "${OUTPUT_DIR}"
 
 # 1. Install executable binaries
 if [[ -f "dist/vibeplay-desktop" ]]; then
+    echo "Installing binary dist/vibeplay-desktop..."
     cp "dist/vibeplay-desktop" "${STAGE_DIR}/usr/bin/vibeplay-desktop"
     chmod 0755 "${STAGE_DIR}/usr/bin/vibeplay-desktop"
+    # Symlink vibeplay -> vibeplay-desktop so CLI and GUI share the self-contained runtime
+    ln -sf "vibeplay-desktop" "${STAGE_DIR}/usr/bin/vibeplay"
 else
+    echo "Warning: dist/vibeplay-desktop not found; creating stub wrappers for testing..."
     cat << 'WRAPPER' > "${STAGE_DIR}/usr/bin/vibeplay-desktop"
 #!/usr/bin/env bash
 exec python3 -m vibeplay.desktop "$@"
 WRAPPER
     chmod 0755 "${STAGE_DIR}/usr/bin/vibeplay-desktop"
-fi
 
-if [[ -f "dist/vibeplay" ]]; then
-    cp "dist/vibeplay" "${STAGE_DIR}/usr/bin/vibeplay"
-    chmod 0755 "${STAGE_DIR}/usr/bin/vibeplay"
-else
     cat << 'WRAPPER' > "${STAGE_DIR}/usr/bin/vibeplay"
 #!/usr/bin/env bash
 exec python3 -m vibeplay.cli "$@"

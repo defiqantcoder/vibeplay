@@ -76,7 +76,35 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional audio files, playlists (.m3u/.m3u8), or directories passed via desktop launcher (%%U)",
     )
 
-    args = parser.parse_args(argv if argv is not None else sys.argv[1:])
+    raw_args = list(argv if argv is not None else sys.argv[1:])
+
+    # If first argument is "desktop", strip it so `vibeplay desktop ...` works seamlessly
+    if raw_args and raw_args[0] == "desktop":
+        raw_args.pop(0)
+    elif raw_args and raw_args[0] in {
+        "scan",
+        "enrich",
+        "analyze",
+        "capabilities",
+        "doctor",
+        "playlist",
+        "export",
+        "cluster",
+        "llm",
+        "play",
+        "control",
+        "web",
+        "jobs",
+    }:
+        from vibeplay.cli import app as cli_app
+
+        try:
+            cli_app(raw_args)
+            return 0
+        except SystemExit as exc:
+            return exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1)
+
+    args = parser.parse_args(raw_args)
 
     if args.release_gate:
         import tempfile
