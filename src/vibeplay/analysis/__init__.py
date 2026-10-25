@@ -17,6 +17,7 @@ from vibeplay.analysis.base import (
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
 from vibeplay.analysis.librosa_analyzer import LibrosaAnalyzer
 from vibeplay.config import get_settings
+from vibeplay.desktop.settings import load_desktop_settings
 from vibeplay.db import (
     get_connection,
     get_total_active_tracks_count,
@@ -28,6 +29,7 @@ from vibeplay.db import (
 logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[[int, int, str, float], None]
+CancelCheckCallback = Callable[[], bool]
 
 
 @dataclass
@@ -115,6 +117,7 @@ def analyze_tracks(
     force: bool = False,
     limit: int | None = None,
     progress_callback: ProgressCallback | None = None,
+    cancel_check: CancelCheckCallback | None = None,
 ) -> AnalysisSummary:
     """Analyze audio files in the database using parallel workers.
 
@@ -136,7 +139,15 @@ def analyze_tracks(
 
     analyzer = get_analyzer(backend=backend, models_dir=settings.models_dir)
     target_version = analyzer.version
-    worker_count = workers if workers is not None else settings.analyzer_workers
+    if workers is not None:
+        worker_count = workers
+    else:
+        try:
+            desktop_settings_path = settings.get_desktop_settings_path(db_path)
+            desktop_settings = load_desktop_settings(desktop_settings_path)
+            worker_count = desktop_settings.analyzer_workers
+        except Exception:
+            worker_count = settings.analyzer_workers
     worker_count = max(1, worker_count)
 
     summary = AnalysisSummary()
@@ -170,48 +181,33 @@ def analyze_tracks(
 
         durations: list[float] = []
 
-        if worker_count <= 1:
-            for idx, args in enumerate(task_args):
-                track_id, features, err_msg, elapsed = _analyze_single_track_task(*args)
-                track_name = Path(args[1]).name
-                if progress_callback:
-                    progress_callback(
-                        idx + 1, summary.total_considered, track_name, elapsed
-                    )
+        batch_size = 16
+        completed_count = 0
 
-                if features:
-                    durations.append(elapsed)
-                    summary.analyzed += 1
-                    with conn:
-                        insert_or_replace_features(
-                            conn=conn,
-                            track_id=features.track_id,
-                            analyzer_version=features.analyzer_version,
-                            bpm=features.bpm,
-                            key=features.key,
-                            scale=features.scale,
-                            loudness=features.loudness,
-                            danceability=features.danceability,
-                            energy=features.energy,
-                            mood_scores_json=json.dumps(features.mood_scores),
-                            embedding_blob=features.embedding_bytes(),
-                        )
-                else:
-                    summary.failed += 1
-                    logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
-        else:
-            with ProcessPoolExecutor(max_workers=worker_count) as executor:
-                futures = {
-                    executor.submit(_analyze_single_track_task, *args): args
-                    for args in task_args
-                }
-                completed_count = 0
-                for future in as_completed(futures):
-                    completed_count += 1
-                    args = futures[future]
-                    track_name = Path(args[1]).name
-                    try:
-                        track_id, features, err_msg, elapsed = future.result()
+        # Create executor once for entire job
+        executor = ProcessPoolExecutor(max_workers=worker_count) if worker_count > 1 else None
+
+        try:
+            for i in range(0, len(task_args), batch_size):
+                if cancel_check and cancel_check():
+                    logger.info("Analysis job cancelled.")
+                    if executor:
+                        executor.shutdown(wait=False, cancel_futures=True)
+                    break
+
+                batch = task_args[i : i + batch_size]
+                batch_results = []
+
+                if executor is None:
+                    # Sequential processing
+                    for args in batch:
+                        if cancel_check and cancel_check():
+                            break
+                        result = _analyze_single_track_task(*args)
+                        completed_count += 1
+
+                        track_name = Path(args[1]).name
+                        track_id, features, err_msg, elapsed = result
                         if progress_callback:
                             progress_callback(
                                 completed_count,
@@ -219,32 +215,72 @@ def analyze_tracks(
                                 track_name,
                                 elapsed,
                             )
+                        batch_results.append((args, result))
+                else:
+                    # Parallel processing
+                    futures = {
+                        executor.submit(_analyze_single_track_task, *args): args
+                        for args in batch
+                    }
+                    try:
+                        for future in as_completed(futures):
+                            if cancel_check and cancel_check():
+                                executor.shutdown(wait=False, cancel_futures=True)
+                                break
+
+                            args = futures[future]
+                            try:
+                                result = future.result()
+                                completed_count += 1
+
+                                track_name = Path(args[1]).name
+                                track_id, features, err_msg, elapsed = result
+                                if progress_callback:
+                                    progress_callback(
+                                        completed_count,
+                                        summary.total_considered,
+                                        track_name,
+                                        elapsed,
+                                    )
+                                batch_results.append((args, result))
+                            except Exception as err:
+                                summary.failed += 1
+                                logger.warning("Task execution error for %s: %s", args[1], err)
+                    except Exception as e:
+                        logger.error("Batch processing error: %s", e)
+
+                if cancel_check and cancel_check():
+                    logger.info("Analysis job cancelled during batch processing.")
+                    break
+
+                # Commit transaction per batch
+                with conn:
+                    for args, result in batch_results:
+                        track_name = Path(args[1]).name
+                        track_id, features, err_msg, elapsed = result
 
                         if features:
                             durations.append(elapsed)
                             summary.analyzed += 1
-                            with conn:
-                                insert_or_replace_features(
-                                    conn=conn,
-                                    track_id=features.track_id,
-                                    analyzer_version=features.analyzer_version,
-                                    bpm=features.bpm,
-                                    key=features.key,
-                                    scale=features.scale,
-                                    loudness=features.loudness,
-                                    danceability=features.danceability,
-                                    energy=features.energy,
-                                    mood_scores_json=json.dumps(features.mood_scores),
-                                    embedding_blob=features.embedding_bytes(),
-                                )
+                            insert_or_replace_features(
+                                conn=conn,
+                                track_id=features.track_id,
+                                analyzer_version=features.analyzer_version,
+                                bpm=features.bpm,
+                                key=features.key,
+                                scale=features.scale,
+                                loudness=features.loudness,
+                                danceability=features.danceability,
+                                energy=features.energy,
+                                mood_scores_json=json.dumps(features.mood_scores),
+                                embedding_blob=features.embedding_bytes(),
+                            )
                         else:
                             summary.failed += 1
-                            logger.warning(
-                                "Failed analyzing track %s: %s", args[1], err_msg
-                            )
-                    except Exception as err:
-                        summary.failed += 1
-                        logger.warning("Task execution error for %s: %s", args[1], err)
+                            logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
+        finally:
+            if executor:
+                executor.shutdown(wait=True)
 
     summary.total_seconds = time.perf_counter() - start_total_time
     if durations:
