@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from vibe_dsp.spatial import (
     CHANNEL_LAYOUT_7_1_4,
     SPATIAL_SINK_NAME,
-    STANDARD_7_1_4_BASE_PREAMP_DB,
     calculate_composite_preamp,
     ensure_default_sofa_hrtf,
     generate_pipewire_spatial_filter_chain_config,

@@ -1,13 +1,15 @@
-import pytest
-import time
-import sqlite3
 import json
-import numpy as np
-from typing import Any
+import time
 from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+
 from vibeplay.config import Settings
-from vibeplay.vectors import compute_clusters, invalidate_cluster_cache
 from vibeplay.db import get_connection
+from vibeplay.vectors import compute_clusters, invalidate_cluster_cache
+
 
 @pytest.fixture
 def sample_settings(tmp_path: Path) -> Settings:

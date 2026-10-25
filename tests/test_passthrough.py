@@ -4,14 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from vibe_dsp.passthrough import (
     CODEC_DESCRIPTIONS,
     CODEC_MAP,
-    ReceiverEndpoint,
     configure_sink_passthrough,
-    discover_receiver_endpoints,
     parse_pactl_sinks_output,
 )
 

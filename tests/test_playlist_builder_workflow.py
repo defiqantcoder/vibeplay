@@ -12,22 +12,16 @@ from fastapi.testclient import TestClient
 from vibeplay.config import Settings
 from vibeplay.db import (
     get_connection,
-    get_playlist,
     get_playlist_tracks,
     init_db,
     insert_or_replace_features,
     insert_track,
 )
 from vibeplay.playlist import (
-    PlaylistRuleConfig,
-    PlaylistTrackItem,
     calculate_playlist_summary,
-    calculate_transition,
     calculate_transition_metrics,
     evaluate_energy_arc,
     evaluate_harmonic_transition,
-    generate_playlist,
-    key_to_camelot,
 )
 from vibeplay.web import create_app
 

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 from typer.testing import CliRunner
 
 from vibe_dsp.cli import app
@@ -42,8 +41,18 @@ def test_cli_spatial_toggle() -> None:
         assert "Spatial Mode Updated" in result.stdout
 
 
-def test_cli_route_passthrough_all() -> None:
+@patch("vibe_dsp.cli.discover_receiver_endpoints")
+def test_cli_route_passthrough_all(mock_discover) -> None:
     """Verify vibe-dsp route passthrough --all enables receiver codecs."""
+    from vibe_dsp.passthrough import ReceiverEndpoint
+    mock_discover.return_value = [
+        ReceiverEndpoint(
+            sink_id="30",
+            sink_name="alsa_output.pci-0000_00_1f.3.hdmi-stereo",
+            description="Sony AV Receiver",
+            supported_codecs=["ac3", "dts", "eac3"]
+        )
+    ]
     with patch(
         "vibe_dsp.cli.configure_sink_passthrough",
         return_value=(True, "Configured passthrough"),
