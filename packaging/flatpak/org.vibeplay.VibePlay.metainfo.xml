@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.vibeplay.VibePlay</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>VibePlay</name>
+  <summary>Precision Audiophile Music Console &amp; Essentia Vibe Engine</summary>
+  <description>
+    <p>
+      VibePlay is a bit-perfect ALSA/MPD audio console featuring an Essentia-powered
+      vibe clustering engine, SOFA 7.1.4 HRTF spatial convolution, parametric EQ,
+      and a hardware telemetry HUD.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Bit-Perfect Hardware Reservation (hw:) &amp; PipeWire Fallback</li>
+      <li>Real-Time Telemetry Deck</li>
+      <li>4-Step Guided Smart Playlist Builder</li>
+      <li>"God of Ink" Design System</li>
+      <li>Local-First &amp; Machine Learning Driven</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">org.vibeplay.VibePlay.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/defiqantcoder/vibeplay/main/screenshots/main-view.png</image>
+      <caption>The main music player interface with telemetry deck</caption>
+    </screenshot>
+  </screenshots>
+  <url type="homepage">https://github.com/defiqantcoder/vibeplay</url>
+  <url type="bugtracker">https://github.com/defiqantcoder/vibeplay/issues</url>
+  <provides>
+    <binary>vibeplay-desktop</binary>
+  </provides>
+</component>

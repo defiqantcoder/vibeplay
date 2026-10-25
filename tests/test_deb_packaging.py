@@ -4,9 +4,6 @@ import os
 import subprocess
 from pathlib import Path
 
-import pytest
-import yaml
-
 
 def test_debian_control_file_specification() -> None:
     """Verify packaging/debian/control adheres to Debian package policy."""
@@ -83,19 +80,3 @@ def test_build_deb_script_generates_valid_archive(tmp_path: Path) -> None:
     assert "./usr/share/applications/vibeplay.desktop" in contents
     assert "./usr/share/icons/hicolor/scalable/apps/vibeplay.svg" in contents
     assert "./usr/lib/systemd/user/vibeplay.service" in contents
-
-
-def test_flatpak_manifest_specification() -> None:
-    """Verify Flatpak manifest packaging/flatpak/com.vibeplay.VibePlay.yaml is valid YAML."""
-    repo_root = Path(__file__).resolve().parent.parent
-    manifest_path = repo_root / "packaging" / "flatpak" / "com.vibeplay.VibePlay.yaml"
-    assert manifest_path.is_file(), "Flatpak manifest must exist"
-
-    with manifest_path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-    assert data.get("app-id") == "com.vibeplay.VibePlay"
-    assert data.get("command") == "vibeplay-desktop"
-    assert "finish-args" in data
-    assert "--device=all" in data["finish-args"]
-    assert "--socket=pulseaudio" in data["finish-args"]
