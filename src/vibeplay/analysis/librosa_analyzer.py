@@ -5,17 +5,13 @@ import logging
 import librosa
 import numpy as np
 
-from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer
+from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer, downmix_to_mono
 
 logger = logging.getLogger(__name__)
 
 # Krumhansl-Schmuckler musical key profiles
-MAJOR_PROFILE = np.array(
-    [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
-)
-MINOR_PROFILE = np.array(
-    [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
-)
+MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
 PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 
@@ -45,12 +41,8 @@ class LibrosaAnalyzer(BaseAnalyzer):
         """
         scores: dict[tuple[str, str], float] = {}
         for idx, pitch in enumerate(PITCH_CLASSES):
-            maj_corr = float(
-                np.corrcoef(chroma_mean, np.roll(MAJOR_PROFILE, idx))[0, 1]
-            )
-            min_corr = float(
-                np.corrcoef(chroma_mean, np.roll(MINOR_PROFILE, idx))[0, 1]
-            )
+            maj_corr = float(np.corrcoef(chroma_mean, np.roll(MAJOR_PROFILE, idx))[0, 1])
+            min_corr = float(np.corrcoef(chroma_mean, np.roll(MINOR_PROFILE, idx))[0, 1])
             scores[(pitch, "major")] = maj_corr
             scores[(pitch, "minor")] = min_corr
 
@@ -62,6 +54,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
         audio: np.ndarray,
         track_id: int,
     ) -> AudioFeatures:
+        mono_audio = downmix_to_mono(audio)
         """Extract acoustic features and 128-dim embedding using librosa.
 
         Args:
@@ -73,10 +66,8 @@ class LibrosaAnalyzer(BaseAnalyzer):
         """
         # Rhythm / BPM
         try:
-            tempo, _ = librosa.beat.beat_track(y=audio, sr=self._sample_rate)
-            bpm_val = float(
-                tempo[0] if isinstance(tempo, (list, np.ndarray)) else tempo
-            )
+            tempo, _ = librosa.beat.beat_track(y=mono_audio, sr=self._sample_rate)
+            bpm_val = float(tempo[0] if isinstance(tempo, (list, np.ndarray)) else tempo)
             bpm = round(bpm_val, 2)
         except Exception as err:
             logger.debug("Librosa beat_track failed on track %d: %s", track_id, err)
@@ -84,7 +75,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
 
         # Chroma and Key/Scale
         try:
-            chroma = librosa.feature.chroma_stft(y=audio, sr=self._sample_rate)
+            chroma = librosa.feature.chroma_stft(y=mono_audio, sr=self._sample_rate)
             chroma_mean = np.mean(chroma, axis=1)
             key, scale = self._estimate_key(chroma_mean)
         except Exception as err:
@@ -94,7 +85,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
 
         # RMS Energy and Loudness
         try:
-            rms_frames = librosa.feature.rms(y=audio)[0]
+            rms_frames = librosa.feature.rms(y=mono_audio)[0]
             rms_val = float(np.mean(rms_frames))
             energy = float(round(np.clip(rms_val * 4.0, 0.0, 1.0), 4))
             # Approximate LUFS / dB from RMS
@@ -104,10 +95,8 @@ class LibrosaAnalyzer(BaseAnalyzer):
 
         # Danceability (regularity of onset strength peaks)
         try:
-            onset_env = librosa.onset.onset_strength(y=audio, sr=self._sample_rate)
-            autocorr = librosa.autocorrelate(
-                onset_env, max_size=int(self._sample_rate / 64)
-            )
+            onset_env = librosa.onset.onset_strength(y=mono_audio, sr=self._sample_rate)
+            autocorr = librosa.autocorrelate(onset_env, max_size=int(self._sample_rate / 64))
             if len(autocorr) > 1 and autocorr[0] > 0:
                 dance_score = float(np.max(autocorr[1:]) / autocorr[0])
                 danceability = float(round(np.clip(dance_score * 1.5, 0.0, 1.0), 4))
@@ -119,18 +108,14 @@ class LibrosaAnalyzer(BaseAnalyzer):
 
         # MFCC and Spectral features for Embedding
         try:
-            mfcc = librosa.feature.mfcc(y=audio, sr=self._sample_rate, n_mfcc=20)
+            mfcc = librosa.feature.mfcc(y=mono_audio, sr=self._sample_rate, n_mfcc=20)
             mfcc_mean = np.mean(mfcc, axis=1)
             mfcc_std = np.std(mfcc, axis=1)
 
-            spectral_centroid = librosa.feature.spectral_centroid(
-                y=audio, sr=self._sample_rate
-            )[0]
+            spectral_centroid = librosa.feature.spectral_centroid(y=mono_audio, sr=self._sample_rate)[0]
             sc_norm = float(np.mean(spectral_centroid) / (self._sample_rate / 2.0))
 
-            spectral_contrast = librosa.feature.spectral_contrast(
-                y=audio, sr=self._sample_rate
-            )
+            spectral_contrast = librosa.feature.spectral_contrast(y=mono_audio, sr=self._sample_rate)
             sc_mean = np.mean(spectral_contrast, axis=1)
         except Exception:
             mfcc_mean = np.zeros(20, dtype=np.float32)
@@ -157,9 +142,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
                 ),
             ]
         )
-        embedding = np.pad(
-            feature_concat, (0, max(0, 128 - len(feature_concat))), mode="constant"
-        )[:128].astype(np.float32)
+        embedding = np.pad(feature_concat, (0, max(0, 128 - len(feature_concat))), mode="constant")[:128].astype(np.float32)
         norm = np.linalg.norm(embedding)
         if norm > 0:
             embedding = embedding / norm
@@ -169,9 +152,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
         norm_bpm = np.clip(((bpm or 120.0) - 60.0) / 100.0, 0.0, 1.0)
         norm_loud = np.clip((loudness + 30.0) / 30.0, 0.0, 1.0)
 
-        happy = float(
-            np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0)
-        )
+        happy = float(np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0))
         sad = float(
             np.clip(
                 0.5 * (1.0 - is_major) + 0.3 * (1.0 - norm_bpm) + 0.2 * (1.0 - energy),
@@ -181,16 +162,12 @@ class LibrosaAnalyzer(BaseAnalyzer):
         )
         relaxed = float(
             np.clip(
-                0.5 * (1.0 - energy)
-                + 0.3 * (1.0 - norm_loud)
-                + 0.2 * (1.0 - danceability),
+                0.5 * (1.0 - energy) + 0.3 * (1.0 - norm_loud) + 0.2 * (1.0 - danceability),
                 0.0,
                 1.0,
             )
         )
-        aggressive = float(
-            np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0)
-        )
+        aggressive = float(np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0))
         party = float(
             np.clip(
                 0.4 * danceability + 0.3 * energy + 0.3 * (1.0 - abs(norm_bpm - 0.65)),
@@ -200,16 +177,12 @@ class LibrosaAnalyzer(BaseAnalyzer):
         )
         acoustic = float(
             np.clip(
-                0.5 * (1.0 - norm_loud)
-                + 0.3 * (1.0 - energy)
-                + 0.2 * (1.0 - danceability),
+                0.5 * (1.0 - norm_loud) + 0.3 * (1.0 - energy) + 0.2 * (1.0 - danceability),
                 0.0,
                 1.0,
             )
         )
-        electronic = float(
-            np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0)
-        )
+        electronic = float(np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0))
 
         mood_scores = {
             "happy": round(happy, 4),

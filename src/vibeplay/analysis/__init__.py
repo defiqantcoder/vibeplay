@@ -12,6 +12,7 @@ from vibeplay.analysis.base import (
     AudioFeatures,
     BaseAnalyzer,
     decode_audio_slice,
+    downmix_to_mono,
     get_middle_window_offset,
 )
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
@@ -175,9 +176,7 @@ def analyze_tracks(
                 track_id, features, err_msg, elapsed = _analyze_single_track_task(*args)
                 track_name = Path(args[1]).name
                 if progress_callback:
-                    progress_callback(
-                        idx + 1, summary.total_considered, track_name, elapsed
-                    )
+                    progress_callback(idx + 1, summary.total_considered, track_name, elapsed)
 
                 if features:
                     durations.append(elapsed)
@@ -201,10 +200,7 @@ def analyze_tracks(
                     logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
         else:
             with ProcessPoolExecutor(max_workers=worker_count) as executor:
-                futures = {
-                    executor.submit(_analyze_single_track_task, *args): args
-                    for args in task_args
-                }
+                futures = {executor.submit(_analyze_single_track_task, *args): args for args in task_args}
                 completed_count = 0
                 for future in as_completed(futures):
                     completed_count += 1
@@ -239,9 +235,7 @@ def analyze_tracks(
                                 )
                         else:
                             summary.failed += 1
-                            logger.warning(
-                                "Failed analyzing track %s: %s", args[1], err_msg
-                            )
+                            logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
                     except Exception as err:
                         summary.failed += 1
                         logger.warning("Task execution error for %s: %s", args[1], err)
@@ -250,9 +244,7 @@ def analyze_tracks(
     if durations:
         summary.avg_seconds_per_track = sum(durations) / len(durations)
         # Projected time for the library: (remaining unanalyzed tracks * avg / workers)
-        summary.full_library_estimate_seconds = (
-            summary.full_library_tracks * summary.avg_seconds_per_track
-        ) / worker_count
+        summary.full_library_estimate_seconds = (summary.full_library_tracks * summary.avg_seconds_per_track) / worker_count
 
     return summary
 
@@ -265,6 +257,7 @@ __all__ = [
     "LibrosaAnalyzer",
     "analyze_tracks",
     "decode_audio_slice",
+    "downmix_to_mono",
     "get_analyzer",
     "get_middle_window_offset",
 ]
