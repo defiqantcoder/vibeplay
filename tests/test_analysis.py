@@ -118,6 +118,7 @@ def test_librosa_analyzer(synthetic_wav_file: Path) -> None:
     assert features.danceability is not None
     assert features.energy is not None
     assert "happy" in features.mood_scores
+    assert "chill" in features.mood_scores
     assert "electronic" in features.mood_scores
     assert len(features.embedding) == 128
     assert len(features.embedding_bytes()) == 128 * 4
@@ -144,6 +145,7 @@ def test_essentia_analyzer(synthetic_wav_file: Path) -> None:
     assert features.danceability is not None
     assert features.energy is not None
     assert "happy" in features.mood_scores
+    assert "chill" in features.mood_scores
     assert len(features.embedding) >= 128
     assert isinstance(features.embedding_bytes(), bytes)
 

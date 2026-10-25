@@ -211,6 +211,16 @@ class LibrosaAnalyzer(BaseAnalyzer):
             np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0)
         )
 
+
+        chill = float(np.clip(0.5 * (1.0 - energy) + 0.5 * (1.0 - norm_bpm), 0.0, 1.0))
+        energetic = float(np.clip(0.5 * energy + 0.5 * norm_bpm, 0.0, 1.0))
+        melancholic = float(np.clip(0.5 * (1.0 - is_major) + 0.5 * (1.0 - energy), 0.0, 1.0))
+        euphoric = float(np.clip(0.4 * is_major + 0.3 * energy + 0.3 * danceability, 0.0, 1.0))
+        focus = float(np.clip(0.5 * (1.0 - danceability) + 0.3 * (1.0 - abs(norm_bpm - 0.5)) + 0.2 * acoustic, 0.0, 1.0))
+        dark = float(np.clip(0.5 * (1.0 - is_major) + 0.5 * energy, 0.0, 1.0))
+        romantic = float(np.clip(0.5 * is_major + 0.5 * (1.0 - energy), 0.0, 1.0))
+        ambient = float(np.clip(0.5 * (1.0 - energy) + 0.5 * (1.0 - danceability), 0.0, 1.0))
+
         mood_scores = {
             "happy": round(happy, 4),
             "sad": round(sad, 4),
@@ -219,6 +229,14 @@ class LibrosaAnalyzer(BaseAnalyzer):
             "party": round(party, 4),
             "acoustic": round(acoustic, 4),
             "electronic": round(electronic, 4),
+            "chill": round(chill, 4),
+            "energetic": round(energetic, 4),
+            "melancholic": round(melancholic, 4),
+            "euphoric": round(euphoric, 4),
+            "focus": round(focus, 4),
+            "dark": round(dark, 4),
+            "romantic": round(romantic, 4),
+            "ambient": round(ambient, 4),
         }
 
         return AudioFeatures(
