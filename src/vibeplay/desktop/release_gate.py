@@ -185,7 +185,6 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
     supervisor = None
     try:
         import threading
-        import time
 
         from vibeplay.desktop.supervisor import DesktopSupervisor
 

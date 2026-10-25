@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
+from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db
-from vibeplay.desktop.settings import save_desktop_settings, DesktopSettings
+from vibeplay.desktop.settings import DesktopSettings, save_desktop_settings
 from vibeplay.ui.theme import (
     DEFAULT_THEME_ID,
     THEME_PRESETS,

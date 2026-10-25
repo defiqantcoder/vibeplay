@@ -80,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.release_gate:
         import tempfile
+
         from vibeplay.desktop.release_gate import run_release_gate_checks
 
         print("VibePlay Phase 7 Release Gate Validation:")

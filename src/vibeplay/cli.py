@@ -1017,6 +1017,7 @@ def desktop(
 
     if release_gate:
         import tempfile
+
         from vibeplay.desktop.release_gate import run_release_gate_checks
 
         console.print("[bold cyan]Running VibePlay Phase 7 Release Gate Validation...[/bold cyan]")

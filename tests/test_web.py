@@ -503,6 +503,7 @@ def test_api_authentication_middleware(test_environment: tuple[Path, Settings, T
     """Verify API authentication enforcement, token headers, and 401 rejections."""
     db_file, cfg, _ = test_environment
     from fastapi.testclient import TestClient
+
     from vibeplay.web import create_app
 
     auth_app = create_app(db_path=db_file, settings=cfg, api_key="secret-key-12345")

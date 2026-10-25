@@ -1,10 +1,9 @@
 import pytest
-from fastapi.testclient import TestClient
 from bs4 import BeautifulSoup
-from pathlib import Path
+from fastapi.testclient import TestClient
 
-from vibeplay.web import create_app
 from vibeplay.config import Settings
+from vibeplay.web import create_app
 
 
 @pytest.fixture

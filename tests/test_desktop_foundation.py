@@ -21,7 +21,6 @@ from vibeplay.desktop.environment import (
 )
 from vibeplay.ui.menu import build_desktop_menu_bar
 from vibeplay.ui.theme import (
-    THEME_PRESETS,
     get_available_themes,
     get_theme_by_id,
     get_theme_css_variables,
