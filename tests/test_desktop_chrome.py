@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db
-from vibeplay.ui.theme import THEME_PRESETS, generate_all_themes_css, get_theme_by_id
+from vibeplay.ui.theme import THEME_PRESETS, generate_all_themes_css
 from vibeplay.web import create_app
 
 

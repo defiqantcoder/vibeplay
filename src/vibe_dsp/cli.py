@@ -21,8 +21,21 @@ from vibe_dsp.alsa_reservation import (
 )
 from vibe_dsp.backup import create_backup, execute_rollback, find_latest_backup
 from vibe_dsp.hardware import scan_hardware
+from vibe_dsp.ipc import (
+    AVAILABLE_PROFILES,
+    DEFAULT_IPC_SOCKET_PATH,
+    DSPClient,
+    start_ipc_server,
+    switch_audio_profile,
+)
 from vibe_dsp.latency import audit_latency
 from vibe_dsp.models import AudioEndpoint, CardType, LatencyHealthRating
+from vibe_dsp.passthrough import (
+    CODEC_DESCRIPTIONS,
+    CODEC_MAP,
+    configure_sink_passthrough,
+    discover_receiver_endpoints,
+)
 from vibe_dsp.peq import (
     DEFAULT_EASYEFFECTS_OUTPUT_DIR,
     PEQProfile,
@@ -40,7 +53,6 @@ from vibe_dsp.pipewire import (
     write_pipewire_dropin,
 )
 from vibe_dsp.spatial import (
-    DEFAULT_HRTF_DIR,
     DEFAULT_SPATIAL_CONF_FILE,
     SPATIAL_SINK_NAME,
     STANDARD_7_1_4_BASE_PREAMP_DB,
@@ -50,21 +62,6 @@ from vibe_dsp.spatial import (
     inspect_sofa_file,
     set_spatial_virtualization_mode,
     write_spatial_filter_chain,
-)
-from vibe_dsp.passthrough import (
-    CODEC_DESCRIPTIONS,
-    CODEC_MAP,
-    configure_sink_passthrough,
-    discover_receiver_endpoints,
-)
-from vibe_dsp.ipc import (
-    AVAILABLE_PROFILES,
-    DEFAULT_IPC_SOCKET_PATH,
-    DSPClient,
-    get_current_dsp_status,
-    load_persistent_state,
-    start_ipc_server,
-    switch_audio_profile,
 )
 
 logger = logging.getLogger("vibe-dsp")
@@ -1170,9 +1167,9 @@ def spatial_setup(
 
     console.print(table)
     console.print(
-        f"\n[bold green]Success:[/bold green] PipeWire 7.1.4 spatial audio bridge installed. "
-        f"Switch profiles anytime via [bold]vibe-dsp profile set spatial-headphones[/bold] or "
-        f"[bold]vibe-dsp spatial toggle[/bold]\n"
+        "\n[bold green]Success:[/bold green] PipeWire 7.1.4 spatial audio bridge installed. "
+        "Switch profiles anytime via [bold]vibe-dsp profile set spatial-headphones[/bold] or "
+        "[bold]vibe-dsp spatial toggle[/bold]\n"
     )
 
 

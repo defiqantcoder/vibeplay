@@ -18,6 +18,7 @@ from vibeplay.desktop.environment import (
     generate_ephemeral_session_token,
     inspect_desktop_environment,
 )
+from vibeplay.desktop.notifications import TrackNotificationDispatcher
 from vibeplay.desktop.packaging import (
     BUNDLE_DATAS,
     BUNDLE_ENTRYPOINT,
@@ -35,19 +36,18 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
+from vibeplay.desktop.release_gate import (
+    GateCheckResult,
+    ReleaseGateReport,
+    run_release_gate_checks,
+    validate_loopback_host,
+)
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
     load_desktop_settings,
     save_desktop_settings,
     update_desktop_settings,
-)
-from vibeplay.desktop.notifications import TrackNotificationDispatcher
-from vibeplay.desktop.release_gate import (
-    GateCheckResult,
-    ReleaseGateReport,
-    run_release_gate_checks,
-    validate_loopback_host,
 )
 from vibeplay.desktop.supervisor import (
     DEFAULT_MPD_DATA_DIR,

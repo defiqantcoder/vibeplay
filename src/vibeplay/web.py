@@ -20,6 +20,7 @@ from vibeplay.db import (
     get_connection,
     get_playlist,
     get_playlist_tracks,
+    get_tracks_with_features,
 )
 from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.player import (
@@ -43,7 +44,6 @@ from vibeplay.playlist import (
     calculate_playlist_summary,
     calculate_transition,
     calculate_transition_metrics,
-    evaluate_harmonic_transition,
     generate_playlist,
     key_to_camelot,
 )

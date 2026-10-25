@@ -69,42 +69,39 @@ CAMELOT_MINOR: dict[str, str] = {
 VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "chill": {
         "energy_max": 0.50,
-        "mood_min": {"relaxed": 0.35},
+        "mood_min": {"chill": 0.35, "relaxed": 0.35},
         "danceability_max": 0.65,
     },
     "energetic": {
-        "energy_min": 0.70,
+        "energy_min": 0.65,
         "bpm_min": 115.0,
+        "mood_min": {"energetic": 0.45},
     },
     "workout": {
         "energy_min": 0.70,
         "bpm_min": 115.0,
     },
     "melancholic": {
-        "mood_min": {"sad": 0.35},
-        "energy_max": 0.55,
-    },
-    "melancholy": {
-        "mood_min": {"sad": 0.35},
+        "mood_min": {"sad": 0.35, "melancholic": 0.35},
         "energy_max": 0.55,
     },
     "euphoric": {
-        "mood_min": {"happy": 0.35, "party": 0.30},
+        "mood_min": {"happy": 0.35, "party": 0.30, "euphoric": 0.45},
         "energy_min": 0.60,
     },
     "deep_focus": {
         "energy_max": 0.45,
         "danceability_max": 0.50,
-        "mood_min": {"relaxed": 0.30},
+        "mood_min": {"relaxed": 0.30, "focus": 0.45},
     },
     "dark_intense": {
-        "mood_min": {"aggressive": 0.35},
+        "mood_min": {"aggressive": 0.35, "dark": 0.45},
         "energy_min": 0.65,
     },
     "ambient": {
         "energy_max": 0.40,
         "danceability_max": 0.45,
-        "mood_min": {"acoustic": 0.35},
+        "mood_min": {"acoustic": 0.35, "ambient": 0.45},
     },
     "lofi": {
         "bpm_min": 70.0,
@@ -134,6 +131,9 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "happy": {
         "mood_min": {"happy": 0.40},
         "energy_min": 0.50,
+    },
+    "romantic": {
+        "mood_min": {"romantic": 0.45},
     },
 }
 
