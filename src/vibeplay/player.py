@@ -739,6 +739,9 @@ def get_playback_status(
             }
     except Exception:
         # Standby status when MPD daemon is offline
+        active_profile = get_active_output_profile(cfg)
+        is_letshuoer = "letshuoer" in active_profile.lower()
+
         return {
             "state": "stop",
             "song_id": None,
@@ -749,14 +752,14 @@ def get_playback_status(
             "elapsed": 0.0,
             "duration": 0.0,
             "volume": _LAST_NONZERO_VOLUME,
-            "audio_spec": "96000:24:2",
-            "sample_rate": "96.0kHz",
-            "bit_depth": "24-bit",
+            "audio_spec": "384000:32:2" if is_letshuoer else "96000:24:2",
+            "sample_rate": "384.0kHz" if is_letshuoer else "96.0kHz",
+            "bit_depth": "32-bit (DSD Native)" if is_letshuoer else "24-bit",
             "codec": "FLAC",
             "bit_perfect": True,
             "buffer_health": "Standby (Direct ALSA Ready)",
             "jitter_ppm": 0.02,
-            "output_profile": get_active_output_profile(cfg),
+            "output_profile": active_profile,
             "output_profiles": get_dynamic_output_profiles(cfg),
             "daemon_online": False,
         }
