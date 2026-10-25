@@ -44,14 +44,12 @@ def test_cli_spatial_toggle() -> None:
 
 def test_cli_route_passthrough_all() -> None:
     """Verify vibe-dsp route passthrough --all enables receiver codecs."""
-    with patch(
-        "vibe_dsp.cli.configure_sink_passthrough",
-        return_value=(True, "Configured passthrough"),
-    ):
-        result = runner.invoke(app, ["route", "passthrough", "--all", "--no-default"])
-        assert result.exit_code == 0
-        assert "Receiver Bitstream Passthrough Setup" in result.stdout
-        assert "Success" in result.stdout
+    with patch("vibe_dsp.cli.discover_receiver_endpoints", return_value=[MagicMock(sink_id="123", sink_name="TestSink", description="Test Receiver", supported_codecs={"ac3": True})]):
+        with patch("vibe_dsp.cli.configure_sink_passthrough", return_value=(True, "Configured passthrough")):
+            result = runner.invoke(app, ["route", "passthrough", "--all", "--no-default"])
+            assert result.exit_code == 0
+            assert "Receiver Bitstream Passthrough Setup" in result.stdout
+            assert "Success" in result.stdout
 
 
 def test_cli_profile_management() -> None:
