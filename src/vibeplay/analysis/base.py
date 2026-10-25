@@ -63,7 +63,7 @@ class BaseAnalyzer(ABC):
         """Extract acoustic features and embedding from pre-decoded audio samples.
 
         Args:
-            audio: 1D float32 audio waveform samples.
+            audio: 2D float32 audio samples of shape (samples, channels).
             track_id: Database track ID.
 
         Returns:
@@ -91,9 +91,7 @@ class BaseAnalyzer(ABC):
         Returns:
             AudioFeatures: Extracted features.
         """
-        offset = get_middle_window_offset(
-            duration or 0.0, window_seconds=window_seconds
-        )
+        offset = get_middle_window_offset(duration or 0.0, window_seconds=window_seconds)
         audio = decode_audio_slice(
             path=path,
             offset_seconds=offset,
@@ -118,6 +116,20 @@ def get_middle_window_offset(duration: float, window_seconds: float = 60.0) -> f
     return (duration - window_seconds) / 2.0
 
 
+def downmix_to_mono(audio: np.ndarray) -> np.ndarray:
+    """Downmix a multichannel audio array to mono by averaging channels.
+
+    Args:
+        audio: 2D array of shape (samples, channels) or 1D array of shape (samples,).
+
+    Returns:
+        np.ndarray: 1D array of shape (samples,).
+    """
+    if audio.ndim == 1:
+        return audio
+    return np.mean(audio, axis=1)
+
+
 def decode_audio_slice(
     path: Path,
     offset_seconds: float,
@@ -136,7 +148,7 @@ def decode_audio_slice(
         sample_rate: Output sample rate in Hz.
 
     Returns:
-        np.ndarray: 1D float32 numpy array of audio samples.
+        np.ndarray: 2D float32 numpy array of shape (samples, 2).
 
     Raises:
         RuntimeError: If ffmpeg decoding fails or returns empty output.
@@ -156,7 +168,7 @@ def decode_audio_slice(
         "-ar",
         str(sample_rate),
         "-ac",
-        "1",
+        "2",
         "pipe:1",
     ]
 
@@ -173,6 +185,8 @@ def decode_audio_slice(
         raise RuntimeError(f"ffmpeg failed to decode {path}: {err_msg}") from err
 
     samples = np.frombuffer(proc.stdout, dtype=np.float32)
+    # reshape interleaved stereo to (samples, 2)
+    samples = samples.reshape(-1, 2)
 
     # If seeking past EOF yielded 0 samples, retry from offset 0.0
     if len(samples) == 0 and offset_seconds > 0.0:
