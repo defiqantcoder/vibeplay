@@ -18,6 +18,7 @@ from vibeplay.desktop.constants import (
     DEFAULT_BACKEND_PORT,
     MAX_PORT_SEARCH_ATTEMPTS,
 )
+from vibeplay.desktop.security import validate_loopback_host
 
 logger = logging.getLogger(__name__)
 
@@ -171,21 +172,20 @@ def find_free_loopback_port(
     Raises:
         RuntimeError: If no free port is found within max_attempts.
     """
-    if not (host.startswith("127.") or host == "localhost" or host == "::1"):
-        raise ValueError(f"Security guardrail: find_free_loopback_port only binds to loopback interfaces, got '{host}'")
+    safe_host = validate_loopback_host(host)
 
     for offset in range(max_attempts):
         candidate_port = preferred_port + offset
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                s.bind((host, candidate_port))
+                s.bind((safe_host, candidate_port))
                 return candidate_port
             except OSError:
                 continue
 
     raise RuntimeError(
-        f"Unable to find a free loopback port on {host} between {preferred_port} and {preferred_port + max_attempts}"
+        f"Unable to find a free loopback port on {safe_host} between {preferred_port} and {preferred_port + max_attempts}"
     )
 
 

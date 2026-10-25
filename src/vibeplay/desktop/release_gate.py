@@ -35,9 +35,7 @@ class ReleaseGateReport:
     checks: list[GateCheckResult]
 
 
-def validate_loopback_host(host: str) -> bool:
-    """Strictly verify if the host is a loopback address."""
-    return host in ("127.0.0.1", "localhost", "::1")
+from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 
 
 def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | None = None) -> ReleaseGateReport:
@@ -46,11 +44,15 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
 
     # 1. Loopback Security Invariant
     try:
-        assert validate_loopback_host("127.0.0.1") is True, "127.0.0.1 must be allowed"
-        assert validate_loopback_host("localhost") is True, "localhost must be allowed"
-        assert validate_loopback_host("0.0.0.0") is False, "0.0.0.0 must be rejected"
+        assert is_loopback_host("127.0.0.1") is True, "127.0.0.1 must be allowed"
+        assert is_loopback_host("localhost") is True, "localhost must be allowed"
+        assert is_loopback_host("::1") is True, "::1 must be allowed"
+        assert is_loopback_host("127.0.0.5") is True, "127.0.0.5 must be allowed"
+        assert is_loopback_host("0.0.0.0") is False, "0.0.0.0 must be rejected"
+        assert is_loopback_host("192.168.1.1") is False, "192.168.1.1 must be rejected"
+        assert validate_loopback_host("127.0.0.1") == "127.0.0.1"
         checks.append(GateCheckResult("Loopback Security Invariant", True, "Passed loopback validation"))
-    except AssertionError as e:
+    except (AssertionError, ValueError) as e:
         checks.append(GateCheckResult("Loopback Security Invariant", False, str(e)))
 
     # 2. Settings Persistence & 0600 Permissions

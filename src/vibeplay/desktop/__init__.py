@@ -36,11 +36,16 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
+from vibeplay.desktop.security import (
+    ensure_secure_directory,
+    is_loopback_host,
+    secure_chmod,
+    validate_loopback_host,
+)
 from vibeplay.desktop.release_gate import (
     GateCheckResult,
     ReleaseGateReport,
     run_release_gate_checks,
-    validate_loopback_host,
 )
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
@@ -80,12 +85,14 @@ __all__ = [
     "WINDOW_TITLE",
     "choose_directory_dialog",
     "collect_pyinstaller_datas",
+    "ensure_secure_directory",
     "find_free_loopback_port",
     "generate_audiophile_mpd_config",
     "generate_ephemeral_session_token",
     "get_bundle_root",
     "inspect_desktop_environment",
     "is_frozen_bundle",
+    "is_loopback_host",
     "load_desktop_settings",
     "resolve_dsp_profiles_dir",
     "resolve_models_dir",

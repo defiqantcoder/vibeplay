@@ -20,22 +20,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser()
 
 
-def validate_loopback_host(host: str) -> str:
-    """Validate that a host string is strictly a loopback address (127.x.x.x, localhost, or ::1)."""
-    if not host or not isinstance(host, str):
-        raise ValueError("Host must be a non-empty loopback address.")
-    cleaned = host.strip()
-    if cleaned.lower() == "localhost":
-        return "localhost"
-    try:
-        addr = ipaddress.ip_address(cleaned.strip("[]"))
-        if addr.is_loopback:
-            return str(addr)
-    except ValueError:
-        pass
-    raise ValueError(
-        f"Security guardrail: IPC client only connects to loopback interfaces, got '{host}'"
-    )
+from vibeplay.desktop.security import (
+    ensure_secure_directory,
+    is_loopback_host,
+    secure_chmod,
+    validate_loopback_host,
+)
 
 
 def write_ipc_state(
@@ -46,7 +36,7 @@ def write_ipc_state(
 ) -> Path:
     """Persist active loopback IPC endpoint and session token atomically with 0o600 permissions."""
     target = (state_path or DEFAULT_IPC_STATE_PATH).expanduser().resolve()
-    target.parent.mkdir(parents=True, exist_ok=True)
+    ensure_secure_directory(target.parent, 0o700)
     safe_host = validate_loopback_host(host)
     payload = {
         "host": safe_host,
@@ -79,6 +69,7 @@ def read_ipc_state(state_path: Path | None = None) -> dict[str, Any] | None:
     if not target.is_file():
         return None
     try:
+        secure_chmod(target, 0o600)
         raw = json.loads(target.read_text(encoding="utf-8"))
         if isinstance(raw, dict):
             return raw

@@ -40,6 +40,7 @@ from vibeplay.desktop.environment import (
     generate_ephemeral_session_token,
     inspect_desktop_environment,
 )
+from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.web import create_app
 
 logger = logging.getLogger(__name__)
@@ -49,13 +50,7 @@ DEFAULT_MPD_DATA_DIR = Path("~/.local/share/vibeplay/mpd").expanduser()
 
 def _is_loopback_address(host: str) -> bool:
     """Check if the provided host address is strictly a loopback address."""
-    if not host or not isinstance(host, str):
-        return False
-    normalized = host.strip().lower()
-    return (
-        normalized in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-        or normalized.startswith("127.")
-    )
+    return is_loopback_host(host)
 
 
 def _sanitize_mpd_string(value: str) -> str:
@@ -187,17 +182,8 @@ class DesktopSupervisor:
     ) -> None:
         self.settings = settings or get_settings()
         self.db_path = db_path or self.settings.db_path.expanduser().resolve()
-        self.host = host
-
         # Enforce loopback host security guardrail
-        is_loopback = (
-            self.host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-            or self.host.startswith("127.")
-        )
-        if not is_loopback:
-            raise ValueError(
-                f"Security Guardrail: Desktop supervisor host must be a loopback address, got '{self.host}'"
-            )
+        self.host = validate_loopback_host(host)
 
         self.requested_port = port
         self.port = port

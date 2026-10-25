@@ -108,12 +108,27 @@
   --swatch-castle-celadon: #84d8b9;
   --swatch-castle-apricot: #f6b27e;
 
-  --font-body: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Inter', 'Geist', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: var(--font-sans);
   --font-mono: 'JetBrains Mono', monospace;
 
+  /* Spacing Tokens (DESIGN.md) */
+  --gutter: 0.5rem;
+  --gutter-compact: 0.25rem;
+  --margin: 0.75rem;
+  --space-xs: 0.125rem;
+  --space-sm: 0.25rem;
+  --space-md: 0.5rem;
+  --space-lg: 0.75rem;
+  --space-xl: 1rem;
+
+  /* Radius Tokens (DESIGN.md) */
+  --radius-xs: 0.125rem;
   --radius-sm: 4px;
+  --radius-base: 0.25rem;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --radius-xl: 0.75rem;
   --radius-full: 9999px;
 }
 
@@ -3062,4 +3077,49 @@ body[data-contrast='high-contrast'] {
   font-weight: 600;
   background: var(--primary-tint);
 }
+
+/* Design System Shared Utility Classes (DESIGN.md) */
+.rack-surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.spec-stat-card {
+  background: var(--bg-container);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.spec-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.spec-stat-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono-chip-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 

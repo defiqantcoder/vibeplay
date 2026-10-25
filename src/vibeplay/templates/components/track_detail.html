@@ -25,28 +25,28 @@
     <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem;">
       Raw Hardware Audio Format Specs
     </div>
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
-      <div style="background: var(--bg-container); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-size: 11px; color: var(--text-muted);">Codec</div>
-        <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--tertiary);">
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gutter);">
+      <div class="spec-stat-card">
+        <div class="spec-stat-label">Codec</div>
+        <div class="spec-stat-value" style="color: var(--tertiary);">
           {{ tech_info.codec }}
         </div>
       </div>
-      <div style="background: var(--bg-container); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-size: 11px; color: var(--text-muted);">Sampling Rate</div>
-        <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--primary);">
+      <div class="spec-stat-card">
+        <div class="spec-stat-label">Sampling Rate</div>
+        <div class="spec-stat-value" style="color: var(--primary);">
           {{ tech_info.sample_rate_str }}
         </div>
       </div>
-      <div style="background: var(--bg-container); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-size: 11px; color: var(--text-muted);">Bit Depth & Channels</div>
-        <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--secondary);">
+      <div class="spec-stat-card">
+        <div class="spec-stat-label">Bit Depth & Channels</div>
+        <div class="spec-stat-value" style="color: var(--secondary);">
           {{ tech_info.bit_depth_str }} • {{ tech_info.channels_str }}
         </div>
       </div>
-      <div style="background: var(--bg-container); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-        <div style="font-size: 11px; color: var(--text-muted);">Bitrate & Duration</div>
-        <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary);">
+      <div class="spec-stat-card">
+        <div class="spec-stat-label">Bitrate & Duration</div>
+        <div class="spec-stat-value" style="color: var(--text-primary);">
           {{ tech_info.bitrate_kbps }} • {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
         </div>
       </div>

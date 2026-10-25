@@ -2232,10 +2232,9 @@ def run_server(
     effective_api_key = api_key if api_key is not None else cfg.api_key
     permit_remote = allow_insecure_remote or cfg.allow_insecure_remote
 
-    is_loopback = (
-        host in ("127.0.0.1", "localhost", "::1", "0:0:0:0:0:0:0:1")
-        or host.startswith("127.")
-    )
+    from vibeplay.desktop.security import is_loopback_host
+
+    is_loopback = is_loopback_host(host)
 
     if not is_loopback and not effective_api_key and not permit_remote:
         raise ValueError(

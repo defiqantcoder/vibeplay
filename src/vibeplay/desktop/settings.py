@@ -12,6 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from vibeplay.desktop.security import ensure_secure_directory, secure_chmod
 from vibeplay.ui.theme import THEME_PRESETS
 
 logger = logging.getLogger(__name__)
@@ -269,11 +270,13 @@ class DesktopSettings(BaseModel):
 
 def load_desktop_settings(path: Path | None = None) -> DesktopSettings:
     """Load and validate desktop settings from JSON config file, returning defaults if missing."""
-    target = (path or DEFAULT_DESKTOP_SETTINGS_PATH).expanduser()
+    target = (path or DEFAULT_DESKTOP_SETTINGS_PATH).expanduser().resolve()
     if not target.exists():
         return DesktopSettings()
 
     try:
+        # Enforce secure file permissions on existing file
+        secure_chmod(target, 0o600)
         raw_text = target.read_text(encoding="utf-8")
         data = json.loads(raw_text)
         if not isinstance(data, dict):
@@ -288,9 +291,9 @@ def load_desktop_settings(path: Path | None = None) -> DesktopSettings:
 def save_desktop_settings(
     settings: DesktopSettings, path: Path | None = None
 ) -> Path:
-    """Atomically write validated desktop settings to disk with 0600 permissions."""
-    target = (path or DEFAULT_DESKTOP_SETTINGS_PATH).expanduser()
-    target.parent.mkdir(parents=True, exist_ok=True)
+    """Atomically write validated desktop settings to disk with 0600 permissions and 0700 parent directory."""
+    target = (path or DEFAULT_DESKTOP_SETTINGS_PATH).expanduser().resolve()
+    ensure_secure_directory(target.parent, 0o700)
 
     payload = json.dumps(settings.model_dump(mode="json"), indent=2, sort_keys=True)
 
@@ -301,12 +304,13 @@ def save_desktop_settings(
     )
     tmp_path = Path(tmp_name)
     try:
-        os.chmod(fd, 0o600)
+        os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(payload + "\n")
             handle.flush()
             os.fsync(handle.fileno())
-        tmp_path.replace(target)
+        os.replace(tmp_path, target)
+        os.chmod(target, 0o600)
     except Exception:
         if tmp_path.exists():
             tmp_path.unlink(missing_ok=True)

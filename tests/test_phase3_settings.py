@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 from pathlib import Path
 
@@ -184,6 +185,23 @@ class TestDesktopSettingsPersistence:
         cfg_file.write_text("{corrupt json", encoding="utf-8")
         fallback = load_desktop_settings(cfg_file)
         assert fallback == DesktopSettings()
+
+    def test_save_enforces_directory_permissions_and_load_locks_permissive_file(
+        self, tmp_path: Path
+    ) -> None:
+        cfg_dir = tmp_path / "loose_config"
+        cfg_dir.mkdir(parents=True, mode=0o777)
+        cfg_file = cfg_dir / "desktop_settings.json"
+
+        save_desktop_settings(DesktopSettings(), cfg_file)
+        assert stat.S_IMODE(cfg_dir.stat().st_mode) == 0o700
+        assert stat.S_IMODE(cfg_file.stat().st_mode) == 0o600
+
+        # Loosen permissions to simulate legacy file
+        os.chmod(cfg_file, 0o666)
+        assert stat.S_IMODE(cfg_file.stat().st_mode) == 0o666
+        load_desktop_settings(cfg_file)
+        assert stat.S_IMODE(cfg_file.stat().st_mode) == 0o600
 
 
 class TestPhase3WebApiAndLiveState:
