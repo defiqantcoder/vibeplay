@@ -627,7 +627,7 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
         with get_mpd_transport(cfg) as transport:
             if transport.client:
                 transport.client.setvol(vol)
-            return transport.status()
+            return {"volume": vol}
     except Exception as err:
         logger.debug("MPD setvol unavailable: %s", err)
         return {"volume": str(vol), "error": str(err)}
@@ -653,10 +653,13 @@ def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str
                 _LAST_NONZERO_VOLUME = new_vol
             if transport.client:
                 transport.client.setvol(new_vol)
-            return transport.status()
+            return {"volume": new_vol}
     except Exception as err:
         logger.debug("MPD volume adjustment unavailable: %s", err)
-        return {"error": str(err)}
+        new_vol = max(0, min(100, _LAST_NONZERO_VOLUME + delta))
+        if new_vol > 0:
+            _LAST_NONZERO_VOLUME = new_vol
+        return {"volume": str(new_vol), "error": str(err)}
 
 
 def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
@@ -745,7 +748,7 @@ def get_playback_status(
             "file": "",
             "elapsed": 0.0,
             "duration": 0.0,
-            "volume": 80,
+            "volume": _LAST_NONZERO_VOLUME,
             "audio_spec": "96000:24:2",
             "sample_rate": "96.0kHz",
             "bit_depth": "24-bit",

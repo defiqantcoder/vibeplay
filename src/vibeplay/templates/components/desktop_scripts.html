@@ -370,8 +370,9 @@ function throttleKey(ms = 150) {
 }
 
 window.addEventListener('keydown', (e) => {
-  const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-  const isInputActive = ['input', 'textarea', 'select'].includes(activeTag);
+  const activeEl = document.activeElement;
+  const activeTag = activeEl ? activeEl.tagName.toLowerCase() : '';
+  const isInputActive = activeTag === 'textarea' || (activeTag === 'input' && ['text', 'search', 'password', 'email', 'number'].includes(activeEl.type));
 
   // Escape: Close all menus and open dialogs
   if (e.key === 'Escape') {
@@ -468,7 +469,7 @@ window.addEventListener('keydown', (e) => {
     triggerNextTrack();
     return;
   }
-});
+}, true);
 
 // Hardware Transport Settings Device Updater
 function updateAudioDeviceConfig() {
@@ -486,6 +487,12 @@ function triggerPlayToggle() {
   if (playBtn) {
     playBtn.style.transform = 'scale(0.92)';
     setTimeout(() => { playBtn.style.transform = ''; }, 100);
+    const isPlaying = playBtn.innerHTML.includes('M6 19h4V5H6v14zm8-14v14h4V5h-4z'); // Pause icon currently showing
+    if (isPlaying) {
+      playBtn.innerHTML = '<svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    } else {
+      playBtn.innerHTML = '<svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    }
   }
   if (window.htmx) {
     htmx.ajax('POST', '/api/player/toggle', {

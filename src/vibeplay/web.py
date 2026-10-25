@@ -1126,8 +1126,19 @@ def create_app(
     @app.post("/api/player/toggle", response_class=HTMLResponse)
     async def api_player_toggle(request: Request) -> Response:
         """Toggle play/pause state in MPD."""
-        toggle_pause(db_path=resolved_db_path, settings=cfg)
+        import threading
+
+        threading.Thread(
+            target=toggle_pause,
+            kwargs={"db_path": resolved_db_path, "settings": cfg},
+            daemon=True,
+        ).start()
         playback = get_playback_status(resolved_db_path, cfg)
+        if playback.get("state") == "play":
+            playback["state"] = "pause"
+        elif playback.get("state") in ("pause", "stop"):
+            playback["state"] = "play"
+
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -1152,8 +1163,15 @@ def create_app(
     @app.post("/api/player/next", response_class=HTMLResponse)
     async def api_player_next(request: Request) -> Response:
         """Skip to next track in MPD."""
-        next_song(cfg)
+        import threading
+
+        threading.Thread(
+            target=next_song,
+            kwargs={"settings": cfg},
+            daemon=True,
+        ).start()
         playback = get_playback_status(resolved_db_path, cfg)
+        playback["state"] = "play"
         _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
@@ -1166,8 +1184,15 @@ def create_app(
     @app.post("/api/player/prev", response_class=HTMLResponse)
     async def api_player_prev(request: Request) -> Response:
         """Skip to previous track in MPD."""
-        previous_song(cfg)
+        import threading
+
+        threading.Thread(
+            target=previous_song,
+            kwargs={"settings": cfg},
+            daemon=True,
+        ).start()
         playback = get_playback_status(resolved_db_path, cfg)
+        playback["state"] = "play"
         _maybe_notify_track_transition(playback)
         return templates.TemplateResponse(
             request=request,
@@ -1182,6 +1207,7 @@ def create_app(
         """Set volume level [0-100]."""
         set_volume_level(volume, cfg)
         playback = get_playback_status(resolved_db_path, cfg)
+        playback["volume"] = max(0, min(100, volume))
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -1193,8 +1219,13 @@ def create_app(
     @app.post("/api/player/volume-step", response_class=HTMLResponse)
     async def api_player_volume_step(request: Request, delta: int = Form(5)) -> Response:
         """Adjust volume level by delta (positive or negative) within [0, 100]."""
-        adjust_volume_step(delta, cfg)
+        res = adjust_volume_step(delta, cfg)
         playback = get_playback_status(resolved_db_path, cfg)
+        if "volume" in res:
+            try:
+                playback["volume"] = int(res["volume"])
+            except (ValueError, TypeError):
+                pass
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",

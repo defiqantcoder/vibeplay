@@ -412,6 +412,7 @@ def test_flow_2b_audio_routing_and_dac_profiles(qa_env):
     res_toggle = client.post("/api/player/toggle", headers=headers)
     assert res_toggle.status_code == 200
     assert "transport-footer" in res_toggle.text
+    time.sleep(0.3)
 
     # Volume slider set
     res_vol = client.post(
