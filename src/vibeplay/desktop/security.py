@@ -10,13 +10,11 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Canonical set of string host aliases recognized as loopback
-LOOPBACK_STRING_ALIASES: frozenset[str] = frozenset(
-    {
-        "localhost",
-        "ip6-localhost",
-        "ip6-loopback",
-    }
-)
+LOOPBACK_STRING_ALIASES: frozenset[str] = frozenset({
+    "localhost",
+    "ip6-localhost",
+    "ip6-loopback",
+})
 
 
 def is_loopback_host(host: str | None) -> bool:
@@ -53,7 +51,9 @@ def validate_loopback_host(host: str) -> str:
         ValueError: If host is not a valid loopback address.
     """
     if not is_loopback_host(host):
-        raise ValueError(f"Security Guardrail: Desktop host must be a loopback address (Security guardrail invariant violated: got '{host}')")
+        raise ValueError(
+            f"Security Guardrail: Desktop host must be a loopback address (Security guardrail invariant violated: got '{host}')"
+        )
     return host.strip()
 
 

@@ -184,7 +184,9 @@ def find_free_loopback_port(
             except OSError:
                 continue
 
-    raise RuntimeError(f"Unable to find a free loopback port on {safe_host} between {preferred_port} and {preferred_port + max_attempts}")
+    raise RuntimeError(
+        f"Unable to find a free loopback port on {safe_host} between {preferred_port} and {preferred_port + max_attempts}"
+    )
 
 
 def generate_ephemeral_session_token() -> str:

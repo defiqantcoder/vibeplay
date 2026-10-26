@@ -139,7 +139,9 @@ def cached_acoustid_lookup(
     delay = 1.0
     for attempt in range(max_retries):
         try:
-            logger.debug("Querying AcoustID API (attempt %d/%d)...", attempt + 1, max_retries)
+            logger.debug(
+                "Querying AcoustID API (attempt %d/%d)...", attempt + 1, max_retries
+            )
             response = acoustid.lookup(
                 apikey=api_key,
                 fingerprint=fingerprint,
@@ -209,7 +211,9 @@ def cached_musicbrainz_recording(
                 includes=["artists", "releases", "tags"],
             )
             data_json = json.dumps(data, ensure_ascii=False)
-            set_cached_response(conn, cache_key, "musicbrainz.get_recording_by_id", data_json, 200)
+            set_cached_response(
+                conn, cache_key, "musicbrainz.get_recording_by_id", data_json, 200
+            )
             return data
         except musicbrainzngs.MusicBrainzError as err:
             logger.warning("MusicBrainz API error on attempt %d: %s", attempt + 1, err)
@@ -483,7 +487,9 @@ def resolve_track_enrichment(
     if chosen_release:
         mb_release_id = chosen_release.get("id")
         canonical_album = chosen_release.get("title")
-        canonical_album_artist = chosen_release.get("artist-credit-phrase") or canonical_artist
+        canonical_album_artist = (
+            chosen_release.get("artist-credit-phrase") or canonical_artist
+        )
         raw_date = chosen_release.get("date")
         if isinstance(raw_date, dict):
             canonical_year = raw_date.get("year")
@@ -495,7 +501,10 @@ def resolve_track_enrichment(
             canonical_disc_no = medium.get("position")
             canonical_track_total = medium.get("track_count")
             for t_item in medium.get("tracks", []):
-                if t_item.get("title", "").strip().lower() == str(canonical_title).strip().lower():
+                if (
+                    t_item.get("title", "").strip().lower()
+                    == str(canonical_title).strip().lower()
+                ):
                     canonical_track_no = t_item.get("position")
                     break
 
@@ -559,7 +568,10 @@ def enrich_tracks(
     """
     settings = get_settings()
     if not settings.acoustid_api_key:
-        raise ValueError("ACOUSTID_API_KEY is required for metadata enrichment. Please set it in your environment or .env file.")
+        raise ValueError(
+            "ACOUSTID_API_KEY is required for metadata enrichment. "
+            "Please set it in your environment or .env file."
+        )
 
     init_db(db_path)
     summary = EnrichmentSummary()

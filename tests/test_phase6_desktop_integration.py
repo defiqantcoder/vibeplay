@@ -70,6 +70,7 @@ def test_track_notification_dispatcher(mock_run, mock_which):
     dispatcher.notify_transition("New Track", "New Artist", "New Album", "MP3", track_id="456", track_path="/path/to/456.mp3")
     mock_run.assert_called_once()
 
+
     # Test notify_track_change wrapper
     mock_run.reset_mock()
     dispatcher.notify_track_change(

@@ -1,3 +1,4 @@
+
 from vibeplay.desktop.release_gate import run_release_gate_checks
 from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 
@@ -11,7 +12,6 @@ def test_validate_loopback_host():
     assert is_loopback_host("example.com") is False
     assert validate_loopback_host("127.0.0.1") == "127.0.0.1"
     import pytest
-
     with pytest.raises(ValueError):
         validate_loopback_host("0.0.0.0")
 

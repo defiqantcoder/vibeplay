@@ -68,7 +68,11 @@ def make_synthetic_track_data(
         "electronic": 0.8,
     }
     moods = mood_scores or default_moods
-    emb = embedding if embedding is not None else np.random.RandomState(track_id).randn(128).astype(np.float32)
+    emb = (
+        embedding
+        if embedding is not None
+        else np.random.RandomState(track_id).randn(128).astype(np.float32)
+    )
 
     return {
         "track_id": track_id,
@@ -114,8 +118,12 @@ def populate_test_db(settings: Settings, track_records: list[dict[str, Any]]) ->
                 loudness=rec["loudness"],
                 danceability=rec["danceability"],
                 energy=rec["energy"],
-                mood_scores_json=json.dumps(rec["mood_scores"]) if isinstance(rec["mood_scores"], dict) else rec["mood_scores"],
-                embedding_blob=rec["embedding"] if isinstance(rec["embedding"], (bytes, bytearray)) else rec["embedding"].tobytes(),
+                mood_scores_json=json.dumps(rec["mood_scores"])
+                if isinstance(rec["mood_scores"], dict)
+                else rec["mood_scores"],
+                embedding_blob=rec["embedding"]
+                if isinstance(rec["embedding"], (bytes, bytearray))
+                else rec["embedding"].tobytes(),
             )
         conn.commit()
 
@@ -150,7 +158,12 @@ def test_bpm_half_double_time_harmonic_similarity(sample_settings: Settings) -> 
 
 def test_vibe_vector_l2_normalization(sample_settings: Settings) -> None:
     """Verify that all generated vibe vectors are strictly unit L2 normalized."""
-    records = [make_synthetic_track_data(i, bpm=80.0 + i * 15.0, energy=0.1 * i, danceability=0.2 * i) for i in range(1, 10)]
+    records = [
+        make_synthetic_track_data(
+            i, bpm=80.0 + i * 15.0, energy=0.1 * i, danceability=0.2 * i
+        )
+        for i in range(1, 10)
+    ]
     _, vectors, _ = build_vibe_vectors(records, settings=sample_settings)
 
     norms = np.linalg.norm(vectors, axis=1)
@@ -161,10 +174,18 @@ def test_vibe_vector_l2_normalization(sample_settings: Settings) -> None:
 def test_similar_to_ranking(sample_settings: Settings) -> None:
     """Test nearest-neighbor search ranking, tuple unpacking, and object attributes."""
     records = [
-        make_synthetic_track_data(1, bpm=120.0, energy=0.9, danceability=0.9, artist="DanceAct"),
-        make_synthetic_track_data(2, bpm=121.0, energy=0.88, danceability=0.89, artist="DanceAct"),
-        make_synthetic_track_data(3, bpm=70.0, energy=0.2, danceability=0.3, artist="ChillAct"),
-        make_synthetic_track_data(4, bpm=72.0, energy=0.22, danceability=0.31, artist="ChillAct"),
+        make_synthetic_track_data(
+            1, bpm=120.0, energy=0.9, danceability=0.9, artist="DanceAct"
+        ),
+        make_synthetic_track_data(
+            2, bpm=121.0, energy=0.88, danceability=0.89, artist="DanceAct"
+        ),
+        make_synthetic_track_data(
+            3, bpm=70.0, energy=0.2, danceability=0.3, artist="ChillAct"
+        ),
+        make_synthetic_track_data(
+            4, bpm=72.0, energy=0.22, danceability=0.31, artist="ChillAct"
+        ),
     ]
     populate_test_db(sample_settings, records)
 
@@ -191,10 +212,18 @@ def test_kmeans_clustering(sample_settings: Settings) -> None:
     records = []
     # Cluster A: Fast electronic (tracks 1-5)
     for i in range(1, 6):
-        records.append(make_synthetic_track_data(i, bpm=130.0 + i, energy=0.9, danceability=0.8, artist="ClubCrew"))
+        records.append(
+            make_synthetic_track_data(
+                i, bpm=130.0 + i, energy=0.9, danceability=0.8, artist="ClubCrew"
+            )
+        )
     # Cluster B: Slow acoustic (tracks 6-10)
     for i in range(6, 11):
-        records.append(make_synthetic_track_data(i, bpm=65.0 + i, energy=0.2, danceability=0.3, artist="FolkTrio"))
+        records.append(
+            make_synthetic_track_data(
+                i, bpm=65.0 + i, energy=0.2, danceability=0.3, artist="FolkTrio"
+            )
+        )
 
     populate_test_db(sample_settings, records)
 
@@ -219,11 +248,17 @@ def test_hdbscan_clustering(sample_settings: Settings) -> None:
     """Test HDBSCAN clustering runs and generates cluster summaries."""
     records = []
     for i in range(1, 15):
-        records.append(make_synthetic_track_data(i, bpm=90.0 + (i % 3) * 30.0, energy=0.1 * (i % 10)))
+        records.append(
+            make_synthetic_track_data(
+                i, bpm=90.0 + (i % 3) * 30.0, energy=0.1 * (i % 10)
+            )
+        )
 
     populate_test_db(sample_settings, records)
 
-    result = compute_clusters(algorithm="hdbscan", min_cluster_size=3, settings=sample_settings)
+    result = compute_clusters(
+        algorithm="hdbscan", min_cluster_size=3, settings=sample_settings
+    )
 
     assert isinstance(result, ClusteringResult)
     assert result.total_tracks == 14

@@ -245,7 +245,9 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.95 if "Party" in title else 0.2,
                 "acoustic": aco,
-                "electronic": 0.9 if "Techno" in genre or "Electronic" in genre else 0.1,
+                "electronic": 0.9
+                if "Techno" in genre or "Electronic" in genre
+                else 0.1,
             }
             np.random.seed(tid)
             emb = np.random.randn(32).astype(np.float32).tobytes()
@@ -424,7 +426,9 @@ def test_playlist_generation_reorder_and_export(
         },
     )
     assert reorder_res.status_code == 200
-    new_track_matches = [int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)]
+    new_track_matches = [
+        int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)
+    ]
     assert new_track_matches == reversed_ids
 
     # Reorder validation errors
@@ -434,7 +438,9 @@ def test_playlist_generation_reorder_and_export(
     )
     assert bad_req.status_code == 400
 
-    not_found = client.post("/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"})
+    not_found = client.post(
+        "/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"}
+    )
     assert not_found.status_code == 404
 
 

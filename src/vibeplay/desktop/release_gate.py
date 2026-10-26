@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 import stat
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
+
+import warnings
 
 # Suppress harmless StarletteDeprecationWarning when TestClient is loaded
 warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")

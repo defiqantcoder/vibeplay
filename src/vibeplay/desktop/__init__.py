@@ -36,16 +36,16 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
-from vibeplay.desktop.release_gate import (
-    GateCheckResult,
-    ReleaseGateReport,
-    run_release_gate_checks,
-)
 from vibeplay.desktop.security import (
     ensure_secure_directory,
     is_loopback_host,
     secure_chmod,
     validate_loopback_host,
+)
+from vibeplay.desktop.release_gate import (
+    GateCheckResult,
+    ReleaseGateReport,
+    run_release_gate_checks,
 )
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
