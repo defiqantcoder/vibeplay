@@ -129,6 +129,8 @@ audio_output {{
     type            "pipewire"
     name            "PipeWire Sound Server"
     enabled         "{pipewire_enabled}"
+    dop             "no"
+    format          "*:*:*"
 }}
 """
     )

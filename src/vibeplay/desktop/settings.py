@@ -154,6 +154,28 @@ class DesktopSettings(BaseModel):
         description="Display contrast mode ('standard' or 'high-contrast')",
     )
 
+    # 5. AI & External Integrations
+    llm_provider: str = Field(
+        default="gemini",
+        description="LLM provider: 'gemini', 'ollama', or 'off'",
+    )
+    gemini_api_key: str = Field(
+        default="",
+        description="API key for optional Gemini LLM integration",
+    )
+    gemini_model: str = Field(
+        default="gemini-2.5-flash",
+        description="Model name for Gemini provider",
+    )
+    acoustid_api_key: str = Field(
+        default="",
+        description="AcoustID API key for track fingerprinting and metadata enrichment",
+    )
+    hide_telemetry_hud: bool = Field(
+        default=False,
+        description="Hide or show the 4-card telemetry HUD deck",
+    )
+
     @field_validator("alsa_device")
     @classmethod
     def validate_alsa_device(cls, v: str) -> str:
@@ -266,6 +288,24 @@ class DesktopSettings(BaseModel):
                 f"Invalid contrast_mode '{v}'. Must be one of {sorted(VALID_CONTRAST_MODES)}."
             )
         return cleaned
+
+    @field_validator("llm_provider")
+    @classmethod
+    def validate_llm_provider(cls, v: str) -> str:
+        cleaned = str(v).strip().lower()
+        if cleaned not in {"gemini", "ollama", "off", "fake"}:
+            return "gemini" if cleaned else "off"
+        return cleaned
+
+    @field_validator("gemini_api_key")
+    @classmethod
+    def validate_gemini_api_key(cls, v: str) -> str:
+        return str(v).strip()
+
+    @field_validator("acoustid_api_key")
+    @classmethod
+    def validate_acoustid_api_key(cls, v: str) -> str:
+        return str(v).strip()
 
 
 def load_desktop_settings(path: Path | None = None) -> DesktopSettings:

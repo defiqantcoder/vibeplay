@@ -136,18 +136,26 @@ def cached_acoustid_lookup(
         except json.JSONDecodeError:
             pass
 
+    import socket
+
     delay = 1.0
     for attempt in range(max_retries):
         try:
             logger.debug(
                 "Querying AcoustID API (attempt %d/%d)...", attempt + 1, max_retries
             )
-            response = acoustid.lookup(
-                apikey=api_key,
-                fingerprint=fingerprint,
-                duration=duration,
-                meta=["recordings", "releases", "tracks", "compress"],
-            )
+            old_timeout = socket.getdefaulttimeout()
+            try:
+                socket.setdefaulttimeout(5.0)
+                response = acoustid.lookup(
+                    apikey=api_key,
+                    fingerprint=fingerprint,
+                    duration=duration,
+                    meta=["recordings", "releases", "tracks", "compress"],
+                )
+            finally:
+                socket.setdefaulttimeout(old_timeout)
+
             response_json = json.dumps(response, ensure_ascii=False)
             set_cached_response(conn, cache_key, "acoustid.lookup", response_json, 200)
             return response
@@ -196,6 +204,7 @@ def cached_musicbrainz_recording(
 
     setup_musicbrainz()
     delay = 1.0
+    import socket
 
     for attempt in range(max_retries):
         try:
@@ -206,10 +215,16 @@ def cached_musicbrainz_recording(
                 attempt + 1,
                 max_retries,
             )
-            data = musicbrainzngs.get_recording_by_id(
-                mb_recording_id,
-                includes=["artists", "releases", "tags"],
-            )
+            old_timeout = socket.getdefaulttimeout()
+            try:
+                socket.setdefaulttimeout(5.0)
+                data = musicbrainzngs.get_recording_by_id(
+                    mb_recording_id,
+                    includes=["artists", "releases", "tags"],
+                )
+            finally:
+                socket.setdefaulttimeout(old_timeout)
+
             data_json = json.dumps(data, ensure_ascii=False)
             set_cached_response(
                 conn, cache_key, "musicbrainz.get_recording_by_id", data_json, 200
@@ -348,6 +363,37 @@ def resolve_track_enrichment(
     """
     track_path = Path(track["path"])
     track_id = track["id"]
+
+    if not acoustid_api_key or not str(acoustid_api_key).strip():
+        # Fallback to local embedded tags when AcoustID API key is not configured
+        local_title = track["title"] or track_path.stem
+        local_artist = track["artist"] or "Unknown Artist"
+        local_album = track["album"]
+        local_year = track["year"] if "year" in track.keys() else None
+        local_genre = track["genre"] if "genre" in track.keys() else None
+        genres_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
+        tags_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
+        return EnrichmentResult(
+            track_id=track_id,
+            mb_recording_id=None,
+            mb_release_id=None,
+            mb_artist_id=None,
+            canonical_title=local_title,
+            canonical_artist=local_artist,
+            canonical_album_artist=local_artist,
+            canonical_album=local_album,
+            canonical_year=local_year,
+            canonical_track_no=track["track_no"] if "track_no" in track.keys() else None,
+            canonical_track_total=None,
+            canonical_disc_no=None,
+            canonical_disc_total=None,
+            genres_json=genres_json,
+            tags_json=tags_json,
+            confidence=0.85 if local_title and local_artist != "Unknown Artist" else 0.50,
+            status="matched" if local_title and local_artist != "Unknown Artist" else "needs_review",
+            source="local_tags",
+            raw_metadata_json=json.dumps({"source": "local_tags_fallback"}),
+        )
 
     # Step 1: Generate Chromaprint fingerprint
     try:
@@ -567,10 +613,10 @@ def enrich_tracks(
         ValueError: If ACOUSTID_API_KEY is not configured in environment or .env.
     """
     settings = get_settings()
-    if not settings.acoustid_api_key:
-        raise ValueError(
-            "ACOUSTID_API_KEY is required for metadata enrichment. "
-            "Please set it in your environment or .env file."
+    api_key = (settings.acoustid_api_key or "").strip()
+    if not api_key:
+        logger.info(
+            "ACOUSTID_API_KEY is not configured; using local embedded tag resolution."
         )
 
     init_db(db_path)

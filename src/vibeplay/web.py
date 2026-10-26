@@ -333,6 +333,14 @@ def create_app(
         cfg.analyzer_window_seconds = ds.analyzer_window_seconds
         cfg.analyzer_fallback_enabled = ds.analyzer_fallback_enabled
         cfg.mood_confidence_threshold = ds.mood_confidence_threshold
+        if hasattr(ds, "llm_provider") and ds.llm_provider:
+            cfg.llm_provider = ds.llm_provider
+        if hasattr(ds, "gemini_api_key") and ds.gemini_api_key:
+            cfg.gemini_api_key = ds.gemini_api_key
+        if hasattr(ds, "gemini_model") and ds.gemini_model:
+            cfg.llm_model = ds.gemini_model
+        if hasattr(ds, "acoustid_api_key") and ds.acoustid_api_key:
+            cfg.acoustid_api_key = ds.acoustid_api_key
 
     if settings_file_path.exists():
         _sync_runtime_cfg(load_desktop_settings(settings_file_path))
@@ -831,6 +839,7 @@ def create_app(
         limit: int = Form(12),
         max_bpm_delta: float = Form(10.0),
         max_artist_tracks: int = Form(2),
+        allow_half_double_time: bool = Form(False),
         name: str = Form("Harmonic Journey"),
         vibe: str | None = Form(None),
     ) -> Response:
@@ -845,6 +854,7 @@ def create_app(
             limit=limit,
             max_bpm_delta=max_bpm_delta,
             max_artist_tracks=max_artist_tracks,
+            allow_half_double_time=allow_half_double_time,
             vibe=parsed_vibe,
         )
 
@@ -860,7 +870,10 @@ def create_app(
             settings=cfg,
         )
 
-        transitions = calculate_transition_metrics(playlist.tracks)
+        transitions = calculate_transition_metrics(
+            playlist.tracks,
+            allow_half_double_time=allow_half_double_time,
+        )
         summary = calculate_playlist_summary(playlist.tracks, transitions)
 
         accept_header = request.headers.get("accept", "")
@@ -1128,16 +1141,19 @@ def create_app(
         """Toggle play/pause state in MPD."""
         import threading
 
-        threading.Thread(
+        t = threading.Thread(
             target=toggle_pause,
             kwargs={"db_path": resolved_db_path, "settings": cfg},
             daemon=True,
-        ).start()
+        )
+        t.start()
+        t.join(timeout=0.035)
         playback = get_playback_status(resolved_db_path, cfg)
-        if playback.get("state") == "play":
-            playback["state"] = "pause"
-        elif playback.get("state") in ("pause", "stop"):
-            playback["state"] = "play"
+        if t.is_alive():
+            if playback.get("state") == "play":
+                playback["state"] = "pause"
+            elif playback.get("state") in ("pause", "stop"):
+                playback["state"] = "play"
 
         return templates.TemplateResponse(
             request=request,
@@ -1165,11 +1181,13 @@ def create_app(
         """Skip to next track in MPD."""
         import threading
 
-        threading.Thread(
+        t = threading.Thread(
             target=next_song,
             kwargs={"settings": cfg},
             daemon=True,
-        ).start()
+        )
+        t.start()
+        t.join(timeout=0.035)
         playback = get_playback_status(resolved_db_path, cfg)
         playback["state"] = "play"
         _maybe_notify_track_transition(playback)
@@ -1186,11 +1204,13 @@ def create_app(
         """Skip to previous track in MPD."""
         import threading
 
-        threading.Thread(
+        t = threading.Thread(
             target=previous_song,
             kwargs={"settings": cfg},
             daemon=True,
-        ).start()
+        )
+        t.start()
+        t.join(timeout=0.035)
         playback = get_playback_status(resolved_db_path, cfg)
         playback["state"] = "play"
         _maybe_notify_track_transition(playback)
@@ -1217,9 +1237,22 @@ def create_app(
         )
 
     @app.post("/api/player/volume-step", response_class=HTMLResponse)
-    async def api_player_volume_step(request: Request, delta: int = Form(5)) -> Response:
+    async def api_player_volume_step(request: Request, delta: int = 5) -> Response:
         """Adjust volume level by delta (positive or negative) within [0, 100]."""
-        res = adjust_volume_step(delta, cfg)
+        step_val = delta
+        try:
+            form = await request.form()
+            if "delta" in form:
+                step_val = int(form["delta"])
+        except Exception:
+            pass
+        if "delta" in request.query_params:
+            try:
+                step_val = int(request.query_params["delta"])
+            except Exception:
+                pass
+
+        res = adjust_volume_step(step_val, cfg)
         playback = get_playback_status(resolved_db_path, cfg)
         if "volume" in res:
             try:
@@ -1237,8 +1270,13 @@ def create_app(
     @app.post("/api/player/mute-toggle", response_class=HTMLResponse)
     async def api_player_mute_toggle(request: Request) -> Response:
         """Toggle mute/unmute state."""
-        toggle_mute(cfg)
+        res = toggle_mute(cfg)
         playback = get_playback_status(resolved_db_path, cfg)
+        if "volume" in res:
+            try:
+                playback["volume"] = int(res["volume"])
+            except (ValueError, TypeError):
+                pass
         return templates.TemplateResponse(
             request=request,
             name="components/transport_bar.html",
@@ -1300,6 +1338,47 @@ def create_app(
             client.set_profile(target_id)
         except Exception as err:
             logger.debug("Could not dispatch profile switch to vibe-dsp IPC: %s", err)
+
+        # Synchronize spatial state and desktop settings
+        p_low = target_profile.lower()
+        if "spatial" in p_low:
+            try:
+                from vibe_dsp.spatial import set_spatial_virtualization_mode
+
+                set_spatial_virtualization_mode("spatial_binaural")
+                update_desktop_settings(
+                    {
+                        "spatial_enabled": True,
+                        "spatial_mode": "3d_binaural",
+                        "dsp_profile": "spatial-headphones",
+                    },
+                    settings_file_path,
+                )
+            except Exception:
+                pass
+        elif "receiver" in p_low or "hdmi" in p_low:
+            try:
+                update_desktop_settings(
+                    {"dsp_profile": "receiver-passthrough"},
+                    settings_file_path,
+                )
+            except Exception:
+                pass
+        elif "bit-perfect" in p_low or "pure" in p_low or "letshuoer" in p_low:
+            try:
+                from vibe_dsp.spatial import set_spatial_virtualization_mode
+
+                set_spatial_virtualization_mode("stereo_direct")
+                update_desktop_settings(
+                    {
+                        "spatial_enabled": False,
+                        "spatial_mode": "stereo_direct",
+                        "dsp_profile": "pure-bitperfect",
+                    },
+                    settings_file_path,
+                )
+            except Exception:
+                pass
 
         playback = get_playback_status(resolved_db_path, cfg)
 
@@ -1587,14 +1666,25 @@ def create_app(
         _sync_runtime_cfg(validated)
 
         # Best-effort live application to DSP / audio transport
+        if "spatial_enabled" in payload or "spatial_mode" in payload:
+            try:
+                from vibe_dsp.spatial import set_spatial_virtualization_mode
+
+                mode = "spatial_binaural" if validated.spatial_enabled else "stereo_direct"
+                set_spatial_virtualization_mode(mode)
+                if validated.spatial_enabled:
+                    set_output_profile("7.1.4 Spatial Headphones (SOFA 3D)", settings=cfg)
+            except Exception:
+                pass
+
         if "dsp_profile" in payload:
             try:
                 from vibe_dsp.ipc import DSPClient
 
                 DSPClient().set_profile(validated.dsp_profile)
-                set_output_profile(validated.dsp_profile)
+                set_output_profile(validated.dsp_profile, settings=cfg)
             except Exception:
-                set_output_profile(validated.dsp_profile)
+                set_output_profile(validated.dsp_profile, settings=cfg)
 
         return JSONResponse(
             content={
@@ -2015,6 +2105,7 @@ def create_app(
         delta_events = monitor.process_snapshot(snapshot)
 
         def _event_generator():
+            yield "retry: 1000\n\n"
             yield format_sse_event(
                 "telemetry_snapshot",
                 {
@@ -2050,6 +2141,72 @@ def create_app(
                 "X-Accel-Buffering": "no",
             },
         )
+
+    @app.post("/api/ai/test")
+    async def api_ai_test(request: Request) -> JSONResponse:
+        """Test LLM provider connection with current or supplied API key."""
+        payload: dict[str, Any] = {}
+        content_type = request.headers.get("content-type") or ""
+        if "application/json" in content_type:
+            try:
+                payload = await request.json()
+            except Exception:
+                payload = {}
+        else:
+            try:
+                form = await request.form()
+                payload = dict(form)
+            except Exception:
+                payload = dict(request.query_params)
+
+        key = payload.get("gemini_api_key") or cfg.gemini_api_key
+        provider_name = payload.get("llm_provider") or cfg.llm_provider or "gemini"
+
+        if provider_name == "off":
+            return JSONResponse(
+                content={
+                    "status": "ok",
+                    "message": "AI Integration is set to Off (Deterministic Offline Mode active).",
+                }
+            )
+
+        if not key and provider_name == "gemini":
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": "Missing Gemini API key. Please enter a valid API key.",
+                },
+            )
+
+        try:
+            from vibeplay.llm import GeminiLLMProvider
+
+            model_name = (
+                payload.get("gemini_model")
+                or cfg.llm_model
+                or "gemini-2.5-flash"
+            )
+            prov = GeminiLLMProvider(api_key=key, model_name=model_name)
+            res = prov.generate_text(
+                "Reply with the single word: OK",
+                system_instruction="You are a system health check.",
+            )
+            return JSONResponse(
+                content={
+                    "status": "ok",
+                    "message": f"Successfully connected to Gemini API ({model_name})!",
+                    "sample_response": res.strip(),
+                }
+            )
+        except Exception as err:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": f"Gemini connection test failed: {err}",
+                },
+            )
 
     @app.post("/api/desktop/browse-folder")
     async def api_desktop_browse_folder(request: Request) -> JSONResponse:

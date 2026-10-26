@@ -13,6 +13,7 @@ from vibeplay.analysis import (
     LibrosaAnalyzer,
     analyze_tracks,
     decode_audio_slice,
+    downmix_to_mono,
     get_middle_window_offset,
 )
 from vibeplay.cli import app
@@ -83,6 +84,19 @@ def test_middle_window_offset() -> None:
     assert get_middle_window_offset(duration=0.0, window_seconds=60.0) == 0.0
 
 
+
+def test_downmix_to_mono() -> None:
+    """Verify multichannel array is correctly downmixed to mono."""
+    stereo = np.array([[1.0, -1.0], [0.5, 0.5], [0.0, 0.0]], dtype=np.float32)
+    mono = downmix_to_mono(stereo)
+    assert mono.shape == (3,)
+    np.testing.assert_array_almost_equal(mono, [0.0, 0.5, 0.0])
+
+    mono_input = np.array([1.0, 0.5, 0.0], dtype=np.float32)
+    mono_output = downmix_to_mono(mono_input)
+    assert mono_output.shape == (3,)
+    np.testing.assert_array_almost_equal(mono_output, [1.0, 0.5, 0.0])
+
 def test_decode_audio_slice(synthetic_wav_file: Path) -> None:
     """Verify ffmpeg audio decoding produces expected float32 samples."""
     samples = decode_audio_slice(
@@ -93,7 +107,7 @@ def test_decode_audio_slice(synthetic_wav_file: Path) -> None:
     )
     assert isinstance(samples, np.ndarray)
     assert samples.dtype == np.float32
-    assert len(samples) == 44100
+    assert samples.shape == (44100, 2)
     assert -1.0 <= samples.min() <= samples.max() <= 1.0
 
 

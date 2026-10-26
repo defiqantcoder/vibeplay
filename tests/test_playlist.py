@@ -98,8 +98,14 @@ def test_fold_bpm_and_transition_score() -> None:
     assert fold_bpm(85.0) == 85.0
     assert fold_bpm(170.0) == 85.0
 
-    # 70 and 140 BPM have identical folded tempo: 1.0 score
-    assert bpm_transition_score(70.0, 140.0) == 1.0
+    # 70 and 140 BPM have identical folded tempo:
+    # When unaligned and allow_half_double_time=False, 0.25 penalty applies
+    assert bpm_transition_score(70.0, 140.0) == 0.75
+    # When allowed or energy aligned, full 1.0 score is retained
+    assert bpm_transition_score(70.0, 140.0, allow_half_double_time=True) == 1.0
+    assert bpm_transition_score(70.0, 140.0, energy1=0.8, energy2=0.85) == 1.0
+    # Jarring energy transition (ambient downtempo vs high-velocity techno) receives penalty
+    assert bpm_transition_score(70.0, 140.0, energy1=0.2, energy2=0.9) == 0.75
 
     # 15 BPM difference in folded domain -> 0.5 score
     assert abs(bpm_transition_score(120.0, 135.0) - 0.5) < 1e-4
@@ -109,6 +115,38 @@ def test_fold_bpm_and_transition_score() -> None:
 
     # Missing tempo fallback
     assert bpm_transition_score(None, 120.0) == 0.7
+
+
+def test_evaluate_harmonic_transition_octave_fold() -> None:
+    """Verify evaluate_harmonic_transition flags Half-Time / Double-Time and applies penalties."""
+    from vibeplay.playlist import evaluate_harmonic_transition
+
+    # 75 BPM to 150 BPM (2x jump) with unaligned energy
+    res_fold = evaluate_harmonic_transition(
+        from_camelot="8A",
+        to_camelot="8A",
+        from_bpm=75.0,
+        to_bpm=150.0,
+        from_energy=0.2,
+        to_energy=0.9,
+    )
+    assert res_fold["is_octave_fold"] is True
+    assert res_fold["bpm_status"] == "Half-Time / Double-Time"
+    assert res_fold["bpm_badge"] == "score-mid"
+    assert res_fold["bpm_score"] == 75.0
+
+    # Same tempos with allow_half_double_time=True
+    res_allowed = evaluate_harmonic_transition(
+        from_camelot="8A",
+        to_camelot="8A",
+        from_bpm=75.0,
+        to_bpm=150.0,
+        allow_half_double_time=True,
+    )
+    assert res_allowed["is_octave_fold"] is True
+    assert res_allowed["bpm_status"] == "Half-Time / Double-Time"
+    assert res_allowed["bpm_badge"] == "score-high"
+    assert res_allowed["bpm_score"] == 100.0
 
 
 def test_evaluate_energy_arcs() -> None:

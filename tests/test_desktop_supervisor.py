@@ -37,6 +37,8 @@ def test_generate_audiophile_mpd_config(tmp_path: Path) -> None:
     assert 'port                "6600"' in conf
     assert 'auto_resample   "no"' in conf
     assert 'mixer_type      "none"' in conf
+    assert 'dop             "no"' in conf
+    assert 'format          "*:*:*"' in conf
 
 
 def test_confirm_audio_outputs(tmp_path: Path) -> None:

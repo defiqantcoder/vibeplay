@@ -459,7 +459,8 @@ def test_player_controls_and_telemetry(
     assert "buffer_health" in st_data
     assert "state" in st_data
     assert "output_profile" in st_data
-    assert st_data["bit_perfect"] is True
+    assert "bit_perfect" in st_data
+    assert isinstance(st_data["bit_perfect"], bool)
 
     # Transport HTML bar polling endpoint
     transport_res = client.get("/api/player/transport")

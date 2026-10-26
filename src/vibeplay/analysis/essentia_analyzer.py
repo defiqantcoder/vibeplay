@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer
+from vibeplay.analysis.base import AudioFeatures, BaseAnalyzer, downmix_to_mono
 from vibeplay.desktop.packaging import resolve_models_dir
 
 logger = logging.getLogger(__name__)
@@ -84,11 +84,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
                     classifier = es.TensorflowPredict2D(graphFilename=str(mood_file))
                     preds = classifier(raw_embeddings)
                     # Binary classification: positive class probability is at index 0 or 1
-                    prob = (
-                        float(np.mean(preds[:, 0]))
-                        if preds.ndim > 1
-                        else float(np.mean(preds))
-                    )
+                    prob = float(np.mean(preds[:, 0])) if preds.ndim > 1 else float(np.mean(preds))
                     moods[mood_key] = float(np.clip(prob, 0.0, 1.0))
                 except Exception as err:
                     logger.debug("Could not infer mood '%s': %s", mood_key, err)
@@ -114,9 +110,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         mfcc = es.MFCC(numberCoefficients=40)
 
         mfcc_frames = []
-        for frame in es.FrameGenerator(
-            audio, frameSize=2048, hopSize=1024, startFromZero=True
-        ):
+        for frame in es.FrameGenerator(audio, frameSize=2048, hopSize=1024, startFromZero=True):
             _, mfcc_coeffs = mfcc(spectrum(w(frame)))
             mfcc_frames.append(mfcc_coeffs)
 
@@ -150,9 +144,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
                 ),
             ]
         )
-        embedding = np.pad(summary, (0, max(0, 128 - len(summary))), mode="constant")[
-            :128
-        ].astype(np.float32)
+        embedding = np.pad(summary, (0, max(0, 128 - len(summary))), mode="constant")[:128].astype(np.float32)
         # Normalize embedding vector
         norm = np.linalg.norm(embedding)
         if norm > 0:
@@ -163,9 +155,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         norm_bpm = np.clip((bpm - 60.0) / 100.0, 0.0, 1.0)
         norm_loud = np.clip((loudness + 30.0) / 30.0, 0.0, 1.0)
 
-        happy = float(
-            np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0)
-        )
+        happy = float(np.clip(0.4 * is_major + 0.3 * danceability + 0.3 * norm_bpm, 0.0, 1.0))
         sad = float(
             np.clip(
                 0.5 * (1.0 - is_major) + 0.3 * (1.0 - norm_bpm) + 0.2 * (1.0 - energy),
@@ -175,16 +165,12 @@ class EssentiaAnalyzer(BaseAnalyzer):
         )
         relaxed = float(
             np.clip(
-                0.5 * (1.0 - energy)
-                + 0.3 * (1.0 - norm_loud)
-                + 0.2 * (1.0 - danceability),
+                0.5 * (1.0 - energy) + 0.3 * (1.0 - norm_loud) + 0.2 * (1.0 - danceability),
                 0.0,
                 1.0,
             )
         )
-        aggressive = float(
-            np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0)
-        )
+        aggressive = float(np.clip(0.5 * energy + 0.3 * norm_loud + 0.2 * norm_bpm, 0.0, 1.0))
         party = float(
             np.clip(
                 0.4 * danceability + 0.3 * energy + 0.3 * (1.0 - abs(norm_bpm - 0.65)),
@@ -194,16 +180,12 @@ class EssentiaAnalyzer(BaseAnalyzer):
         )
         acoustic = float(
             np.clip(
-                0.5 * (1.0 - norm_loud)
-                + 0.3 * (1.0 - energy)
-                + 0.2 * (1.0 - danceability),
+                0.5 * (1.0 - norm_loud) + 0.3 * (1.0 - energy) + 0.2 * (1.0 - danceability),
                 0.0,
                 1.0,
             )
         )
-        electronic = float(
-            np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0)
-        )
+        electronic = float(np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0))
 
         mood_scores = {
             "happy": round(happy, 4),
@@ -236,7 +218,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         # Rhythm / BPM
         try:
             rhythm_extractor = es.RhythmExtractor2013(method="multifeature")
-            bpm_val, _, _, _, _ = rhythm_extractor(audio)
+            bpm_val, _, _, _, _ = rhythm_extractor(downmix_to_mono(audio))
             bpm = float(round(bpm_val, 2))
         except Exception as err:
             logger.debug("RhythmExtractor failed on track %d: %s", track_id, err)
@@ -245,7 +227,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         # Key and Scale
         try:
             key_extractor = es.KeyExtractor()
-            key_val, scale_val, _ = key_extractor(audio)
+            key_val, scale_val, _ = key_extractor(downmix_to_mono(audio))
             key = str(key_val)
             scale = str(scale_val)
         except Exception as err:
@@ -255,8 +237,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         # Integrated Loudness (LUFS) - requires stereo sample input
         try:
             ebur128 = es.LoudnessEBUR128(sampleRate=self._sample_rate)
-            stereo_samples = np.vstack([audio, audio]).T
-            _, _, integrated_loudness, _ = ebur128(stereo_samples)
+            _, _, integrated_loudness, _ = ebur128(audio)
             loudness = float(round(integrated_loudness, 2))
         except Exception as err:
             logger.debug("LoudnessEBUR128 failed on track %d: %s", track_id, err)
@@ -265,7 +246,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
         # Danceability (DFA exponent normalized to ~0.0 - 1.0)
         try:
             dance_extractor = es.Danceability()
-            dance_val, _ = dance_extractor(audio)
+            dance_val, _ = dance_extractor(downmix_to_mono(audio))
             danceability = float(round(np.clip(dance_val / 3.0, 0.0, 1.0), 4))
         except Exception as err:
             logger.debug("Danceability failed on track %d: %s", track_id, err)
@@ -273,17 +254,16 @@ class EssentiaAnalyzer(BaseAnalyzer):
 
         # Energy (Normalized RMS)
         try:
-            rms = np.sqrt(np.mean(audio**2))
+            mono_audio = downmix_to_mono(audio)
+            rms = np.sqrt(np.mean(mono_audio**2))
             energy = float(round(np.clip(rms * 4.0, 0.0, 1.0), 4))
         except Exception:
             energy = None
 
         # Resample to 16 kHz for Discogs-EffNet models
         try:
-            resampler = es.Resample(
-                inputSampleRate=self._sample_rate, outputSampleRate=16000
-            )
-            audio_16k = resampler(audio)
+            resampler = es.Resample(inputSampleRate=self._sample_rate, outputSampleRate=16000)
+            audio_16k = resampler(downmix_to_mono(audio))
             tf_embedding, tf_moods = self._extract_tf_models(audio_16k)
         except Exception as err:
             logger.debug("Resampling/TF inference error on track %d: %s", track_id, err)
@@ -294,7 +274,7 @@ class EssentiaAnalyzer(BaseAnalyzer):
             mood_scores = tf_moods
         else:
             embedding, mood_scores = self._extract_fallback_embeddings_and_moods(
-                audio=audio,
+                audio=downmix_to_mono(audio),
                 bpm=bpm or 120.0,
                 key=key or "C",
                 scale=scale or "major",

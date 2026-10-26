@@ -81,7 +81,7 @@
     {% include "components/job_progress.html" %}
 
     <!-- Top Audio Telemetry Strip & HUD Deck (Stitch Specification) -->
-    <section class="telemetry-grid">
+    <section class="telemetry-grid" id="telemetry-hud-deck">
   <!-- Card 1: Master Clock // ALSA -->
   <div class="telemetry-card">
     <div class="telemetry-header">
@@ -465,6 +465,21 @@
             </label>
             <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Optional LLM</span>
           </div>
+
+          <div style="margin-bottom: 8px; font-size: 11px;">
+            {% if desktop_settings and desktop_settings.gemini_api_key %}
+              <span style="color: var(--tertiary); font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                <svg class="icon" style="width: 12px; height: 12px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                ✓ Gemini AI Active
+              </span>
+            {% else %}
+              <a href="javascript:void(0)" onclick="openSettingsTab('ai')" style="color: var(--secondary); text-decoration: underline; font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Click to open AI Settings (Ctrl+,)">
+                <svg class="icon" style="width: 12px; height: 12px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                ⚠️ Gemini API Key Unconfigured — Click to Configure (Ctrl+,)
+              </a>
+            {% endif %}
+          </div>
+
           <input type="text"
                  name="prompt"
                  class="input-text"
@@ -513,6 +528,13 @@
             <option value="electronic">Electronic (Synthesizers, Beat Driven)</option>
             <option value="workout">Workout (High Energy, ≥115 BPM)</option>
             <option value="melancholy">Melancholy (Moody, Contemplative)</option>
+            <option value="cyberpunk_neon">Cyberpunk Neon (Dark Synth, High BPM)</option>
+            <option value="jazz_club">Jazz Club (Acoustic, Moderate BPM, Contemplative)</option>
+            <option value="heavy_bass">Heavy Bass (Deep Sub-Bass, High Danceability)</option>
+            <option value="meditation">Meditation (Subtle Ambient, Slow Tempo)</option>
+            <option value="sunshine_groove">Sunshine Groove (Upbeat Dance, Bright)</option>
+            <option value="hypnotic_trance">Hypnotic Trance (Driving Locked Groove)</option>
+            <option value="coffee_shop">Coffee Shop (Mellow Warmth, Low Energy)</option>
           </select>
         </div>
 
@@ -527,6 +549,11 @@
             <option value="cooldown">Cool Down (High Intensity → Relaxed Finish)</option>
             <option value="peak">Peak / Wave (Warmup → Peak → Cool Down)</option>
             <option value="steady">Steady Plateau (Consistent Energy Level)</option>
+            <option value="double_peak">Double Peak (Two Energy Climaxes)</option>
+            <option value="sunrise_roller">Sunrise Roller (Warm Uplift to Euphoria)</option>
+            <option value="deep_dive">Deep Dive (Sub-Bass Descent & Return)</option>
+            <option value="heartbeat_wave">Heartbeat Wave (Dynamic Cyclic Pulses)</option>
+            <option value="slow_burn">Slow Burn (Subtle Build to Late Peak)</option>
           </select>
         </div>
 

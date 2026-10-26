@@ -637,7 +637,11 @@ def parse_prompt_to_plan(
         PromptPlaylistPlan: Validated playlist configuration plan.
     """
     cfg = settings or get_settings()
-    active_provider = provider if provider is not None else get_llm_provider(cfg)
+    try:
+        active_provider = provider if provider is not None else get_llm_provider(cfg)
+    except Exception as err:
+        logger.info("LLM provider unavailable (%s); falling back to offline heuristics", err)
+        active_provider = None
 
     clean_prompt = prompt.strip()
     if not clean_prompt:

@@ -195,6 +195,13 @@ def build_desktop_menu_bar() -> list[MenuSection]:
             label="View",
             items=[
                 MenuItem(
+                    id="view_toggle_hud",
+                    label="Toggle Telemetry HUD Deck",
+                    shortcut="Ctrl+H",
+                    action_endpoint="toggleTelemetryHud()",
+                ),
+                MenuItem(id="view_sep_1", label="", is_separator=True),
+                MenuItem(
                     id="view_fullscreen",
                     label="Toggle Fullscreen",
                     shortcut="F11",
