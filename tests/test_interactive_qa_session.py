@@ -11,11 +11,9 @@ import concurrent.futures
 import json
 import os
 import stat
-import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -29,29 +27,18 @@ from vibeplay.db import (
     insert_or_replace_features,
     insert_track,
 )
-from vibeplay.desktop.dialogs import choose_directory_dialog
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
-    load_desktop_settings,
     save_desktop_settings,
 )
-from vibeplay.desktop.telemetry_stream import TelemetrySnapshot
 from vibeplay.jobs import (
     complete_job_run,
-    create_job_run,
-    fail_job_run,
-    get_active_jobs,
-    get_recent_jobs,
-    is_job_type_running,
     update_job_progress,
 )
 from vibeplay.playlist import (
-    calculate_playlist_summary,
-    calculate_transition_metrics,
     evaluate_energy_arc,
     evaluate_harmonic_transition,
-    key_to_camelot,
 )
 from vibeplay.web import create_app
 

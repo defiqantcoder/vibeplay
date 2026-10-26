@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import logging
 import os
@@ -22,7 +21,6 @@ DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser(
 
 from vibeplay.desktop.security import (
     ensure_secure_directory,
-    is_loopback_host,
     secure_chmod,
     validate_loopback_host,
 )

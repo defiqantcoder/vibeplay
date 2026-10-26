@@ -22,9 +22,7 @@ DEFAULT_SPATIAL_CONF_FILE = "98-spatial-7.1.4.conf"
 SPATIAL_SINK_NAME = "Spatial-7.1.4-Sink"
 
 # Default open-standard KEMAR 7.1.4 HRTF dataset URL
-DEFAULT_SOFA_DOWNLOAD_URL = (
-    "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
-)
+DEFAULT_SOFA_DOWNLOAD_URL = "https://raw.githubusercontent.com/gisogrimm/koelnhrtf/master/MIT_KEMAR_normal_pinna.sofa"
 
 # Standard 7.1.4 Speaker Channels and ITU-R BS.775 / Dolby Atmos Azimuth & Elevation Angles
 # Format: (Channel Name, Azimuth in deg, Elevation in deg, Description)
@@ -268,7 +266,7 @@ context.modules = [
 {chr(10).join(nodes_config)}
                 ]
                 inputs  = [
-                    {', '.join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
+                    {", ".join(f'"{sink_name}:{ch[0]}"' for ch in CHANNEL_LAYOUT_7_1_4)}
                 ]
                 outputs = [
                     "spatial_convolver:Out_L"
@@ -460,4 +458,141 @@ def set_spatial_virtualization_mode(mode: str) -> bool:
                                     return True
         except Exception as err:
             logger.warning("Error restoring stereo hardware sink: %s", err)
+        return False
+
+
+def get_available_sofa_profiles(custom_dir: Path | None = None) -> list[dict[str, Any]]:
+    """Discover valid SOFA HRTF files in the specified directory.
+
+    Args:
+        custom_dir: Optional custom directory to scan. Defaults to DEFAULT_HRTF_DIR.
+
+    Returns:
+        List of metadata dictionaries for valid SOFA files.
+    """
+    search_dir = custom_dir or DEFAULT_HRTF_DIR
+    if not search_dir.exists() or not search_dir.is_dir():
+        return []
+
+    profiles = []
+    for sofa_file in search_dir.glob("*.sofa"):
+        try:
+            info = inspect_sofa_file(sofa_file)
+            if info.get("is_valid"):
+                profiles.append(info)
+        except Exception as err:
+            logger.debug("Failed to inspect %s: %s", sofa_file, err)
+    return profiles
+
+
+def swap_spatial_profile(sofa_path: Path, composite_preamp_db: float = STANDARD_7_1_4_BASE_PREAMP_DB) -> bool:
+    """Dynamically swap the active SOFA spatial profile via pw-cli.
+
+    Unloads existing spatial filter-chain modules and loads a new one with the given SOFA file.
+    Includes path traversal protection and fallback to stereo direct on failure.
+
+    Args:
+        sofa_path: Path to the new SOFA profile.
+        composite_preamp_db: Composite preamp attenuation for the new profile.
+
+    Returns:
+        True if the swap was successful, False otherwise.
+    """
+    # Path traversal validation
+    try:
+        resolved_path = sofa_path.resolve(strict=True)
+    except FileNotFoundError:
+        logger.warning("SOFA file not found: %s", sofa_path)
+        set_spatial_virtualization_mode("stereo_direct")
+        return False
+
+    # Check if pw-cli is available
+    if not shutil.which("pw-cli"):
+        logger.warning("pw-cli not found, cannot dynamically swap module")
+        set_spatial_virtualization_mode("stereo_direct")
+        return False
+
+    try:
+        info = inspect_sofa_file(resolved_path)
+        if not info.get("is_valid"):
+            logger.warning("Invalid SOFA file: %s", resolved_path)
+            set_spatial_virtualization_mode("stereo_direct")
+            return False
+    except Exception as e:
+        logger.warning("Error inspecting SOFA file: %s", e)
+        set_spatial_virtualization_mode("stereo_direct")
+        return False
+
+    # Destroy existing libpipewire-module-filter-chain modules
+    try:
+        proc = subprocess.run(["pw-cli", "dump", "Module"], capture_output=True, text=True, check=False)
+        if proc.returncode == 0:
+            modules_data = proc.stdout.strip()
+            if modules_data:
+                # Naive regex to parse modules since it's SPA JSON, not strict JSON
+                import re
+
+                module_blocks = modules_data.split("id ")
+                for block in module_blocks:
+                    if 'name = "libpipewire-module-filter-chain"' in block:
+                        match = re.search(r"^(\d+),", block)
+                        if match:
+                            mod_id = match.group(1)
+                            logger.info("Destroying existing filter-chain module: %s", mod_id)
+                            subprocess.run(["pw-cli", "destroy", mod_id], capture_output=True, check=False)
+    except Exception as e:
+        logger.warning("Failed to destroy existing modules: %s", e)
+
+    # Load new module
+    try:
+        # Generate the config
+        cfg = generate_pipewire_spatial_filter_chain_config(resolved_path, composite_preamp_db)
+
+        # We need to extract the args string to pass to pw-cli
+        # We can extract the content inside `args = { ... }` from the context.modules array
+        import re
+
+        match = re.search(r"args\s*=\s*(\{.*?\})\s*\}$", cfg, re.DOTALL | re.MULTILINE)
+        if not match:
+            # Maybe the regex doesn't match perfectly, let's use a simpler approach
+            start_idx = cfg.find("args = {")
+            if start_idx == -1:
+                logger.warning("Could not extract args from generated config")
+                set_spatial_virtualization_mode("stereo_direct")
+                return False
+
+            # Find matching closing brace
+            brace_count = 0
+            end_idx = -1
+            for i in range(start_idx + 7, len(cfg)):
+                if cfg[i] == "{":
+                    brace_count += 1
+                elif cfg[i] == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end_idx = i + 1
+                        break
+
+            if end_idx == -1:
+                logger.warning("Could not extract args from generated config (unmatched braces)")
+                set_spatial_virtualization_mode("stereo_direct")
+                return False
+
+            args_str = cfg[start_idx + 7 : end_idx].strip()
+        else:
+            args_str = match.group(1).strip()
+
+        args_str = args_str.replace("\n", " ")
+
+        proc = subprocess.run(["pw-cli", "load-module", "libpipewire-module-filter-chain", args_str], capture_output=True, text=True, check=False)
+        if proc.returncode != 0:
+            logger.warning("Failed to load new module: %s", proc.stderr)
+            set_spatial_virtualization_mode("stereo_direct")
+            return False
+
+        logger.info("Successfully loaded new spatial profile: %s", resolved_path)
+        return True
+    except Exception as e:
+        logger.warning("Exception while loading new module: %s", e)
+        set_spatial_virtualization_mode("stereo_direct")
         return False

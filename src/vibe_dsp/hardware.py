@@ -225,11 +225,25 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
         c_name = card["card_name"]
         card_dir = resolved_root / f"card{c_idx}"
 
+        c_lower = c_name.lower()
+        extra_lower = card["extra_info"].lower()
+
         # Probe USB identifiers
         usb_id_file = card_dir / "usbid"
         usb_bus_file = card_dir / "usbbus"
         usb_id = usb_id_file.read_text().strip() if usb_id_file.exists() else None
         usb_bus = usb_bus_file.read_text().strip() if usb_bus_file.exists() else None
+
+        uid_lower = usb_id.lower() if usb_id else ""
+
+        is_letshuoer_card = bool(
+            "letshuoer" in c_lower
+            or "letshuoer" in extra_lower
+            or "letshuoer" in uid_lower
+            or (usb_id and "2972" in usb_id)
+            or (usb_id and "2222" in usb_id)
+            or (usb_id and "2fc6" in usb_id)
+        )
 
         is_usb_class = bool(
             usb_id
@@ -237,6 +251,9 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
             or c_driver.lower() == "usb-audio"
             or "usb" in card["extra_info"].lower()
         )
+
+
+
 
         # Find playback device numbers for this card
         card_pcms = [p for p in pcm_devices if p["card_index"] == c_idx]
@@ -254,6 +271,9 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
             bit_depths: list[int] = []
             channels = 2
 
+            is_letshuoer = is_letshuoer_card or "letshuoer" in dev_name.lower()
+            if is_letshuoer:
+                is_usb_class = True
             if is_usb_class:
                 # Check stream0, stream1, etc.
                 stream_files = sorted(card_dir.glob("stream*"))
@@ -282,6 +302,14 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
                 if not formats:
                     formats = ["S16_LE", "S24_3LE", "S32_LE"]
 
+                if is_letshuoer:
+                    # Lock sample rates up to 384kHz / DSD for Letshuoer
+                    if not rates or max(rates, default=0) < 384000:
+                        rates = sorted(list(set(rates + [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000])))
+                    if not bit_depths or max(bit_depths, default=0) < 32:
+                        bit_depths = sorted(list(set(bit_depths + [16, 24, 32])))
+                    if not formats or "DSD_U32_BE" not in formats:
+                        formats = sorted(list(set(formats + ["S16_LE", "S24_3LE", "S32_LE", "DSD_U32_BE"])))
                 card_type = CardType.USB_DAC
                 # Connected USB DAC gets highest priority
                 priority = 100

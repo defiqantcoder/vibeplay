@@ -136,6 +136,49 @@ def complete_job_run(
             conn.close()
 
 
+def cancel_job_run(
+    conn_or_path: sqlite3.Connection | Path | str,
+    job_id: str,
+) -> None:
+    """Cancel a running job by updating its status."""
+    conn, should_close = _resolve_conn(conn_or_path)
+    try:
+        with conn:
+            conn.execute(
+                """
+                UPDATE job_runs
+                SET status = 'cancelled',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'running'
+                """,
+                (job_id,),
+            )
+    except Exception as err:
+        logger.debug("Failed cancelling job %s: %s", job_id, err)
+    finally:
+        if should_close:
+            conn.close()
+
+
+def is_job_cancelled(conn_or_path: sqlite3.Connection | Path | str, job_id: str) -> bool:
+    """Check if a job has been cancelled."""
+    conn, should_close = _resolve_conn(conn_or_path)
+    try:
+        cursor = conn.execute(
+            "SELECT status FROM job_runs WHERE id = ?",
+            (job_id,),
+        )
+        row = cursor.fetchone()
+        if row and row[0] == "cancelled":
+            return True
+        return False
+    except Exception:
+        return False
+    finally:
+        if should_close:
+            conn.close()
+
+
 def fail_job_run(
     conn_or_path: sqlite3.Connection | Path | str,
     job_id: str,
@@ -220,9 +263,7 @@ def get_active_jobs(conn_or_path: sqlite3.Connection | Path | str) -> list[dict[
             conn.close()
 
 
-def get_recent_jobs(
-    conn_or_path: sqlite3.Connection | Path | str, limit: int = 5
-) -> list[dict[str, Any]]:
+def get_recent_jobs(conn_or_path: sqlite3.Connection | Path | str, limit: int = 5) -> list[dict[str, Any]]:
     """Return recent jobs including completed and failed ones."""
     conn, should_close = _resolve_conn(conn_or_path)
     try:
@@ -268,6 +309,7 @@ def get_recent_jobs(
 # -------------------------------------------------------------------------
 # Background Worker Threads
 # -------------------------------------------------------------------------
+
 
 def start_background_scan(db_path: Path, music_dir: Path) -> tuple[str, bool]:
     """Start scanning directory in a background daemon thread.
@@ -366,9 +408,20 @@ def start_background_analyze(db_path: Path) -> tuple[str, bool]:
                     total_items=total,
                 )
 
-            summary = analyze_tracks(db_path=db_path, progress_callback=_cb)
-            complete_job_run(db_path, job_id, total_items=summary.total)
-            logger.info("Background analysis completed: %s", summary)
+            def _cancel_check() -> bool:
+                return is_job_cancelled(db_path, job_id)
+
+            summary = analyze_tracks(
+                db_path=db_path,
+                progress_callback=_cb,
+                cancel_check=_cancel_check,
+            )
+
+            if is_job_cancelled(db_path, job_id):
+                logger.info("Background analysis was cancelled: %s", summary)
+            else:
+                complete_job_run(db_path, job_id, total_items=summary.total)
+                logger.info("Background analysis completed: %s", summary)
         except Exception as exc:
             logger.error("Background analysis failed: %s", exc)
             fail_job_run(db_path, job_id, str(exc))
