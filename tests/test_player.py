@@ -293,6 +293,52 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["bit_perfect"] is False
         assert st["buffer_health"] == "DSP / Processed"
 
+    # 5. Playing lossless FLAC but with bit depth upsampled (16-bit to 24-bit) -> bit_perfect is False
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
+        "vibeplay.player._extract_audio_file_technical_info",
+        return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    ):
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {
+            "state": "play",
+            "volume": "100",
+            "audio": "44100:24:2",
+            "time": "10:180",
+        }
+        mock_client.currentsong.return_value = {
+            "file": "/music/song.flac",
+            "title": "Song",
+            "artist": "Artist",
+        }
+
+        st = get_playback_status()
+        assert st["bit_perfect"] is False
+        assert st["buffer_health"] == "DSP / Processed"
+
+    # 6. Playing lossless FLAC (stereo) but output is mono -> bit_perfect is False
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
+        "vibeplay.player._extract_audio_file_technical_info",
+        return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    ):
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {
+            "state": "play",
+            "volume": "100",
+            "audio": "44100:16:1",
+            "time": "10:180",
+        }
+        mock_client.currentsong.return_value = {
+            "file": "/music/song.flac",
+            "title": "Song",
+            "artist": "Artist",
+        }
+
+        st = get_playback_status()
+        assert st["bit_perfect"] is False
+        assert st["buffer_health"] == "DSP / Processed"
+
 
 def test_direct_alsa_line_out_volume_safety() -> None:
     """Verify direct ALSA volume (-1) exposes fixed hardware line-out and catches setvol cleanly."""
