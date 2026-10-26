@@ -839,6 +839,7 @@ def create_app(
         limit: int = Form(12),
         max_bpm_delta: float = Form(10.0),
         max_artist_tracks: int = Form(2),
+        allow_half_double_time: bool = Form(False),
         name: str = Form("Harmonic Journey"),
         vibe: str | None = Form(None),
     ) -> Response:
@@ -853,6 +854,7 @@ def create_app(
             limit=limit,
             max_bpm_delta=max_bpm_delta,
             max_artist_tracks=max_artist_tracks,
+            allow_half_double_time=allow_half_double_time,
             vibe=parsed_vibe,
         )
 
@@ -868,7 +870,10 @@ def create_app(
             settings=cfg,
         )
 
-        transitions = calculate_transition_metrics(playlist.tracks)
+        transitions = calculate_transition_metrics(
+            playlist.tracks,
+            allow_half_double_time=allow_half_double_time,
+        )
         summary = calculate_playlist_summary(playlist.tracks, transitions)
 
         accept_header = request.headers.get("accept", "")
