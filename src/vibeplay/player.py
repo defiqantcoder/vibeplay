@@ -982,6 +982,16 @@ def get_playback_status(
 
             native_rate_hz: int | None = None
             native_depth_bits: int | None = None
+            native_channels: int | None = None
+
+            if file_path:
+                try:
+                    tech_info = _extract_audio_file_technical_info(file_path)
+                    native_channels = tech_info.get("channels")
+                    native_depth_bits = tech_info.get("bits_per_sample")
+                    native_rate_hz = tech_info.get("sample_rate")
+                except Exception:
+                    pass
 
             if file_path and db_path and db_path.exists():
                 try:
@@ -1013,21 +1023,25 @@ def get_playback_status(
             audio_spec = st.get("audio")
             is_active = state in ("play", "pause") and bool(file_path)
 
+            output_channels = None
             if is_active and audio_spec and ":" in audio_spec:
                 parts = audio_spec.split(":")
                 rate_hz = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else (native_rate_hz or 44100)
                 depth_bits = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (native_depth_bits or 16)
+                output_channels = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else (native_channels or 2)
                 sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
                 bit_depth_str = f"{depth_bits}-bit"
             elif is_active and native_rate_hz:
                 rate_hz = native_rate_hz
                 depth_bits = native_depth_bits or 16
+                output_channels = native_channels or 2
                 sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
                 bit_depth_str = f"{depth_bits}-bit"
-                audio_spec = f"{rate_hz}:{depth_bits}:2"
+                audio_spec = f"{rate_hz}:{depth_bits}:{output_channels}"
             else:
                 rate_hz = None
                 depth_bits = None
+                output_channels = None
                 sample_rate_str = "--"
                 bit_depth_str = "--"
                 audio_spec = "--"
@@ -1054,15 +1068,27 @@ def get_playback_status(
             # Bit-perfect criteria:
             # 1. Active file is a lossless container
             # 2. Output sample rate matches native track rate (no resampling)
-            # 3. Volume is unattenuated (100% / 0 dB or hardware line-out)
+            # 3. Output bit depth matches native bit depth
+            # 4. Output channels matches native channels
+            # 5. Volume is unattenuated (100% / 0 dB or hardware line-out)
             resampling_applied = False
             if rate_hz is not None and native_rate_hz is not None:
                 if rate_hz != native_rate_hz:
                     resampling_applied = True
 
+            bit_depth_mismatch = False
+            if depth_bits is not None and native_depth_bits is not None:
+                if depth_bits != native_depth_bits:
+                    bit_depth_mismatch = True
+
+            channels_mismatch = False
+            if output_channels is not None and native_channels is not None:
+                if output_channels != native_channels:
+                    channels_mismatch = True
+
             volume_attenuated = (vol < 100 and not is_hardware_lineout)
 
-            if is_active and is_lossless and not resampling_applied and not volume_attenuated:
+            if is_active and is_lossless and not resampling_applied and not bit_depth_mismatch and not channels_mismatch and not volume_attenuated:
                 bit_perfect = True
                 buffer_health = "100% Bit-Perfect Locked"
             elif is_active:
