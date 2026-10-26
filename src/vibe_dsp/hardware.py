@@ -136,7 +136,9 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
     channels = 2
 
     # Extract format lines
-    format_matches = re.findall(r"Format:\s+([A-Za-z0-9_]+)", stream_content, re.IGNORECASE)
+    format_matches = re.findall(
+        r"Format:\s+([A-Za-z0-9_]+)", stream_content, re.IGNORECASE
+    )
     for fmt in format_matches:
         formats.add(fmt.upper())
 
@@ -229,7 +231,12 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
         usb_id = usb_id_file.read_text().strip() if usb_id_file.exists() else None
         usb_bus = usb_bus_file.read_text().strip() if usb_bus_file.exists() else None
 
-        is_usb_class = bool(usb_id or usb_bus or c_driver.lower() == "usb-audio" or "usb" in card["extra_info"].lower())
+        is_usb_class = bool(
+            usb_id
+            or usb_bus
+            or c_driver.lower() == "usb-audio"
+            or "usb" in card["extra_info"].lower()
+        )
 
         # Find playback device numbers for this card
         card_pcms = [p for p in pcm_devices if p["card_index"] == c_idx]
@@ -252,7 +259,9 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
                 stream_files = sorted(card_dir.glob("stream*"))
                 if stream_files:
                     try:
-                        stream_text = stream_files[0].read_text(encoding="utf-8", errors="replace")
+                        stream_text = stream_files[0].read_text(
+                            encoding="utf-8", errors="replace"
+                        )
                         caps = parse_usb_stream_capabilities(stream_text)
                         rates = caps["rates"]
                         formats = caps["formats"]
@@ -293,7 +302,11 @@ def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
                 priority = 20
 
             # Derive node name pattern
-            node_name = f"alsa_output.usb-{c_id}.analog-stereo" if card_type == CardType.USB_DAC else f"alsa_output.pci-{c_id}.analog-stereo"
+            node_name = (
+                f"alsa_output.usb-{c_id}.analog-stereo"
+                if card_type == CardType.USB_DAC
+                else f"alsa_output.pci-{c_id}.analog-stereo"
+            )
 
             endpoint = AudioEndpoint(
                 card_index=c_idx,

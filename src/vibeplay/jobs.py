@@ -220,7 +220,9 @@ def get_active_jobs(conn_or_path: sqlite3.Connection | Path | str) -> list[dict[
             conn.close()
 
 
-def get_recent_jobs(conn_or_path: sqlite3.Connection | Path | str, limit: int = 5) -> list[dict[str, Any]]:
+def get_recent_jobs(
+    conn_or_path: sqlite3.Connection | Path | str, limit: int = 5
+) -> list[dict[str, Any]]:
     """Return recent jobs including completed and failed ones."""
     conn, should_close = _resolve_conn(conn_or_path)
     try:
@@ -266,7 +268,6 @@ def get_recent_jobs(conn_or_path: sqlite3.Connection | Path | str, limit: int = 
 # -------------------------------------------------------------------------
 # Background Worker Threads
 # -------------------------------------------------------------------------
-
 
 def start_background_scan(db_path: Path, music_dir: Path) -> tuple[str, bool]:
     """Start scanning directory in a background daemon thread.

@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     )
 
     db_path: Path = Field(
-        default_factory=lambda: Path("~/.local/share/vibeplay/vibeplay.db").expanduser(),
+        default_factory=lambda: Path(
+            "~/.local/share/vibeplay/vibeplay.db"
+        ).expanduser(),
         description="Path to SQLite database file",
     )
     acoustid_api_key: str | None = Field(
@@ -97,7 +99,9 @@ class Settings(BaseSettings):
         description="Backoff factor for exponential retry delays",
     )
     models_dir: Path = Field(
-        default_factory=lambda: __import__("vibeplay.desktop.packaging", fromlist=["resolve_models_dir"]).resolve_models_dir(),
+        default_factory=lambda: __import__(
+            "vibeplay.desktop.packaging", fromlist=["resolve_models_dir"]
+        ).resolve_models_dir(),
         description="Directory containing pretrained machine learning models",
     )
     analyzer_backend: str = Field(

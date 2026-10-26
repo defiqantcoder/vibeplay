@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import os
@@ -14,11 +15,27 @@ from urllib.parse import unquote, urlparse
 from urllib.request import Request as UrlRequest
 from urllib.request import urlopen
 
-from vibeplay.desktop.security import validate_loopback_host
-
 logger = logging.getLogger(__name__)
 
 DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser()
+
+
+def validate_loopback_host(host: str) -> str:
+    """Validate that a host string is strictly a loopback address (127.x.x.x, localhost, or ::1)."""
+    if not host or not isinstance(host, str):
+        raise ValueError("Host must be a non-empty loopback address.")
+    cleaned = host.strip()
+    if cleaned.lower() == "localhost":
+        return "localhost"
+    try:
+        addr = ipaddress.ip_address(cleaned.strip("[]"))
+        if addr.is_loopback:
+            return str(addr)
+    except ValueError:
+        pass
+    raise ValueError(
+        f"Security guardrail: IPC client only connects to loopback interfaces, got '{host}'"
+    )
 
 
 def write_ipc_state(
@@ -151,9 +168,13 @@ def parse_desktop_uri(raw: str) -> Path:
     if "://" in cleaned:
         parsed = urlparse(cleaned)
         if parsed.scheme.lower() != "file":
-            raise ValueError(f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed.")
+            raise ValueError(
+                f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed."
+            )
         if parsed.netloc and parsed.netloc.lower() not in ("", "localhost"):
-            raise ValueError(f"Remote file URI host '{parsed.netloc}' is not allowed.")
+            raise ValueError(
+                f"Remote file URI host '{parsed.netloc}' is not allowed."
+            )
         decoded_path = unquote(parsed.path)
         return Path(decoded_path).expanduser().resolve()
 
@@ -210,7 +231,11 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
                 continue
         else:
             candidate = Path(entry).expanduser()
-            track_path = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
+            track_path = (
+                candidate.resolve()
+                if candidate.is_absolute()
+                else (base_dir / candidate).resolve()
+            )
         tracks.append(track_path)
 
     return tracks

@@ -26,7 +26,9 @@ from vibeplay.db import (
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = frozenset({".mp3", ".flac", ".ogg", ".opus", ".m4a", ".wav", ".aac"})
+SUPPORTED_EXTENSIONS = frozenset(
+    {".mp3", ".flac", ".ogg", ".opus", ".m4a", ".wav", ".aac"}
+)
 
 ProgressCallback = Callable[[int, int, Path], None]
 
@@ -148,8 +150,19 @@ def _parse_int_pair(val: Any) -> tuple[int | None, int | None]:
     if isinstance(val, (list, tuple)) and len(val) > 0:
         first = val[0]
         second = val[1] if len(val) > 1 else None
-        num = int(first) if (isinstance(first, int) or (isinstance(first, str) and first.isdigit())) else None
-        total = int(second) if (isinstance(second, int) or (isinstance(second, str) and second.isdigit())) else None
+        num = (
+            int(first)
+            if (isinstance(first, int) or (isinstance(first, str) and first.isdigit()))
+            else None
+        )
+        total = (
+            int(second)
+            if (
+                isinstance(second, int)
+                or (isinstance(second, str) and second.isdigit())
+            )
+            else None
+        )
         return num, total
 
     s = str(val).strip()
@@ -293,13 +306,19 @@ def extract_metadata(file_path: Path) -> ExtractedMetadata:
     # Core tag extraction
     title = _parse_first_string(tags, "title", "TIT2", "\xa9nam")
     artist = _parse_first_string(tags, "artist", "TPE1", "\xa9ART")
-    album_artist = _parse_first_string(tags, "albumartist", "album_artist", "TPE2", "aART", "ensemble")
+    album_artist = _parse_first_string(
+        tags, "albumartist", "album_artist", "TPE2", "aART", "ensemble"
+    )
     album = _parse_first_string(tags, "album", "TALB", "\xa9alb")
     genre = _parse_first_string(tags, "genre", "TCON", "\xa9gen")
 
     # Track and disc numbers
-    track_no, track_total = _extract_int_pair_from_tags(tags, "tracknumber", "track", "TRCK", "trkn")
-    disc_no, disc_total = _extract_int_pair_from_tags(tags, "discnumber", "disc", "TPOS", "disk")
+    track_no, track_total = _extract_int_pair_from_tags(
+        tags, "tracknumber", "track", "TRCK", "trkn"
+    )
+    disc_no, disc_total = _extract_int_pair_from_tags(
+        tags, "discnumber", "disc", "TPOS", "disk"
+    )
 
     # Year
     raw_date = _parse_first_string(tags, "date", "year", "TDRC", "TYER", "\xa9day")
@@ -418,7 +437,12 @@ def scan_directory(
             existing = existing_tracks.get(path_str)
 
             # Incremental check: skip unchanged files
-            if existing is not None and existing.status == "active" and abs(existing.mtime - mtime) < 1e-4 and existing.size == size:
+            if (
+                existing is not None
+                and existing.status == "active"
+                and abs(existing.mtime - mtime) < 1e-4
+                and existing.size == size
+            ):
                 summary.unchanged += 1
                 continue
 

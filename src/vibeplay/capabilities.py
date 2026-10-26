@@ -137,7 +137,7 @@ def check_mpd_capability() -> CapabilityStatus:
     mpd_bin = shutil.which("mpd")
 
     if mpd_spec is None:
-        return CapabilityStatus(
+         return CapabilityStatus(
             name="MPD Playback",
             available=False,
             provider="None",
@@ -146,7 +146,7 @@ def check_mpd_capability() -> CapabilityStatus:
         )
 
     if not mpd_bin:
-        return CapabilityStatus(
+         return CapabilityStatus(
             name="MPD Playback",
             available=False,
             provider="None",
@@ -175,9 +175,8 @@ def check_desktop_gui_capability() -> CapabilityStatus:
 
     try:
         import gi
-
-        gi.require_version("Gtk", "3.0")
-        gi.require_version("WebKit2", "4.1")
+        gi.require_version('Gtk', '3.0')
+        gi.require_version('WebKit2', '4.1')
         # Try importing to ensure they actually exist after require_version
         from gi.repository import Gtk, WebKit2  # noqa: F401
     except (ImportError, ValueError) as e:
@@ -201,12 +200,11 @@ def check_all_capabilities(settings: Settings | None = None) -> list[CapabilityS
     if settings is None:
         # Fallback to loading default settings if none provided
         from vibeplay.config import get_settings
-
         settings = get_settings()
 
     return [
-        check_essentia_capability(settings.essentia_models_dir if hasattr(settings, "essentia_models_dir") else None),
-        check_acoustid_capability(settings.acoustid_api_key if hasattr(settings, "acoustid_api_key") else None),
+        check_essentia_capability(settings.essentia_models_dir if hasattr(settings, 'essentia_models_dir') else None),
+        check_acoustid_capability(settings.acoustid_api_key if hasattr(settings, 'acoustid_api_key') else None),
         check_llm_capability(settings),
         check_mpd_capability(),
         check_desktop_gui_capability(),

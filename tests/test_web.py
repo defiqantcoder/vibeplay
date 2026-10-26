@@ -27,8 +27,6 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
     db_file = tmp_path / "web_test.db"
     cache_dir = tmp_path / "vector_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    desktop_settings_path = tmp_path / "desktop_settings.json"
-    desktop_settings_path.write_text("{}")
 
     settings = Settings(
         db_path=db_file,
@@ -41,7 +39,6 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
         weight_embedding=0.8,
         bpm_harmonic_weight=0.8,
         pca_embedding_dimensions=4,
-        desktop_settings_path=desktop_settings_path,
     )
 
     init_db(db_file)
@@ -248,7 +245,9 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.95 if "Party" in title else 0.2,
                 "acoustic": aco,
-                "electronic": 0.9 if "Techno" in genre or "Electronic" in genre else 0.1,
+                "electronic": 0.9
+                if "Techno" in genre or "Electronic" in genre
+                else 0.1,
             }
             np.random.seed(tid)
             emb = np.random.randn(32).astype(np.float32).tobytes()
@@ -427,7 +426,9 @@ def test_playlist_generation_reorder_and_export(
         },
     )
     assert reorder_res.status_code == 200
-    new_track_matches = [int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)]
+    new_track_matches = [
+        int(x) for x in re.findall(r'data-track-id="(\d+)"', reorder_res.text)
+    ]
     assert new_track_matches == reversed_ids
 
     # Reorder validation errors
@@ -437,7 +438,9 @@ def test_playlist_generation_reorder_and_export(
     )
     assert bad_req.status_code == 400
 
-    not_found = client.post("/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"})
+    not_found = client.post(
+        "/api/playlist/reorder", data={"playlist_id": "99999", "track_ids": "1,2"}
+    )
     assert not_found.status_code == 404
 
 
@@ -537,10 +540,7 @@ def test_api_authentication_middleware(test_environment: tuple[Path, Settings, T
 
 def test_localhost_server_guardrails(tmp_path: Path) -> None:
     """Verify run_server blocks unauthenticated remote interface binding."""
-    from vibeplay.desktop.security import is_loopback_host
     from vibeplay.web import run_server
-
-    assert not is_loopback_host("0.0.0.0")
 
     db_file = tmp_path / "test.db"
 

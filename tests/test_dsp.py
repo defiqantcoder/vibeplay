@@ -194,7 +194,9 @@ def test_scan_hardware_fallback_when_no_dac(tmp_path: Path):
     proc_root = tmp_path / "asound"
     proc_root.mkdir()
     (proc_root / "cards").write_text(MOCK_CARDS_NO_DAC)
-    (proc_root / "pcm").write_text("00-00: HDA Analog (*) :  : playback 1\n00-03: HDMI1 : : playback 1\n")
+    (proc_root / "pcm").write_text(
+        "00-00: HDA Analog (*) :  : playback 1\n00-03: HDMI1 : : playback 1\n"
+    )
 
     report = scan_hardware(procfs_root=proc_root)
     assert report.active_dac is None
@@ -531,19 +533,31 @@ def test_evaluate_latency_health_ratings():
     """Verify classification of Good, Marginal, and Throttled health states."""
     # Good
     good_xrun = XrunReport(card_index=1, state="RUNNING", xrun_count=0)
-    good_jit = JitterMetrics(min_jitter_us=20.0, avg_jitter_us=80.0, max_jitter_us=150.0)
-    good_pwr = PowerProfileReport(ac_online=True, is_throttled=False, active_governor="performance")
-    rating_good, _ = evaluate_latency_health(good_xrun, good_jit, good_pwr, rtkit_granted=True)
+    good_jit = JitterMetrics(
+        min_jitter_us=20.0, avg_jitter_us=80.0, max_jitter_us=150.0
+    )
+    good_pwr = PowerProfileReport(
+        ac_online=True, is_throttled=False, active_governor="performance"
+    )
+    rating_good, _ = evaluate_latency_health(
+        good_xrun, good_jit, good_pwr, rtkit_granted=True
+    )
     assert rating_good == LatencyHealthRating.GOOD
 
     # Marginal
-    marg_jit = JitterMetrics(min_jitter_us=50.0, avg_jitter_us=400.0, max_jitter_us=1200.0)
-    rating_marg, _ = evaluate_latency_health(good_xrun, marg_jit, good_pwr, rtkit_granted=False)
+    marg_jit = JitterMetrics(
+        min_jitter_us=50.0, avg_jitter_us=400.0, max_jitter_us=1200.0
+    )
+    rating_marg, _ = evaluate_latency_health(
+        good_xrun, marg_jit, good_pwr, rtkit_granted=False
+    )
     assert rating_marg == LatencyHealthRating.MARGINAL
 
     # Throttled
     bad_xrun = XrunReport(card_index=1, state="XRUN", xrun_count=3)
-    rating_throttled, diags = evaluate_latency_health(bad_xrun, good_jit, good_pwr, rtkit_granted=True)
+    rating_throttled, diags = evaluate_latency_health(
+        bad_xrun, good_jit, good_pwr, rtkit_granted=True
+    )
     assert rating_throttled == LatencyHealthRating.THROTTLED
     assert any("underrun" in d.lower() for d in diags)
 
@@ -554,7 +568,9 @@ def test_cli_latency_monitor(tmp_path: Path):
     sub_dir = proc_root / "card1" / "pcm0p" / "sub0"
     sub_dir.mkdir(parents=True)
     (sub_dir / "status").write_text("state: RUNNING\n")
-    (sub_dir / "hw_params").write_text("rate: 96000 (96000/1)\nbuffer_size: 4096\nperiod_size: 1024\n")
+    (sub_dir / "hw_params").write_text(
+        "rate: 96000 (96000/1)\nbuffer_size: 4096\nperiod_size: 1024\n"
+    )
 
     sys_root = tmp_path / "sys"
     cpu_dir = sys_root / "devices" / "system" / "cpu" / "cpu0" / "cpufreq"

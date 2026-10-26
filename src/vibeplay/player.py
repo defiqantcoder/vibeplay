@@ -53,7 +53,9 @@ class MPDTransport:
             # UNIX socket path detection
             if self.host.startswith("/") or self.host.startswith("~"):
                 socket_path = str(Path(self.host).expanduser())
-                logger.debug("Connecting to MPD via UNIX domain socket: %s", socket_path)
+                logger.debug(
+                    "Connecting to MPD via UNIX domain socket: %s", socket_path
+                )
                 client.connect(socket_path)
             else:
                 logger.debug("Connecting to MPD via TCP: %s:%d", self.host, self.port)
@@ -117,7 +119,9 @@ class MPDTransport:
             except Exception as err:
                 last_err = err
 
-        raise PlaybackError(f"Failed to add '{uri_or_path}' to MPD queue: {last_err}") from last_err
+        raise PlaybackError(
+            f"Failed to add '{uri_or_path}' to MPD queue: {last_err}"
+        ) from last_err
 
     def add_tracks(self, paths: list[str]) -> int:
         """Queue multiple track paths in order."""
@@ -428,7 +432,9 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
     return ACTIVE_OUTPUT_PROFILE
 
 
-def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
+def set_output_profile(
+    profile_name: str, settings: Settings | None = None
+) -> str:
     """Set the active hardware audio output profile and dynamically configure MPD outputs."""
     global ACTIVE_OUTPUT_PROFILE
     ACTIVE_OUTPUT_PROFILE = profile_name
@@ -494,7 +500,9 @@ def get_output_profile() -> str:
     return ACTIVE_OUTPUT_PROFILE
 
 
-def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+def toggle_pause(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> dict[str, Any]:
     """Toggle play/pause state in Music Player Daemon, auto-seeding if queue is empty."""
     cfg = settings or get_settings()
     try:
@@ -531,9 +539,13 @@ def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) 
                             cursor.execute("PRAGMA table_info(tracks)")
                             cols = {row[1] for row in cursor.fetchall()}
                             if "status" in cols:
-                                cursor.execute("SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50")
+                                cursor.execute(
+                                    "SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50"
+                                )
                             else:
-                                cursor.execute("SELECT path FROM tracks ORDER BY id ASC LIMIT 50")
+                                cursor.execute(
+                                    "SELECT path FROM tracks ORDER BY id ASC LIMIT 50"
+                                )
                             rows = cursor.fetchall()
                             if rows:
                                 paths = [r[0] for r in rows if r[0]]
@@ -554,7 +566,9 @@ def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) 
         return {"state": "paused", "error": str(err)}
 
 
-def seek_playback(time_seconds: float, settings: Settings | None = None) -> dict[str, Any]:
+def seek_playback(
+    time_seconds: float, settings: Settings | None = None
+) -> dict[str, Any]:
     """Seek playback to target time position in seconds."""
     cfg = settings or get_settings()
     try:
@@ -676,7 +690,9 @@ def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
         return {"error": str(err)}
 
 
-def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
+def get_playback_status(
+    db_path: Path | None = None, settings: Settings | None = None
+) -> dict[str, Any]:
     """Retrieve real-time player telemetry, DAC buffer health, and active track."""
     cfg = settings or get_settings()
     try:
@@ -696,7 +712,12 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
             return {
                 "state": st.get("state", "stop"),
                 "song_id": cur.get("id"),
-                "title": cur.get("title") or (Path(cur.get("file", "")).stem if cur.get("file") else "vibeplay Ready"),
+                "title": cur.get("title")
+                or (
+                    Path(cur.get("file", "")).stem
+                    if cur.get("file")
+                    else "vibeplay Ready"
+                ),
                 "artist": cur.get("artist") or "Audiophile Precision",
                 "album": cur.get("album") or "Studio Master",
                 "file": cur.get("file", ""),
@@ -704,7 +725,9 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 "duration": duration,
                 "volume": int(st.get("volume", "80")),
                 "audio_spec": audio_spec,
-                "sample_rate": f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz",
+                "sample_rate": f"{rate_hz / 1000:.1f}kHz"
+                if rate_hz >= 1000
+                else f"{rate_hz}Hz",
                 "bit_depth": f"{depth_bits}-bit",
                 "codec": "FLAC",
                 "bit_perfect": True,
@@ -792,11 +815,15 @@ def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     return {
         "codec": codec,
         "sample_rate": sample_rate,
-        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz" if sample_rate >= 1000 else f"{sample_rate} Hz",
+        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz"
+        if sample_rate >= 1000
+        else f"{sample_rate} Hz",
         "bits_per_sample": bits_per_sample,
         "bit_depth_str": f"{bits_per_sample}-bit",
         "channels": channels,
-        "channels_str": "Stereo" if channels == 2 else ("Mono" if channels == 1 else f"{channels} Ch"),
+        "channels_str": "Stereo"
+        if channels == 2
+        else ("Mono" if channels == 1 else f"{channels} Ch"),
         "bitrate_kbps": f"{int(bitrate / 1000)} kbps" if bitrate else "Lossless VBR",
     }
 

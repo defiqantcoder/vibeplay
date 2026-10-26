@@ -49,7 +49,9 @@ def test_db_with_track(tmp_path: Path) -> Path:
             year=2020,
             genre="Rock",
             has_cover=False,
-            tags_json=json.dumps({"title": ["Original Title"], "artist": ["Original Artist"]}),
+            tags_json=json.dumps(
+                {"title": ["Original Title"], "artist": ["Original Artist"]}
+            ),
         )
 
     return db_path
@@ -228,12 +230,16 @@ def test_network_caching(test_db_with_track: Path) -> None:
             mock_lookup.return_value = {"status": "ok", "cached_test": True}
 
             # First call executes mock lookup
-            res1 = cached_acoustid_lookup(conn, "key", b"fp_bytes_123", 100.0, max_retries=1)
+            res1 = cached_acoustid_lookup(
+                conn, "key", b"fp_bytes_123", 100.0, max_retries=1
+            )
             assert res1 == {"status": "ok", "cached_test": True}
             assert mock_lookup.call_count == 1
 
             # Second call should fetch from SQLite network_cache without calling lookup again
-            res2 = cached_acoustid_lookup(conn, "key", b"fp_bytes_123", 100.0, max_retries=1)
+            res2 = cached_acoustid_lookup(
+                conn, "key", b"fp_bytes_123", 100.0, max_retries=1
+            )
             assert res2 == {"status": "ok", "cached_test": True}
             assert mock_lookup.call_count == 1
 
@@ -284,7 +290,9 @@ def test_enrich_tracks_batch(
     # Verify best value view
     with get_connection(test_db_with_track) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT title, artist, original_title, canonical_title FROM v_tracks_best_value WHERE track_id = 1")
+        cursor.execute(
+            "SELECT title, artist, original_title, canonical_title FROM v_tracks_best_value WHERE track_id = 1"
+        )
         row = cursor.fetchone()
         assert row["title"] == "Batch Title"
         assert row["artist"] == "Batch Artist"

@@ -64,7 +64,9 @@ def export_playlist_to_file(
     elif fmt == "csv":
         _export_csv(tracks, resolved_output, relative=relative)
     else:
-        raise ValueError(f"Unsupported playlist export format: '{export_format}'. Supported: m3u, m3u8, json, csv.")
+        raise ValueError(
+            f"Unsupported playlist export format: '{export_format}'. Supported: m3u, m3u8, json, csv."
+        )
 
     return resolved_output
 
@@ -91,7 +93,9 @@ def _export_m3u(
     lines = ["#EXTM3U\n"]
 
     for t in tracks:
-        duration_sec = int(round(float(t["duration"]))) if t["duration"] is not None else -1
+        duration_sec = (
+            int(round(float(t["duration"]))) if t["duration"] is not None else -1
+        )
         artist = t["artist"] or "Unknown Artist"
         title = t["title"] or "Unknown Title"
         lines.append(f"#EXTINF:{duration_sec},{artist} - {title}\n")
@@ -150,7 +154,9 @@ def _export_json(
         "tracks": track_list,
     }
 
-    output_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def _export_csv(
@@ -193,13 +199,21 @@ def _export_csv(
                     "album": t["album"] or "",
                     "genre": t["genre"] or "",
                     "year": t["year"] if t["year"] is not None else "",
-                    "duration": round(float(t["duration"]), 2) if t["duration"] is not None else "",
+                    "duration": round(float(t["duration"]), 2)
+                    if t["duration"] is not None
+                    else "",
                     "bpm": round(float(t["bpm"]), 2) if t["bpm"] is not None else "",
                     "key": t["key"] or "",
                     "scale": t["scale"] or "",
-                    "energy": round(float(t["energy"]), 3) if t["energy"] is not None else "",
-                    "danceability": round(float(t["danceability"]), 3) if t["danceability"] is not None else "",
-                    "loudness": round(float(t["loudness"]), 2) if t["loudness"] is not None else "",
+                    "energy": round(float(t["energy"]), 3)
+                    if t["energy"] is not None
+                    else "",
+                    "danceability": round(float(t["danceability"]), 3)
+                    if t["danceability"] is not None
+                    else "",
+                    "loudness": round(float(t["loudness"]), 2)
+                    if t["loudness"] is not None
+                    else "",
                     "path": _resolve_track_path(t["path"], target_dir, relative),
                 }
             )
