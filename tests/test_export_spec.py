@@ -16,7 +16,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.export_spec import (
     VibeSpec,
-    generate_vibe_spec,
 )
 
 
