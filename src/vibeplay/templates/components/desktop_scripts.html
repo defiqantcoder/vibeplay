@@ -2075,3 +2075,81 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (e) {}
 });
 
+if (typeof window.toggleSidebarDrawer !== 'function') {
+  window.toggleSidebarDrawer = function() {
+    const sidebar = document.getElementById('workspace-sidebar-drawer');
+    if (sidebar) {
+      sidebar.style.display = (sidebar.style.display === 'none' || !sidebar.style.display) ? 'flex' : 'none';
+    }
+  };
+}
+
+if (typeof window.toggleTelemetryHUD !== 'function') {
+  window.toggleTelemetryHUD = function() {
+    const hud = document.getElementById('telemetry-hud-deck');
+    if (hud) {
+      if (hud.style.display === 'none' || hud.classList.contains('hidden')) {
+        hud.style.display = 'grid';
+        hud.classList.remove('hidden');
+      } else {
+        hud.style.display = 'none';
+        hud.classList.add('hidden');
+      }
+    }
+  };
+}
+
+if (typeof window.toggleDspToggle !== 'function') {
+  window.toggleDspToggle = function(btn) {
+    if (!btn) return;
+    const isAmber = btn.classList.contains('active-amber');
+    const isCyan = btn.classList.contains('active-cyan');
+    if (isAmber) {
+      btn.classList.remove('active-amber');
+      btn.classList.add('inactive');
+    } else if (isCyan) {
+      btn.classList.remove('active-cyan');
+      btn.classList.add('inactive');
+    } else {
+      btn.classList.remove('inactive');
+      btn.classList.add('active-cyan');
+    }
+  };
+}
+
+if (typeof window.toggleTubeWarmth !== 'function') {
+  window.toggleTubeWarmth = function() {
+    const valSpan = document.getElementById('tube-warmth-val');
+    if (valSpan) {
+      const current = parseInt(valSpan.textContent) || 68;
+      const next = current >= 90 ? 40 : current + 14;
+      valSpan.textContent = next + '%';
+    }
+  };
+}
+
+if (typeof window.toggleMasterGain !== 'function') {
+  window.toggleMasterGain = function() {
+    const valSpan = document.getElementById('master-gain-val');
+    if (valSpan) {
+      const current = parseInt(valSpan.textContent) || -14;
+      const next = current >= -4 ? -24 : current + 4;
+      valSpan.textContent = next + 'dB';
+    }
+  };
+}
+
+if (typeof window.copyDeckSyncUrl !== 'function') {
+  window.copyDeckSyncUrl = function(btn) {
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied! ✨';
+      try {
+        navigator.clipboard.writeText(window.location.origin + '/#lounge-sync');
+      } catch (e) {}
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    }
+  };
+}
+
+

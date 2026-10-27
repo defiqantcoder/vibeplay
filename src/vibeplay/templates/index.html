@@ -2,8 +2,8 @@
 
 {% block content %}
 <div class="workspace-layout">
-  <!-- Left Studio Sidebar -->
-  <aside class="workspace-sidebar">
+  <!-- Collapsible Left Studio Sidebar (Console Drawer) -->
+  <aside class="workspace-sidebar" id="workspace-sidebar-drawer" style="display: none;">
     <!-- Studio Navigation Panel -->
     <div class="sidebar-panel">
       <div class="sidebar-title">
@@ -76,131 +76,791 @@
     <!-- Live Background Job Progress Bar -->
     {% include "components/job_progress.html" %}
 
-    <!-- Top Audio Telemetry Strip & HUD Deck (Stitch Specification) -->
-    <section class="telemetry-grid" id="telemetry-hud-deck">
-  <!-- Card 1: Master Clock // ALSA -->
-  <div class="telemetry-card">
-    <div class="telemetry-header">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span class="dot-indicator dot-green animate-pulse"></span>
-        <span style="font-weight: 600;">Master Clock // ALSA</span>
-      </div>
-      <span class="badge-spec">0.02 PPM TCXO</span>
-    </div>
-    <div class="telemetry-metric-row">
-      <div>
-        <div id="telemetry-sample-rate" class="telemetry-metric">96.000 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span></div>
-        <div id="telemetry-jitter" class="telemetry-sub">Phase Jitter: &lt; 0.18 ps RMS</div>
-      </div>
-      <span class="telemetry-pill-primary">I²S SYNC</span>
-    </div>
-    <!-- Oscilloscope Waveform SVG Widget -->
-    <div class="telemetry-oscilloscope">
-      <svg viewBox="0 0 200 40" fill="none" style="width: 100%; height: 32px; color: var(--primary);">
-        <path id="telemetry-oscilloscope-path" d="M0 20 Q 10 5, 20 20 T 40 20 T 60 4 T 80 34 T 100 20 T 120 8 T 140 32 T 160 20 T 180 12 T 200 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
-        <path id="telemetry-oscilloscope-ghost" d="M0 20 Q 15 28, 30 20 T 60 20 T 90 26 T 120 14 T 150 20 T 180 22 T 200 20" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.4" vector-effect="non-scaling-stroke"></path>
-      </svg>
-    </div>
-  </div>
+    <!-- ====================================================================
+         VIBEPLAY AUDIOPHILE LO-FI MUSIC LOUNGE (STITCH MASTER SPECIFICATION)
+         ==================================================================== -->
+    <div class="lofi-lounge-deck w-full max-w-[1856px] mx-auto flex flex-col gap-space-xl">
+      <!-- 1. Hero Turntable Deck & Tactile Potentiometers Grid -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-stretch">
+        <!-- Turntable Deck Unit (Left 8 Cols) -->
+        <div class="xl:col-span-8 hero-turntable-deck bg-surface-container rounded-lg p-space-lg shadow-xl relative overflow-hidden flex flex-col justify-between group">
+          <!-- Ambient Glow Blobs -->
+          <div class="turntable-ambient-cyan pointer-events-none"></div>
+          <div class="turntable-ambient-amber pointer-events-none"></div>
 
-  <!-- Card 2: Dynamic Range & dBFS Meter -->
-  <div class="telemetry-card">
-    <div class="telemetry-header">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
-        <span style="font-weight: 600;">Dynamic Range</span>
-      </div>
-      <span class="badge-spec" style="color: var(--primary); border-color: var(--primary-border);">DR14+ MASTER</span>
-    </div>
-    <div class="telemetry-metric-row">
-      <div>
-        <div id="telemetry-dbfs" class="telemetry-metric">118.4 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span></div>
-        <div id="telemetry-true-peak" class="telemetry-sub">True Peak: -0.32 dBTP</div>
-      </div>
-      <span class="telemetry-pill-secondary">0 CLIPS</span>
-    </div>
-    <!-- Segmented Headroom Meter -->
-    <div class="segmented-meter-well">
-      <div class="meter-labels">
-        <span>-60</span><span>-24</span><span>-12</span><span>-6</span><span>-0.1</span><span style="color: var(--secondary);">CLIP</span>
-      </div>
-      <div class="meter-track" id="telemetry-meter-track">
-        <div class="meter-seg bg-pri"></div>
-        <div class="meter-seg bg-pri"></div>
-        <div class="meter-seg bg-pri"></div>
-        <div class="meter-seg bg-pri"></div>
-        <div class="meter-seg bg-pri"></div>
-        <div class="meter-seg bg-green"></div>
-        <div class="meter-seg bg-green"></div>
-        <div class="meter-seg bg-sec"></div>
-        <div class="meter-seg bg-empty"></div>
-      </div>
-    </div>
-  </div>
+          <!-- Top Status Strip -->
+          <div class="flex flex-wrap items-center justify-between gap-space-md mb-space-md" style="z-index: 10;">
+            <div class="flex items-center gap-space-sm">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary shadow-inner">
+                <span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+                DIRECT DSD 11.2MHz
+              </span>
+              <span class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant">
+                DECK A • CASSETTE HEAD 2
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-label-sm text-label-sm text-secondary flex items-center gap-1 bg-secondary-tint px-3 py-1 rounded-full" style="border: 1px solid var(--secondary-border);">
+                <span class="material-symbols-outlined" style="font-size: 14px;">local_fire_department</span>
+                TUBE BIAS: +3.2dB
+              </span>
+              <button class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" title="Eject Deck / Clear Active Queue" type="button" onclick="handlePlayerClear()">
+                <span class="material-symbols-outlined" style="font-size: 16px;">eject</span>
+              </button>
+            </div>
+          </div>
 
-  <!-- Card 3: Harmonic Key Alignment (Camelot) -->
-  <div class="telemetry-card">
-    <div class="telemetry-header">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--tertiary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        <span style="font-weight: 600;">Harmonic Deck</span>
-      </div>
-      <span class="badge-camelot">CAMELOT SYNC</span>
-    </div>
-    <div class="telemetry-metric-row" style="align-items: center;">
-      <div>
-        <div id="telemetry-camelot-metric" class="telemetry-metric">10A <span id="telemetry-camelot-rel" style="font-size: 13px; color: var(--tertiary); font-weight: normal;">→ 11A / 9A</span></div>
-        <div id="telemetry-camelot-sub" class="telemetry-sub">B Minor / D Major Wheel</div>
-      </div>
-      <!-- Mini Camelot Ring SVG graphic -->
-      <div style="width: 36px; height: 36px; position: relative; flex-shrink: 0;">
-        <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-45deg);">
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-container-high)" stroke-width="3.5"></path>
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--tertiary)" stroke-width="4" stroke-dasharray="25, 100" stroke-linecap="round"></path>
-        </svg>
-        <div id="telemetry-camelot-center" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">10A</div>
-      </div>
-    </div>
-    <!-- Adjacent Harmonic Chips -->
-    <div class="harmonic-chips-row" id="telemetry-harmonic-chips">
-      <span class="chip-alt">9A (74%)</span>
-      <span class="chip-active">10A (Active)</span>
-      <span class="chip-alt">11A (88%)</span>
-      <span class="chip-alt">10B (Match)</span>
-    </div>
-  </div>
+          <!-- Turntable & Now-Playing Bay -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center my-auto py-space-sm" style="z-index: 10;">
+            <!-- Rotating Vinyl Deck (5 Cols) -->
+            <div class="md:col-span-5 flex flex-col items-center justify-center relative">
+              <div class="turntable-vinyl-container relative flex items-center justify-center">
+                <!-- Grooved Spinning Disc -->
+                <div class="turntable-spinning-disc absolute inset-0 rounded-full bg-surface-container-lowest animate-spin-slow">
+                  <div class="absolute inset-2 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
+                  <div class="absolute inset-6 rounded-full" style="border: 1px solid var(--border-divider); opacity: 0.3;"></div>
+                  <div class="absolute inset-10 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
+                  <div class="absolute inset-14 rounded-full" style="border: 1px solid var(--border-divider); opacity: 0.3;"></div>
+                  <div class="absolute inset-20 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
+                  <div class="absolute top-1/2 left-0 right-0" style="height: 2px; background: linear-gradient(90deg, transparent, var(--primary-border), transparent);"></div>
+                </div>
 
-  <!-- Card 4: Audio Features / Cluster Histogram -->
-  <div class="telemetry-card">
-    <div class="telemetry-header">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-        <span style="font-weight: 600;">Vector Distribution</span>
+                <!-- Center Album Artwork Label -->
+                <div class="relative w-28 h-28 rounded-full overflow-hidden shadow-2xl p-1 bg-surface-container-lowest" style="z-index: 10;">
+                  <img class="w-full h-full object-cover rounded-full" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Vinyl Center Label"/>
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center" style="border: 2px solid var(--border-strong);">
+                      <div class="w-2 h-2 rounded-full bg-surface-container"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tonearm Needle -->
+                <div class="turntable-tonearm pointer-events-none">
+                  <div style="width: 80px; height: 8px; border-radius: var(--radius-full); background: linear-gradient(90deg, var(--bg-container-highest), var(--border-strong)); box-shadow: 0 2px 6px var(--shadow-modal);"></div>
+                  <div style="width: 12px; height: 20px; border-radius: 3px; background-color: var(--secondary); box-shadow: 0 0 10px var(--secondary-glow); margin-left: auto;"></div>
+                </div>
+              </div>
+
+              <!-- Latency Chip -->
+              <div class="flex items-center gap-2 mt-space-md">
+                <span class="w-2 h-2 rounded-full bg-primary shadow-sm" style="box-shadow: 0 0 8px var(--primary);"></span>
+                <span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Analog Latency 0.4ms</span>
+              </div>
+            </div>
+
+            <!-- Track Info, VU Meters & Scrubber (7 Cols) -->
+            <div class="md:col-span-7 flex flex-col justify-center">
+              <div class="flex items-center gap-2 mb-space-xs">
+                <span class="font-label-sm text-label-sm bg-secondary-tint text-secondary px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold" style="border: 1px solid var(--secondary-border);">Track #04</span>
+                <span class="font-label-sm text-label-sm text-on-surface-variant font-body-sm">Vinyl Cut • Mastering V2</span>
+              </div>
+              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight mb-1" id="turntable-track-title">
+                {{ current_track.title if current_track and current_track.title else 'Midnight Coffee & Rainy Beats' }}
+              </h2>
+              <p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium mb-space-md" id="turntable-track-artist">
+                {{ current_track.artist if current_track and current_track.artist else 'Aether & Lofi Dreamers' }}
+              </p>
+
+              <!-- Live Stereo Dual VU Meters & Warmth Specs -->
+              <div class="bg-surface-container-lowest rounded p-space-md shadow-inner mb-space-md" style="border: 1px solid var(--border-subtle);">
+                <div class="grid grid-cols-2 gap-space-md mb-space-sm">
+                  <div>
+                    <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
+                      <span>VU L</span>
+                      <span class="text-secondary" id="vu-l-label">-3 VU</span>
+                    </div>
+                    <div class="w-full bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5" style="height: 10px;">
+                      <div class="h-full bg-primary rounded-full" style="width: 66%;"></div>
+                      <div class="h-full bg-secondary rounded-full" style="width: 18%;"></div>
+                      <div class="h-full rounded-full" style="width: 0%; background-color: var(--error);"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
+                      <span>VU R</span>
+                      <span class="text-secondary" id="vu-r-label">-2 VU</span>
+                    </div>
+                    <div class="w-full bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5" style="height: 10px;">
+                      <div class="h-full bg-primary rounded-full" style="width: 74%;"></div>
+                      <div class="h-full bg-secondary rounded-full" style="width: 14%;"></div>
+                      <div class="h-full rounded-full" style="width: 0%; background-color: var(--error);"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-1">
+                  <span>WARMTH FLUID</span>
+                  <span class="text-primary font-mono tracking-wider font-semibold">96kHz / 24-bit Lossless • MQA Direct</span>
+                </div>
+              </div>
+
+              <!-- Scrubber Bar & Controls -->
+              <div class="flex flex-col gap-2">
+                <div class="w-full flex items-center gap-space-sm">
+                  <span class="font-label-sm text-label-sm text-outline" id="turntable-time-elapsed">{{ playback.elapsed_formatted if playback and playback.elapsed_formatted else '03:42' }}</span>
+                  <div class="flex-1 bg-surface-container-lowest rounded-full cursor-pointer relative" style="height: 8px;" onclick="handleScrubTimeline(event)">
+                    <div class="h-full rounded-full relative" style="width: 60%; background: linear-gradient(90deg, var(--primary), var(--secondary));">
+                      <div class="absolute right-0 top-1/2 -translate-y-1/2 rounded-full shadow-md" style="width: 14px; height: 14px; background-color: var(--contrast-light); border: 2px solid var(--primary); box-shadow: 0 0 10px var(--primary-glow);"></div>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-outline" id="turntable-time-total">{{ playback.duration_formatted if playback and playback.duration_formatted else '05:18' }}</span>
+                </div>
+
+                <!-- Deck Buttons Row -->
+                <div class="flex items-center justify-between mt-space-sm">
+                  <div class="flex items-center gap-2">
+                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Shuffle" type="button" onclick="toggleShuffleMode(this)">
+                      <span class="material-symbols-outlined" style="font-size: 20px;">shuffle</span>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Previous Track" type="button" hx-post="/api/player/prev" hx-target="#transport-footer-container" hx-swap="innerHTML">
+                      <span class="material-symbols-outlined" style="font-size: 22px;">skip_previous</span>
+                    </button>
+                  </div>
+
+                  <!-- Cyan Capsule Play/Pause -->
+                  <button class="px-space-xl py-3 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm flex items-center gap-2 shadow-xl hover:brightness-110 active:scale-95 transition-all" style="box-shadow: 0 0 24px var(--primary-glow); cursor: pointer;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Toggle Playback">
+                    <span class="material-symbols-outlined" style="font-size: 26px;">{% if playback.state == "play" %}pause{% else %}play_arrow{% endif %}</span>
+                    <span class="font-label-lg text-label-lg font-bold">{% if playback.state == "play" %}PLAYING{% else %}PAUSED{% endif %}</span>
+                  </button>
+
+                  <div class="flex items-center gap-2">
+                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Next Track" type="button" hx-post="/api/player/next" hx-target="#transport-footer-container" hx-swap="innerHTML">
+                      <span class="material-symbols-outlined" style="font-size: 22px;">skip_next</span>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Repeat" type="button" onclick="toggleRepeatMode(this)">
+                      <span class="material-symbols-outlined" style="font-size: 20px;">repeat</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Current Vibes Footer Strip -->
+          <div class="flex flex-wrap items-center justify-between gap-space-md pt-space-md mt-space-md bg-surface-container-lowest -mx-space-lg -mb-space-lg p-space-md rounded-b-lg" style="border-top: 1px solid var(--border-subtle); z-index: 10;">
+            <div class="flex items-center gap-space-md">
+              <span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Current Vibes:</span>
+              <div class="flex flex-wrap gap-2">
+                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy Morning</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Dark Roast</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-tertiary" style="border: 1px solid var(--border-subtle);">✨ Deep Focus</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
+              <span class="material-symbols-outlined text-tertiary" style="font-size: 16px;">auto_awesome</span>
+              <span>AI Mood Matcher: 98% Acoustic Sync</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tactile Hi-Fi Potentiometers & DSP Deck (Right 4 Cols) -->
+        <div class="xl:col-span-4 flex flex-col gap-gutter">
+          <!-- Card 1: Tactile Hi-Fi Potentiometers -->
+          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center justify-between mb-space-sm">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary" style="font-size: 20px;">tune</span>
+                <h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Tactile Hi-Fi Potentiometers</h3>
+              </div>
+              <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary-tint text-secondary font-mono" style="border: 1px solid var(--secondary-border);">Class A FET</span>
+            </div>
+
+            <!-- Two Rotary Dials -->
+            <div class="grid grid-cols-2 gap-space-md py-space-sm text-center">
+              <!-- Dial 1: Tube Warmth -->
+              <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Tube Warmth</span>
+                <div class="potentiometer-dial" onclick="toggleTubeWarmth()" title="Click to rotate tube bias">
+                  <div class="potentiometer-rotor">
+                    <div class="potentiometer-indicator-amber"></div>
+                    <span class="font-label-sm text-label-sm font-bold text-secondary" id="tube-warmth-val">68%</span>
+                  </div>
+                </div>
+                <span class="font-label-sm text-label-sm text-secondary mt-2">Amber 12AX7</span>
+              </div>
+
+              <!-- Dial 2: Master Gain -->
+              <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Master Gain</span>
+                <div class="potentiometer-dial" onclick="toggleMasterGain()" title="Click to adjust stepped attenuator">
+                  <div class="potentiometer-rotor">
+                    <div class="potentiometer-indicator-cyan"></div>
+                    <span class="font-label-sm text-label-sm font-bold text-primary" id="master-gain-val">-14dB</span>
+                  </div>
+                </div>
+                <span class="font-label-sm text-label-sm text-primary mt-2">Stepped Atten.</span>
+              </div>
+            </div>
+
+            <!-- TCXO Clock Indicator -->
+            <div class="pt-space-xs flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm">
+              <span>DAC Clock: 0.1ppm TCXO</span>
+              <span class="text-tertiary flex items-center gap-1 font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span> Locked
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 2: Acoustic Room & DSP -->
+          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex-1 flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center justify-between mb-space-sm">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-tertiary" style="font-size: 20px;">graphic_eq</span>
+                <h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Acoustic Room &amp; DSP</h3>
+              </div>
+              <span class="font-label-sm text-label-sm text-tertiary bg-tertiary-tint px-2 py-0.5 rounded-full font-mono" style="border: 1px solid var(--tertiary-border);">ACTIVE</span>
+            </div>
+
+            <!-- 3 Toggle Rows -->
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-secondary" style="font-size: 18px;">radio_button_checked</span>
+                  <span class="font-body-md text-body-md text-on-surface">Analog Tape Hiss (30%)</span>
+                </div>
+                <button class="dsp-toggle-btn active-amber" type="button" onclick="toggleDspToggle(this)" title="Toggle Tape Hiss">
+                  <div class="dsp-toggle-thumb"></div>
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size: 18px;">motion_photos_on</span>
+                  <span class="font-body-md text-body-md text-on-surface">Vinyl Crackle &amp; Pop</span>
+                </div>
+                <button class="dsp-toggle-btn active-cyan" type="button" onclick="toggleDspToggle(this)" title="Toggle Vinyl Crackle">
+                  <div class="dsp-toggle-thumb"></div>
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">surround_sound</span>
+                  <span class="font-body-md text-body-md text-on-surface">Coffee Shop Hum &amp; Rain</span>
+                </div>
+                <button class="dsp-toggle-btn inactive" type="button" onclick="toggleDspToggle(this)" title="Toggle Coffee Shop Hum">
+                  <div class="dsp-toggle-thumb"></div>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+              <span>Spatial Impulse Response</span>
+              <span class="text-on-surface font-semibold">Tokyo Studio Loft</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <span class="badge-spec" style="color: var(--secondary); border-color: var(--secondary-border);">{{ total_clusters }} CLUSTERS</span>
-    </div>
-    <div class="telemetry-metric-row">
-      <div>
-        <div class="telemetry-metric">{{ total_tracks }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">FLAC/DSD</span></div>
-        <div class="telemetry-sub">Mean Tempo: 114.2 BPM</div>
+
+      <!-- 2. Crate Shelf 01: Warm Analog Tapes & Late Night Jazz -->
+      <section class="flex flex-col gap-space-md">
+        <div class="flex flex-wrap items-end justify-between gap-space-sm">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-label-sm text-label-sm bg-secondary-tint text-secondary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--secondary-border);">Crate Shelf 01</span>
+              <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Analog Master Tapes</span>
+            </div>
+            <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+              Warm Analog Tapes &amp; Late Night Jazz
+            </h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-4 py-1.5 rounded-full bg-surface-container-high font-label-md text-label-md text-on-surface hover:bg-surface-bright transition-colors flex items-center gap-1" type="button" onclick="filterCrateCategory('vinyl', this)">
+              <span>Filter Crate</span>
+              <span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span>
+            </button>
+            <button class="w-9 h-9 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" type="button" onclick="openEQStudioModal()" title="Tune Sound">
+              <span class="material-symbols-outlined" style="font-size: 18px;">tune</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Vinyl Album Cards Grid with Peeking Grooved Discs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+          <!-- Card 1 -->
+          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div>
+              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
+                <div class="vinyl-disc-peeking">
+                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+                  <div class="vinyl-center-label-chip">
+                    <span>33⅓</span>
+                    <span style="font-size: 6px;">RPM</span>
+                  </div>
+                </div>
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Tokyo Kissa Sessions"/>
+                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
+                  REEL #104
+                </div>
+                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
+                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
+                </button>
+              </div>
+              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
+                Tokyo Kissa Midnight Sessions
+              </h4>
+              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+                Ryo Takahashi Trio
+              </p>
+            </div>
+            <div>
+              <div class="flex flex-wrap gap-1.5 mb-space-sm">
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Coffeehouse</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy</span>
+              </div>
+              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
+                <span>8 Tapes • 48 min</span>
+                <span class="text-tertiary font-mono">192kHz/24b</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div>
+              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
+                <div class="vinyl-disc-peeking">
+                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+                  <div class="vinyl-center-label-chip">
+                    <span>33⅓</span>
+                    <span style="font-size: 6px;">RPM</span>
+                  </div>
+                </div>
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Smoky Rhodes & Velvet Brushes"/>
+                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-primary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
+                  OTARI 2-TRACK
+                </div>
+                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
+                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
+                </button>
+              </div>
+              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
+                Smoky Rhodes &amp; Velvet Brushes
+              </h4>
+              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+                Blue Lantern Ensemble
+              </p>
+            </div>
+            <div>
+              <div class="flex flex-wrap gap-1.5 mb-space-sm">
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">✨ 432Hz Chill</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-outline" style="border: 1px solid var(--border-subtle);">🥃 Velvet</span>
+              </div>
+              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
+                <span>12 Tapes • 62 min</span>
+                <span class="text-secondary font-mono">Analog Tape</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div>
+              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
+                <div class="vinyl-disc-peeking">
+                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+                  <div class="vinyl-center-label-chip">
+                    <span>33⅓</span>
+                    <span style="font-size: 6px;">RPM</span>
+                  </div>
+                </div>
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Rainy Attic Tape Loops"/>
+                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-tertiary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
+                  STUDER A800
+                </div>
+                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
+                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
+                </button>
+              </div>
+              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
+                Rainy Attic Tape Loops
+              </h4>
+              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+                Céleste &amp; Modular Rain
+              </p>
+            </div>
+            <div>
+              <div class="flex flex-wrap gap-1.5 mb-space-sm">
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy Attic</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Pour-over</span>
+              </div>
+              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
+                <span>6 Tapes • 37 min</span>
+                <span class="text-tertiary font-mono">DSD 5.6M</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+            <div>
+              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
+                <div class="vinyl-disc-peeking">
+                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+                  <div class="vinyl-center-label-chip">
+                    <span>33⅓</span>
+                    <span style="font-size: 6px;">RPM</span>
+                  </div>
+                </div>
+                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Warm Wurlitzer Solitudes"/>
+                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
+                  NAGRA IV-S
+                </div>
+                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
+                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
+                </button>
+              </div>
+              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
+                Warm Wurlitzer Solitudes
+              </h4>
+              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+                Hanna Vane
+              </p>
+            </div>
+            <div>
+              <div class="flex flex-wrap gap-1.5 mb-space-sm">
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary" style="border: 1px solid var(--border-subtle);">🕯️ Candlelight</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🎹 Electric Piano</span>
+              </div>
+              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
+                <span>10 Tapes • 54 min</span>
+                <span class="text-primary font-mono">96k FLAC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Bottom Grid: Crate Shelf 02 (Stream Deck) + Social Crate Deck (Lounge Listeners) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+        <!-- Crate Shelf 02: Continuous Stream Deck (Left 8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-space-md">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-label-sm text-label-sm bg-primary-tint text-primary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--primary-border);">Crate Shelf 02</span>
+                <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Continuous Stream Deck</span>
+              </div>
+              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+                Lo-Fi Chillhop &amp; Synth Breezes
+              </h2>
+            </div>
+            <span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 bg-tertiary-tint px-3 py-1 rounded-full" style="border: 1px solid var(--tertiary-border);">
+              <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+              842 Active Listeners
+            </span>
+          </div>
+
+          <!-- Continuous Stream Tracklist -->
+          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2" style="border: 1px solid var(--border-subtle);">
+            <!-- Stream Track 01 -->
+            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
+              <div class="flex items-center gap-space-md min-w-0">
+                <span class="font-label-md text-label-md text-primary font-bold w-6 text-center font-mono">01</span>
+                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Shibuya Crossing"/>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                    Shibuya Crossing at 2 AM
+                  </span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    Komorebi Sounds • SP-404 Beats
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-space-md flex-shrink-0">
+                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">03:14</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle);">Tape Saturation</span>
+                <button class="w-8 h-8 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center hover:scale-105 active:scale-95 transition-transform" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stream Track 02 -->
+            <div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
+              <div class="flex items-center gap-space-md min-w-0">
+                <span class="font-label-md text-label-md text-secondary font-bold w-6 text-center font-mono">02</span>
+                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Breeze Through the Bonsai Tree"/>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-secondary transition-colors">
+                    Breeze Through the Bonsai Tree
+                  </span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    Kenji &amp; The Sleepy Cat • Chillhop Music
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-space-md flex-shrink-0">
+                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">02:49</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary font-mono" style="border: 1px solid var(--border-subtle);">90 BPM</span>
+                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stream Track 03 -->
+            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
+              <div class="flex items-center gap-space-md min-w-0">
+                <span class="font-label-md text-label-md text-on-surface-variant font-bold w-6 text-center font-mono">03</span>
+                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Steaming Oolong"/>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                    Steaming Oolong &amp; Rhodes Chords
+                  </span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    Lo-Fi Tea Society • Herbal Echoes
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-space-md flex-shrink-0">
+                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">04:02</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary font-mono" style="border: 1px solid var(--border-subtle);">Vinyl Warble</span>
+                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stream Track 04 -->
+            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
+              <div class="flex items-center gap-space-md min-w-0">
+                <span class="font-label-md text-label-md text-on-surface-variant font-bold w-6 text-center font-mono">04</span>
+                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Analog Dreamstate"/>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                    Analog Dreamstate (Nod Your Head)
+                  </span>
+                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    Dusty Fingers Collective
+                  </span>
+                </div>
+              </div>
+              <div class="flex items-center gap-space-md flex-shrink-0">
+                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">03:31</span>
+                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle);">Warm Bias</span>
+                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Social Crate Deck: Lounge Listeners (Right 4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-space-md">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-label-sm text-label-sm bg-tertiary-tint text-tertiary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--tertiary-border);">Social Crate Deck</span>
+            </div>
+            <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+              Lounge Listeners
+            </h2>
+          </div>
+          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-space-md" style="border: 1px solid var(--border-subtle);">
+            <div class="flex items-center justify-between">
+              <span class="font-label-sm text-label-sm text-on-surface-variant uppercase font-mono">Currently in the Lounge</span>
+              <span class="font-label-sm text-label-sm text-secondary bg-secondary-tint px-2 py-0.5 rounded-full font-mono" style="border: 1px solid var(--secondary-border);">Synchronized</span>
+            </div>
+            <div class="flex flex-col gap-space-sm">
+              <!-- Listener 1 -->
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary font-mono">YM</div>
+                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary" style="border: 2px solid var(--bg-container-lowest);"></span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-md text-label-md font-semibold text-on-surface">Yuki M.</span>
+                    <span class="font-label-sm text-label-sm text-on-surface-variant">brewing pour-over in Tokyo</span>
+                  </div>
+                </div>
+                <span class="font-label-sm text-label-sm text-primary font-mono">Sennheiser HD600</span>
+              </div>
+              <!-- Listener 2 -->
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-secondary font-mono">ML</div>
+                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-secondary" style="border: 2px solid var(--bg-container-lowest);"></span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-md text-label-md font-semibold text-on-surface">Marcus L.</span>
+                    <span class="font-label-sm text-label-sm text-on-surface-variant">reading sci-fi in Seattle</span>
+                  </div>
+                </div>
+                <span class="font-label-sm text-label-sm text-secondary font-mono">Audeze LCD-2</span>
+              </div>
+              <!-- Listener 3 -->
+              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-3">
+                  <div class="relative">
+                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-tertiary font-mono">ES</div>
+                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary" style="border: 2px solid var(--bg-container-lowest);"></span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-label-md text-label-md font-semibold text-on-surface">Elena S.</span>
+                    <span class="font-label-sm text-label-sm text-on-surface-variant">watching rain in Berlin</span>
+                  </div>
+                </div>
+                <span class="font-label-sm text-label-sm text-tertiary font-mono">Focal Clear</span>
+              </div>
+            </div>
+            <div class="p-space-sm rounded bg-surface-container-lowest flex items-center justify-between" style="border: 1px solid var(--border-subtle);">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary" style="font-size: 20px;">share_location</span>
+                <span class="font-label-sm text-label-sm text-on-surface font-mono">Share Deck Sync URL</span>
+              </div>
+              <button class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface hover:bg-surface-bright transition-colors" type="button" onclick="copyDeckSyncUrl(this)">
+                Copy Link
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
-      <span class="telemetry-pill-dim">0.78 ENERGY</span>
-    </div>
-    <!-- BPM / Energy Mini Histogram Bars -->
-    <div class="histogram-bars-row">
-      <div class="hist-bar" style="height: 30%;"></div>
-      <div class="hist-bar hist-pri" style="height: 55%;"></div>
-      <div class="hist-bar hist-pri" style="height: 40%;"></div>
-      <div class="hist-bar hist-bright" style="height: 85%;"></div>
-      <div class="hist-bar hist-bright" style="height: 100%;"></div>
-      <div class="hist-bar hist-pri" style="height: 70%;"></div>
-      <div class="hist-bar hist-green" style="height: 60%;"></div>
-      <div class="hist-bar hist-green" style="height: 45%;"></div>
-      <div class="hist-bar" style="height: 20%;"></div>
-      <div class="hist-bar" style="height: 15%;"></div>
-    </div>
-  </div>
-</section>
+    </div><!-- End .lofi-lounge-deck -->
+
+    <!-- Collapsible Studio Telemetry Section (Preserves HUD Micro-Visualizers) -->
+    <section class="telemetry-grid" id="telemetry-hud-deck" style="display: none; margin-top: 1.5rem;">
+      <!-- Card 1: Master Clock // ALSA -->
+      <div class="telemetry-card">
+        <div class="telemetry-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="dot-indicator dot-green animate-pulse"></span>
+            <span style="font-weight: 600;">Master Clock // ALSA</span>
+          </div>
+          <span class="badge-spec">0.02 PPM TCXO</span>
+        </div>
+        <div class="telemetry-metric-row">
+          <div>
+            <div id="telemetry-sample-rate" class="telemetry-metric">96.000 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span></div>
+            <div id="telemetry-jitter" class="telemetry-sub">Phase Jitter: &lt; 0.18 ps RMS</div>
+          </div>
+          <span class="telemetry-pill-primary">I²S SYNC</span>
+        </div>
+        <!-- Oscilloscope Waveform SVG Widget -->
+        <div class="telemetry-oscilloscope">
+          <svg viewBox="0 0 200 40" fill="none" style="width: 100%; height: 32px; color: var(--primary);">
+            <path id="telemetry-oscilloscope-path" d="M0 20 Q 10 5, 20 20 T 40 20 T 60 4 T 80 34 T 100 20 T 120 8 T 140 32 T 160 20 T 180 12 T 200 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+            <path id="telemetry-oscilloscope-ghost" d="M0 20 Q 15 28, 30 20 T 60 20 T 90 26 T 120 14 T 150 20 T 180 22 T 200 20" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.4" vector-effect="non-scaling-stroke"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card 2: Dynamic Range & dBFS Meter -->
+      <div class="telemetry-card">
+        <div class="telemetry-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+            <span style="font-weight: 600;">Dynamic Range</span>
+          </div>
+          <span class="badge-spec" style="color: var(--primary); border-color: var(--primary-border);">DR14+ MASTER</span>
+        </div>
+        <div class="telemetry-metric-row">
+          <div>
+            <div id="telemetry-dbfs" class="telemetry-metric">118.4 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span></div>
+            <div id="telemetry-true-peak" class="telemetry-sub">True Peak: -0.32 dBTP</div>
+          </div>
+          <span class="telemetry-pill-secondary">0 CLIPS</span>
+        </div>
+        <!-- Segmented Headroom Meter -->
+        <div class="segmented-meter-well">
+          <div class="meter-labels">
+            <span>-60</span><span>-24</span><span>-12</span><span>-6</span><span>-0.1</span><span style="color: var(--secondary);">CLIP</span>
+          </div>
+          <div class="meter-track" id="telemetry-meter-track">
+            <div class="meter-seg bg-pri"></div>
+            <div class="meter-seg bg-pri"></div>
+            <div class="meter-seg bg-pri"></div>
+            <div class="meter-seg bg-pri"></div>
+            <div class="meter-seg bg-pri"></div>
+            <div class="meter-seg bg-green"></div>
+            <div class="meter-seg bg-green"></div>
+            <div class="meter-seg bg-sec"></div>
+            <div class="meter-seg bg-empty"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Harmonic Key Alignment (Camelot) -->
+      <div class="telemetry-card">
+        <div class="telemetry-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--tertiary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <span style="font-weight: 600;">Harmonic Deck</span>
+          </div>
+          <span class="badge-camelot">CAMELOT SYNC</span>
+        </div>
+        <div class="telemetry-metric-row" style="align-items: center;">
+          <div>
+            <div id="telemetry-camelot-metric" class="telemetry-metric">10A <span id="telemetry-camelot-rel" style="font-size: 13px; color: var(--tertiary); font-weight: normal;">→ 11A / 9A</span></div>
+            <div id="telemetry-camelot-sub" class="telemetry-sub">B Minor / D Major Wheel</div>
+          </div>
+          <!-- Mini Camelot Ring SVG graphic -->
+          <div style="width: 36px; height: 36px; position: relative; flex-shrink: 0;">
+            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-45deg);">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-container-high)" stroke-width="3.5"></path>
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--tertiary)" stroke-width="4" stroke-dasharray="25, 100" stroke-linecap="round"></path>
+            </svg>
+            <div id="telemetry-camelot-center" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">10A</div>
+          </div>
+        </div>
+        <!-- Adjacent Harmonic Chips -->
+        <div class="harmonic-chips-row" id="telemetry-harmonic-chips">
+          <span class="chip-alt">9A (74%)</span>
+          <span class="chip-active">10A (Active)</span>
+          <span class="chip-alt">11A (88%)</span>
+          <span class="chip-alt">10B (Match)</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Audio Features / Cluster Histogram -->
+      <div class="telemetry-card">
+        <div class="telemetry-header">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+            <span style="font-weight: 600;">Vector Distribution</span>
+          </div>
+          <span class="badge-spec" style="color: var(--secondary); border-color: var(--secondary-border);">{{ total_clusters }} CLUSTERS</span>
+        </div>
+        <div class="telemetry-metric-row">
+          <div>
+            <div class="telemetry-metric">{{ total_tracks }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">FLAC/DSD</span></div>
+            <div class="telemetry-sub">Mean Tempo: 114.2 BPM</div>
+          </div>
+          <span class="telemetry-pill-dim">0.78 ENERGY</span>
+        </div>
+        <!-- BPM / Energy Mini Histogram Bars -->
+        <div class="histogram-bars-row">
+          <div class="hist-bar" style="height: 30%;"></div>
+          <div class="hist-bar hist-pri" style="height: 55%;"></div>
+          <div class="hist-bar hist-pri" style="height: 40%;"></div>
+          <div class="hist-bar hist-bright" style="height: 85%;"></div>
+          <div class="hist-bar hist-bright" style="height: 100%;"></div>
+          <div class="hist-bar hist-pri" style="height: 70%;"></div>
+          <div class="hist-bar hist-green" style="height: 60%;"></div>
+          <div class="hist-bar hist-green" style="height: 45%;"></div>
+          <div class="hist-bar" style="height: 20%;"></div>
+          <div class="hist-bar" style="height: 15%;"></div>
+        </div>
+      </div>
+    </section>
 
 <!-- Tab 1: Library View -->
 <section id="tab-library" style="display: block;">

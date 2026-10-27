@@ -4303,3 +4303,324 @@ body[data-contrast='high-contrast'] {
   font-size: 11px;
   font-family: var(--font-mono);
 }
+
+/* ==========================================================================
+   Stitch Hi-Fi Lounge Visual Identity & Utility Tokens
+   ========================================================================== */
+
+/* Surfaces & Containers */
+.bg-surface { background-color: var(--bg-surface); }
+.bg-surface-dim { background-color: var(--bg-canvas); }
+.bg-surface-bright { background-color: var(--bg-container-highest); }
+.bg-surface-variant { background-color: var(--bg-container-high); }
+.bg-surface-container { background-color: var(--bg-container); }
+.bg-surface-container-lowest { background-color: var(--bg-container-lowest); }
+.bg-surface-container-low { background-color: var(--bg-container-low); }
+.bg-surface-container-high { background-color: var(--bg-container-high); }
+.bg-surface-container-highest { background-color: var(--bg-container-highest); }
+.bg-primary { background-color: var(--primary); }
+.bg-primary-container { background-color: var(--primary); color: var(--on-primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-secondary-container { background-color: var(--secondary); }
+.bg-tertiary { background-color: var(--tertiary); }
+.bg-outline { background-color: var(--border-strong); }
+
+/* Text & Foreground */
+.text-on-surface { color: var(--text-primary); }
+.text-on-surface-variant { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-primary-container { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-tertiary { color: var(--tertiary); }
+.text-outline { color: var(--text-dim); }
+.text-error { color: var(--error); }
+.text-surface-container-lowest { color: var(--bg-container-lowest); }
+
+/* Typography */
+.font-headline-lg {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+}
+.font-headline-md {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+}
+.font-headline-sm {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+.font-body-lg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px;
+}
+.font-body-md {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+.font-body-sm {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+.font-label-lg {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.font-label-md {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.font-label-sm {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+/* Hi-Fi Spacing & Radius */
+.p-space-xs { padding: 0.25rem; }
+.p-space-sm { padding: 0.5rem; }
+.p-space-md { padding: 1rem; }
+.p-space-lg { padding: 1.5rem; }
+.p-space-xl { padding: 2.5rem; }
+.py-space-xs { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-space-sm { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-space-md { padding-top: 1rem; padding-bottom: 1rem; }
+.px-space-sm { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-space-md { padding-left: 1rem; padding-right: 1rem; }
+.px-space-lg { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-space-xl { padding-left: 2.5rem; padding-right: 2.5rem; }
+.mb-space-xs { margin-bottom: 0.25rem; }
+.mb-space-sm { margin-bottom: 0.5rem; }
+.mb-space-md { margin-bottom: 1rem; }
+.mb-space-lg { margin-bottom: 1.5rem; }
+.mt-space-sm { margin-top: 0.5rem; }
+.mt-space-md { margin-top: 1rem; }
+.pt-space-xs { padding-top: 0.25rem; }
+.pt-space-sm { padding-top: 0.5rem; }
+.pt-space-md { padding-top: 1rem; }
+.gap-gutter { gap: 1.25rem; }
+.gap-space-xs { gap: 0.25rem; }
+.gap-space-sm { gap: 0.5rem; }
+.gap-space-md { gap: 1rem; }
+.gap-space-lg { gap: 1.5rem; }
+.gap-space-xl { gap: 2.5rem; }
+
+.rounded-sm { border-radius: 4px; }
+.rounded { border-radius: 8px; }
+.rounded-md { border-radius: 12px; }
+.rounded-lg { border-radius: 20px; }
+.rounded-xl { border-radius: 28px; }
+.rounded-full { border-radius: 9999px; }
+
+/* Grid System */
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .md\:col-span-5 { grid-column: span 5 / span 5; }
+  .md\:col-span-7 { grid-column: span 7 / span 7; }
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .lg\:col-span-8 { grid-column: span 8 / span 8; }
+  .lg\:col-span-4 { grid-column: span 4 / span 4; }
+}
+@media (min-width: 1280px) {
+  .xl\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .xl\:col-span-8 { grid-column: span 8 / span 8; }
+  .xl\:col-span-4 { grid-column: span 4 / span 4; }
+}
+
+/* Animations & Tactile Controls */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spinSlow 24s linear infinite;
+}
+.animate-ping {
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Hero Turntable Deck & Vinyl Styling */
+.hero-turntable-deck {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background-color: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  padding: 1.5rem;
+  box-shadow: 0 12px 36px var(--shadow-modal);
+}
+
+.turntable-vinyl-container {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.turntable-spinning-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--bg-container-lowest) 40%, var(--bg-container-low) 100%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 8px 32px var(--shadow-modal);
+  animation: spinSlow 24s linear infinite;
+}
+
+.turntable-tonearm {
+  position: absolute;
+  right: -8px;
+  top: 8px;
+  pointer-events: none;
+  transform-origin: top right;
+  transform: rotate(14deg);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hero-turntable-deck:hover .turntable-tonearm {
+  transform: rotate(8deg);
+}
+
+.turntable-ambient-cyan {
+  position: absolute;
+  top: -80px;
+  left: -60px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.turntable-ambient-amber {
+  position: absolute;
+  bottom: -60px;
+  right: -40px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: var(--secondary-tint);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Tactile Hi-Fi Potentiometer Dials */
+.potentiometer-dial {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--bg-container-high);
+  box-shadow: inset 0 2px 4px var(--shadow-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.potentiometer-dial:hover {
+  transform: scale(1.04);
+}
+
+.potentiometer-rotor {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--bg-container-highest);
+  box-shadow: 0 4px 10px var(--shadow-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.potentiometer-indicator-amber {
+  position: absolute;
+  top: 4px;
+  width: 3px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--secondary);
+  box-shadow: 0 0 8px var(--secondary-glow);
+}
+
+.potentiometer-indicator-cyan {
+  position: absolute;
+  top: 4px;
+  width: 3px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* DSP Toggle Switches */
+.dsp-toggle-btn {
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.dsp-toggle-btn.active-amber {
+  background-color: var(--secondary);
+  justify-content: flex-end;
+}
+
+.dsp-toggle-btn.active-cyan {
+  background-color: var(--primary);
+  justify-content: flex-end;
+}
+
+.dsp-toggle-btn.inactive {
+  background-color: var(--bg-container-high);
+  justify-content: flex-start;
+}
+
+.dsp-toggle-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--bg-container-lowest);
+  box-shadow: 0 1px 4px var(--shadow-modal);
+}
