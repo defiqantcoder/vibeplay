@@ -84,7 +84,6 @@ def test_middle_window_offset() -> None:
     assert get_middle_window_offset(duration=0.0, window_seconds=60.0) == 0.0
 
 
-
 def test_downmix_to_mono() -> None:
     """Verify multichannel array is correctly downmixed to mono."""
     stereo = np.array([[1.0, -1.0], [0.5, 0.5], [0.0, 0.0]], dtype=np.float32)
@@ -96,6 +95,7 @@ def test_downmix_to_mono() -> None:
     mono_output = downmix_to_mono(mono_input)
     assert mono_output.shape == (3,)
     np.testing.assert_array_almost_equal(mono_output, [1.0, 0.5, 0.0])
+
 
 def test_decode_audio_slice(synthetic_wav_file: Path) -> None:
     """Verify ffmpeg audio decoding produces expected float32 samples."""

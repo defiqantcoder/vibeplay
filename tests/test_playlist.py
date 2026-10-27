@@ -348,9 +348,7 @@ def _seed_test_database(db_file: Path) -> list[int]:
                 "aggressive": 0.8 if "Rush" in title or "Overdrive" in title else 0.1,
                 "party": 0.9 if "Party" in title else 0.2,
                 "acoustic": 0.9 if "Acoustic" in title or "Rustic" in title else 0.1,
-                "electronic": 0.9
-                if genre == "Electronic" or genre == "Techno"
-                else 0.1,
+                "electronic": 0.9 if genre == "Electronic" or genre == "Techno" else 0.1,
             }
             emb = np.sin(np.linspace(0, tid, 128)).astype(np.float32)
             insert_or_replace_features(
@@ -477,6 +475,7 @@ def test_minutes_target_duration(playlist_settings: Settings) -> None:
     assert 1 <= len(playlist.tracks) <= 3
     assert playlist.total_duration >= 360.0 or len(playlist.tracks) == 2
 
+
 def test_playlist_engine_constraints(playlist_settings: Settings) -> None:
     import numpy as np
 
@@ -502,8 +501,10 @@ def test_playlist_engine_constraints(playlist_settings: Settings) -> None:
     assert trans_valid.bpm_score == 1.0
     assert trans_valid.key_score == 1.0
 
+
 def test_key_to_camelot_more_edge_cases():
     from vibeplay.playlist import key_to_camelot
+
     assert key_to_camelot("", "") is None
     assert key_to_camelot(None, None) is None
     assert key_to_camelot("C minor", None) == "5A"
@@ -513,19 +514,30 @@ def test_key_to_camelot_more_edge_cases():
     assert key_to_camelot("Am", None) == "8A"
     assert key_to_camelot("C#m", None) == "12A"
 
+
 def test_generated_playlist_serialization():
     from vibeplay.playlist import GeneratedPlaylist, PlaylistTrackItem, TrackTransition
 
     trans = TrackTransition(1, 2, 0.9, 0.8, 0.7, 0.85)
     item = PlaylistTrackItem(
-        position=1, track_id=2, title="T", artist="A", album="AL",
-        duration=100.0, bpm=120.0, key="C", scale="major", camelot="8B",
-        energy=0.8, danceability=0.7, path="/p", transition=trans
+        position=1,
+        track_id=2,
+        title="T",
+        artist="A",
+        album="AL",
+        duration=100.0,
+        bpm=120.0,
+        key="C",
+        scale="major",
+        camelot="8B",
+        energy=0.8,
+        danceability=0.7,
+        path="/p",
+        transition=trans,
     )
 
     playlist = GeneratedPlaylist(
-        playlist_id=1, name="Test", description="Desc", mode="seed",
-        tracks=[item], total_duration=100.0, avg_transition_score=0.85
+        playlist_id=1, name="Test", description="Desc", mode="seed", tracks=[item], total_duration=100.0, avg_transition_score=0.85
     )
 
     d = playlist.to_dict()
@@ -534,15 +546,10 @@ def test_generated_playlist_serialization():
     assert len(d["tracks"]) == 1
     assert d["tracks"][0]["transition"]["total_score"] == 0.85
 
+
 def test_generate_playlist_cluster_mode(playlist_settings: Settings) -> None:
     _seed_test_database(playlist_settings.db_path)
     from vibeplay.playlist import generate_playlist
 
-    playlist = generate_playlist(
-        db_path=playlist_settings.db_path,
-        name="Cluster Based",
-        cluster_id=0,
-        limit=5,
-        settings=playlist_settings
-    )
+    playlist = generate_playlist(db_path=playlist_settings.db_path, name="Cluster Based", cluster_id=0, limit=5, settings=playlist_settings)
     assert playlist.playlist_id > 0

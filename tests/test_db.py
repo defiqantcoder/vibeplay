@@ -273,7 +273,6 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
     import concurrent.futures
     import sqlite3
     import time
-    from pathlib import Path
 
     from vibeplay.db import get_connection, init_db, insert_track
 
@@ -295,7 +294,7 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
                     )
                     conn.commit()
                     success_count += 1
-                except sqlite3.OperationalError as e:
+                except sqlite3.OperationalError:
                     # We expect the retry decorator to handle "database is locked".
                     # If it leaks out, it means it exhausted max retries or didn't trigger.
                     pass

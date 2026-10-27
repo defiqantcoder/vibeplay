@@ -142,4 +142,3 @@ def test_find_free_loopback_port_exhausted() -> None:
         occupied.listen(1)
         with pytest.raises(RuntimeError, match="Unable to find a free loopback port"):
             find_free_loopback_port(preferred_port=9990, host="127.0.0.1", max_attempts=1)
-

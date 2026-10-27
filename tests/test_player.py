@@ -105,9 +105,7 @@ def test_mpd_transport_connection_failure() -> None:
         mock_client.connect.side_effect = ConnectionRefusedError("Connection refused")
 
         transport = MPDTransport(host="localhost", port=6600)
-        with pytest.raises(
-            PlaybackError, match="Could not connect to Music Player Daemon"
-        ):
+        with pytest.raises(PlaybackError, match="Could not connect to Music Player Daemon"):
             transport.connect()
 
 
@@ -222,9 +220,12 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["buffer_health"] == "Standby (Direct ALSA Ready)"
 
     # 2. Playing lossless FLAC at 100% volume with matching sample rate -> True bit-perfect
-    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
-        "vibeplay.player._extract_audio_file_technical_info",
-        return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    with (
+        patch("vibeplay.player.MPDClient") as mock_mpd_cls,
+        patch(
+            "vibeplay.player._extract_audio_file_technical_info",
+            return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+        ),
     ):
         mock_client = MagicMock()
         mock_mpd_cls.return_value = mock_client
@@ -247,9 +248,12 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["buffer_health"] == "100% Bit-Perfect Locked"
 
     # 3. Playing lossy MP3 -> bit_perfect is False, status is DSP / Processed
-    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
-        "vibeplay.player._extract_audio_file_technical_info",
-        return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "MP3", "format_name": "mp3"},
+    with (
+        patch("vibeplay.player.MPDClient") as mock_mpd_cls,
+        patch(
+            "vibeplay.player._extract_audio_file_technical_info",
+            return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "MP3", "format_name": "mp3"},
+        ),
     ):
         mock_client = MagicMock()
         mock_mpd_cls.return_value = mock_client
@@ -271,9 +275,12 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["buffer_health"] == "DSP / Processed"
 
     # 4. Playing lossless FLAC with software volume attenuation (80%) -> bit_perfect is False
-    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
-        "vibeplay.player._extract_audio_file_technical_info",
-        return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    with (
+        patch("vibeplay.player.MPDClient") as mock_mpd_cls,
+        patch(
+            "vibeplay.player._extract_audio_file_technical_info",
+            return_value={"sample_rate": 44100, "bit_depth": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+        ),
     ):
         mock_client = MagicMock()
         mock_mpd_cls.return_value = mock_client
@@ -294,9 +301,12 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["buffer_health"] == "DSP / Processed"
 
     # 5. Playing lossless FLAC but with bit depth upsampled (16-bit to 24-bit) -> bit_perfect is False
-    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
-        "vibeplay.player._extract_audio_file_technical_info",
-        return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    with (
+        patch("vibeplay.player.MPDClient") as mock_mpd_cls,
+        patch(
+            "vibeplay.player._extract_audio_file_technical_info",
+            return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+        ),
     ):
         mock_client = MagicMock()
         mock_mpd_cls.return_value = mock_client
@@ -317,9 +327,12 @@ def test_playback_status_codec_and_bitperfect() -> None:
         assert st["buffer_health"] == "DSP / Processed"
 
     # 6. Playing lossless FLAC (stereo) but output is mono -> bit_perfect is False
-    with patch("vibeplay.player.MPDClient") as mock_mpd_cls, patch(
-        "vibeplay.player._extract_audio_file_technical_info",
-        return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+    with (
+        patch("vibeplay.player.MPDClient") as mock_mpd_cls,
+        patch(
+            "vibeplay.player._extract_audio_file_technical_info",
+            return_value={"sample_rate": 44100, "bits_per_sample": 16, "channels": 2, "codec": "FLAC", "format_name": "flac"},
+        ),
     ):
         mock_client = MagicMock()
         mock_mpd_cls.return_value = mock_client
@@ -371,6 +384,7 @@ def test_direct_alsa_line_out_volume_safety() -> None:
 def test_fallback_player_lifecycle_and_lock() -> None:
     """Verify _FALLBACK_LOCK prevents concurrent or orphaned fallback playback processes."""
     import subprocess
+
     import vibeplay.player as player_mod
 
     mock_proc = MagicMock(spec=subprocess.Popen)
@@ -386,5 +400,3 @@ def test_fallback_player_lifecycle_and_lock() -> None:
     mock_proc.terminate.assert_called_once()
     mock_proc.kill.assert_called_once()
     assert player_mod._FALLBACK_PROC is None
-
-

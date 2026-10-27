@@ -107,9 +107,7 @@ def switch_audio_profile(profile_id: str, options: dict[str, Any] | None = None)
     valid_ids = {p["id"] for p in AVAILABLE_PROFILES}
 
     if clean_id not in valid_ids:
-        raise ProfileSwitchError(
-            f"Invalid profile '{profile_id}'. Available profiles: {', '.join(sorted(valid_ids))}"
-        )
+        raise ProfileSwitchError(f"Invalid profile '{profile_id}'. Available profiles: {', '.join(sorted(valid_ids))}")
 
     state = load_persistent_state()
 
@@ -231,7 +229,7 @@ async def handle_ipc_client(
             success = set_spatial_virtualization_mode(mode)
             state = load_persistent_state()
             state["spatial_mode"] = mode
-            state["spatial_active"] = (mode == "3d_binaural")
+            state["spatial_active"] = mode == "3d_binaural"
             save_persistent_state(state)
             response = {"status": "ok" if success else "warning", "mode": mode, "applied": success}
 
@@ -329,11 +327,13 @@ class DSPClient:
 
     def set_profile(self, profile_id: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         """Set audio profile."""
-        return self._call_socket_sync({
-            "action": "set_profile",
-            "profile": profile_id,
-            "options": options or {},
-        })
+        return self._call_socket_sync(
+            {
+                "action": "set_profile",
+                "profile": profile_id,
+                "options": options or {},
+            }
+        )
 
     def list_profiles(self) -> list[dict[str, Any]]:
         """List available audio profiles."""
