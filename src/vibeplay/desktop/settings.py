@@ -169,6 +169,11 @@ class DesktopSettings(BaseModel):
         default="",
         description="AcoustID API key for track fingerprinting and metadata enrichment",
     )
+    musicbrainz_contact: str = Field(
+        default="",
+        max_length=256,
+        description="Contact information for MusicBrainz API identification.",
+    )
     hide_telemetry_hud: bool = Field(
         default=False,
         description="Hide or show the 4-card telemetry HUD deck",
@@ -280,6 +285,11 @@ class DesktopSettings(BaseModel):
     @field_validator("acoustid_api_key")
     @classmethod
     def validate_acoustid_api_key(cls, v: str) -> str:
+        return str(v).strip()
+
+    @field_validator("musicbrainz_contact")
+    @classmethod
+    def validate_musicbrainz_contact(cls, v: str) -> str:
         return str(v).strip()
 
 

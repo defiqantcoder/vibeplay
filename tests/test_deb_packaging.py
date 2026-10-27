@@ -57,7 +57,7 @@ def test_build_deb_script_generates_valid_archive(tmp_path: Path) -> None:
     )
     assert res.returncode == 0, f"build-deb.sh failed: {res.stderr}"
 
-    deb_path = repo_root / "dist" / "vibeplay_0.1.0_amd64.deb"
+    deb_path = repo_root / "dist" / "vibeplay_0.2.0_amd64.deb"
     assert deb_path.is_file(), "Output debian package must exist in dist/"
 
     # Inspect package via dpkg-deb if installed

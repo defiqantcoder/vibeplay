@@ -272,20 +272,20 @@ function gatherSettingsFormPayload() {
   return {
     alsa_device: getVal('cfg-alsa-device', 'hw:0,0'),
     alsa_exclusive_lock: getChecked('cfg-exclusive-lock', true),
-    alsa_buffer_frames: parseInt(getVal('cfg-buffer-size', '128'), 10),
-    alsa_period_count: parseInt(getVal('cfg-period-count', '2'), 10),
-    alsa_sample_rate_lock: getVal('cfg-sample-rate', 'auto'),
+    alsa_buffer_frames: parseInt(getVal('cfg-buffer-size', '4096'), 10),
+    alsa_period_count: parseInt(getVal('cfg-period-count', '3'), 10),
+    alsa_sample_rate_lock: getVal('cfg-sample-rate', 'off'),
     dpc_watchdog_enabled: getChecked('cfg-dpc-watchdog', true),
     dsp_profile: activeDspProfile,
     peq_profile: getVal('cfg-peq-profile', 'none'),
     peq_preamp_auto: getChecked('cfg-preamp-toggle', true),
+    peq_preamp_db: parseFloat(getVal('cfg-peq-preamp-db', '-5.5')),
     spatial_enabled: spatialEnabled,
-    spatial_mode: spatialEnabled ? '3d_binaural' : 'stereo_direct',
+    spatial_mode: getVal('cfg-spatial-mode', 'stereo_direct'),
     analyzer_backend: getVal('cfg-analyzer-backend', 'essentia'),
     analyzer_workers: parseInt(getVal('cfg-workers', '4'), 10),
-    analyzer_window_seconds: parseFloat(getVal('cfg-window-sec', '60')),
-    analyzer_fallback_enabled: getChecked('cfg-analyzer-fallback', true),
-    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '0.50')),
+    analyzer_window_seconds: parseFloat(getVal('cfg-window-sec', '60.0')),
+    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '50')) / 100.0,
     theme_id: activeTheme,
     custom_accent_color: getVal('cfg-custom-accent', '#6874a6'),
     contrast_mode: getVal('cfg-contrast-mode', 'standard'),
@@ -293,6 +293,8 @@ function gatherSettingsFormPayload() {
     gemini_api_key: getVal('cfg-gemini-key', ''),
     gemini_model: getVal('cfg-gemini-model', 'gemini-2.5-flash'),
     acoustid_api_key: getVal('cfg-acoustid-key', ''),
+    musicbrainz_contact: getVal('cfg-musicbrainz-contact', ''),
+    hide_telemetry_hud: getChecked('cfg-hide-telemetry-hud', false),
   };
 }
 
@@ -356,6 +358,8 @@ function syncDomWithSettings(s) {
   setVal('cfg-gemini-key', s.gemini_api_key);
   setVal('cfg-gemini-model', s.gemini_model);
   setVal('cfg-acoustid-key', s.acoustid_api_key);
+  setVal('cfg-musicbrainz-contact', s.musicbrainz_contact);
+  setCheck('cfg-hide-telemetry-hud', s.hide_telemetry_hud);
 
   updateAudioDeviceConfig();
 }
