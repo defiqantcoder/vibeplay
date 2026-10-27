@@ -289,13 +289,37 @@
             <span class="badge-mini badge-cyan" id="menu-spatial-badge">Active</span>
           </div>
 
+          <div class="menu-row" onclick="openEQStudioModal()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎛</span>
+              <span>Parametric EQ Studio...</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+E</kbd>
+          </div>
+
+          <div class="menu-row" onclick="openOutputSwitcher()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🔊</span>
+              <span>Sound Output Switcher...</span>
+            </div>
+          </div>
+
+          <div class="menu-row" onclick="openToyboxModal()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🧩</span>
+              <span>The Add-on Toybox...</span>
+            </div>
+            <kbd class="shortcut-kbd">Ctrl+Shift+P</kbd>
+          </div>
+
           <div class="menu-divider"></div>
 
           <div class="menu-row" onclick="toggleSettingsDialog('dsp')">
             <div class="menu-label-group">
-              <span class="menu-icon">🎛</span>
-              <span>Parametric EQ & AutoEq Profiles...</span>
+              <span class="menu-icon">⚙️</span>
+              <span>Hardware & DSP Settings...</span>
             </div>
+            <kbd class="shortcut-kbd">Ctrl+,</kbd>
           </div>
         </div>
       </div>
@@ -389,12 +413,18 @@
           <span>Help</span>
         </button>
         <div class="menu-dropdown" id="dropdown-help">
-          <div class="menu-row" onclick="toggleShortcutsHelp()">
+          <div class="menu-row" onclick="openShortcutsModal()">
             <div class="menu-label-group">
               <span class="menu-icon">⌨</span>
               <span>Keyboard Shortcuts</span>
             </div>
-            <kbd class="shortcut-kbd">Ctrl+/</kbd>
+            <kbd class="shortcut-kbd">?</kbd>
+          </div>
+          <div class="menu-row" onclick="openOnboardingModal()">
+            <div class="menu-label-group">
+              <span class="menu-icon">📻</span>
+              <span>Welcome Setup Wizard...</span>
+            </div>
           </div>
           <div class="menu-row" onclick="toggleSettingsDialog('transport')">
             <div class="menu-label-group">

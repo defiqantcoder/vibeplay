@@ -1,0 +1,144 @@
+{# Parametric Equalizer (EQ Studio Modal) #}
+<div id="eq-studio-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeEQStudioModal();">
+  <div class="relative w-full max-w-[880px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-6 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
+    <!-- Ambient Tube Glow -->
+    <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-28 -right-20 w-72 h-72 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl select-none">🎛️</span>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">Parametric Equalizer Studio</h2>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] font-mono font-medium">Biquad Filter Engine</span>
+        </div>
+        <p class="text-sm text-[var(--text-muted)] mt-1.5 max-w-xl">
+          High-precision 64-bit biquad parametric filtering with dynamic headroom auto-attenuation and KEMAR 3D spatial HRTF.
+        </p>
+      </div>
+      <button type="button" class="w-8 h-8 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors border border-[var(--border)]" onclick="closeEQStudioModal();" aria-label="Close EQ Studio">
+        ✕
+      </button>
+    </div>
+
+    <!-- Bit-Perfect Bypass Banner (Audiophile Invariant) -->
+    <div id="eq-bitperfect-notice" class="relative z-10 p-3 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-between text-xs font-mono">
+      <div class="flex items-center gap-2 text-[var(--accent)]">
+        <span class="text-sm">🛡️</span>
+        <span>Bit-Perfect Auto-Bypass: When Pure Bit-Perfect ALSA output is active, EQ is completely bypassed for 0.0ms latency.</span>
+      </div>
+      <span class="px-2 py-0.5 rounded bg-[var(--accent)]/20 text-[var(--accent)] font-bold">HW BYPASS</span>
+    </div>
+
+    <!-- Frequency Curve Canvas / SVG -->
+    <div class="relative z-10 w-full h-44 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3 flex flex-col justify-between overflow-hidden shadow-inner">
+      <div class="flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)] border-b border-[var(--border)]/40 pb-1">
+        <span>RESPONSE CURVE (20 Hz – 20 kHz)</span>
+        <span id="eq-preamp-indicator" class="text-[var(--accent)]">Headroom Preamp: -0.3 dB</span>
+      </div>
+
+      <div class="relative w-full h-28 flex items-center justify-center" id="eqSvgContainer">
+        <svg class="w-full h-full" viewBox="0 0 800 120" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="eqGlowGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line x1="0" y1="60" x2="800" y2="60" stroke="var(--border)" stroke-dasharray="3,3"/>
+          <line x1="200" y1="0" x2="200" y2="120" stroke="var(--border)" stroke-dasharray="2,2"/>
+          <line x1="400" y1="0" x2="400" y2="120" stroke="var(--border)" stroke-dasharray="2,2"/>
+          <line x1="600" y1="0" x2="600" y2="120" stroke="var(--border)" stroke-dasharray="2,2"/>
+          <!-- Fill Area & Curve Path -->
+          <path id="eqAreaPath" d="M 0,60 Q 150,55 250,50 T 450,45 T 650,55 T 800,60 L 800,120 L 0,120 Z" fill="url(#eqGlowGradient)"/>
+          <path id="eqCurvePath" d="M 0,60 Q 150,55 250,50 T 450,45 T 650,55 T 800,60" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        </svg>
+      </div>
+
+      <div class="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] border-t border-[var(--border)]/40 pt-1">
+        <span>20 Hz</span>
+        <span>100 Hz</span>
+        <span>1 kHz</span>
+        <span>10 kHz</span>
+        <span>20 kHz</span>
+      </div>
+    </div>
+
+    <!-- 5 Parametric Sliders Grid -->
+    <div class="relative z-10 grid grid-cols-5 gap-3">
+      <!-- Band 1: 80 Hz Low Shelf -->
+      <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-[var(--text-primary)]">80 Hz</span>
+        <span class="text-[10px] font-mono text-[var(--text-muted)]">Low Shelf</span>
+        <input type="range" min="-12" max="12" step="0.5" value="1.5" class="h-24 -rotate-90 w-24 my-6 cursor-pointer accent-[var(--accent)]" id="eq-band-1" oninput="updateEQBand(0, this.value)">
+        <span id="eq-val-0" class="text-xs font-mono font-semibold text-[var(--accent)]">+1.5 dB</span>
+      </div>
+
+      <!-- Band 2: 250 Hz Peak -->
+      <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-[var(--text-primary)]">250 Hz</span>
+        <span class="text-[10px] font-mono text-[var(--text-muted)]">Peaking</span>
+        <input type="range" min="-12" max="12" step="0.5" value="0.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer accent-[var(--accent)]" id="eq-band-2" oninput="updateEQBand(1, this.value)">
+        <span id="eq-val-1" class="text-xs font-mono font-semibold text-[var(--text-muted)]">0.0 dB</span>
+      </div>
+
+      <!-- Band 3: 1 kHz Peak -->
+      <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-[var(--text-primary)]">1.0 kHz</span>
+        <span class="text-[10px] font-mono text-[var(--text-muted)]">Peaking</span>
+        <input type="range" min="-12" max="12" step="0.5" value="-1.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer accent-[var(--accent)]" id="eq-band-3" oninput="updateEQBand(2, this.value)">
+        <span id="eq-val-2" class="text-xs font-mono font-semibold text-[var(--accent)]">-1.0 dB</span>
+      </div>
+
+      <!-- Band 4: 4 kHz Peak -->
+      <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-[var(--text-primary)]">4.0 kHz</span>
+        <span class="text-[10px] font-mono text-[var(--text-muted)]">Peaking</span>
+        <input type="range" min="-12" max="12" step="0.5" value="2.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer accent-[var(--accent)]" id="eq-band-4" oninput="updateEQBand(3, this.value)">
+        <span id="eq-val-3" class="text-xs font-mono font-semibold text-[var(--accent)]">+2.0 dB</span>
+      </div>
+
+      <!-- Band 5: 12 kHz High Shelf -->
+      <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-[var(--text-primary)]">12 kHz</span>
+        <span class="text-[10px] font-mono text-[var(--text-muted)]">High Shelf</span>
+        <input type="range" min="-12" max="12" step="0.5" value="0.5" class="h-24 -rotate-90 w-24 my-6 cursor-pointer accent-[var(--accent)]" id="eq-band-5" oninput="updateEQBand(4, this.value)">
+        <span id="eq-val-4" class="text-xs font-mono font-semibold text-[var(--accent)]">+0.5 dB</span>
+      </div>
+    </div>
+
+    <!-- Spatial Audio & Preset Toolbar -->
+    <div class="relative z-10 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-mono text-[var(--text-muted)]">Presets:</span>
+        <select id="eqPresetSelect" class="px-3 py-1.5 rounded-lg bg-[var(--surface-container)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]" onchange="applyEQPreset(this.value)">
+          <option value="flat">Flat Response</option>
+          <option value="bass_boost">Warm Bass Extension</option>
+          <option value="vocal_air">Vocal Air &amp; Clarity</option>
+          <option value="harman_target">Harman Target Neutral</option>
+        </select>
+        <button type="button" class="px-3 py-1.5 rounded-lg bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] text-xs font-mono border border-[var(--border)] transition-colors" onclick="resetEQBands()">
+          Reset Flat
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-mono text-[var(--text-muted)]">3D HRTF Spatial:</span>
+        <button type="button" id="spatialToggleBtn" class="px-3.5 py-1.5 rounded-lg bg-[var(--surface-container)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)] hover:border-[var(--accent)] transition-all flex items-center gap-1.5" onclick="toggleSpatialBinaural()">
+          <span>🎧</span>
+          <span id="spatialStatusLabel">Stereo Direct</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <div class="relative z-10 pt-2 flex items-center justify-between border-t border-[var(--border)] text-xs text-[var(--text-muted)] font-mono">
+      <span>Auto-Attenuation Headroom Margin: 0.3 dB</span>
+      <button type="button" class="px-5 py-2 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold hover:brightness-110 transition-all shadow-md" onclick="saveAndApplyEQ()">
+        Apply &amp; Close
+      </button>
+    </div>
+  </div>
+</div>

@@ -84,42 +84,30 @@
         </form>
       </div>
 
-      <!-- Audio Output Profile Selector (Custom Popup to prevent WebKit premature close) -->
+      <!-- Boombox Quick Gadgets (EQ Studio, Add-on Toybox, Fullscreen) -->
+      <div class="transport-gadgets flex items-center gap-1.5">
+        <!-- EQ Studio Quick Trigger -->
+        <button type="button" class="btn-icon" onclick="openEQStudioModal()" title="Parametric EQ Studio (Ctrl+E)">
+          <span style="font-size: 15px;">🎛️</span>
+        </button>
+
+        <!-- The Add-on Toybox Quick Trigger -->
+        <button type="button" class="btn-icon" onclick="openToyboxModal()" title="The Add-on Toybox (Ctrl+Shift+P)">
+          <span style="font-size: 15px;">🧩</span>
+        </button>
+      </div>
+
+      <!-- Audio Output Profile Selector -->
       <div class="audio-output-dropdown-container">
-        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleAudioOutputDropdown(event)" title="Select Audio Output Device (Click to expand options)">
+        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleOutputSwitcher(event)" title="Sound Output Switcher (Click to configure)">
           <span class="pulse-dot" style="width: 5px; height: 5px; margin-right: 2px;"></span>
           <span class="active-output-text truncate" style="max-width: 140px;">{{ playback.output_profile }}</span>
           <svg class="icon icon-xs" style="width: 12px; height: 12px; margin-left: 2px;" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </button>
-        <div class="audio-output-menu" id="audio-output-menu">
-          {% for prof in playback.output_profiles %}
-            {% set prof_lower = prof | lower %}
-            {% if "spatial" in prof_lower %}
-              {% set prof_tip = "7.1.4 3D Spatial Binaural: Convolves multi-channel audio using KEMAR HRTF impulses into immersive 3D audio for stereo headphones. Requires PipeWire output." %}
-            {% elif "letshuoer" in prof_lower or "dt01" in prof_lower %}
-              {% set prof_tip = "Letshuoer USB DAC (Bit-Perfect Direct ALSA hw:1,0): Hardware direct bitstream delivery bypassing software mixers and volume attenuation." %}
-            {% elif "bit-perfect" in prof_lower or "pure" in prof_lower %}
-              {% set prof_tip = "Pure Bit-Perfect (Direct ALSA): Bit-accurate raw streaming directly to audio hardware without resampling." %}
-            {% elif "passthrough" in prof_lower or "receiver" in prof_lower or "hdmi" in prof_lower %}
-              {% set prof_tip = "AV Receiver Passthrough: Encoded digital multi-channel bitstream passed to HDMI receiver processor." %}
-            {% else %}
-              {% set prof_tip = "PipeWire Sound Server: System low-latency audio engine with multi-application sharing and software mixing." %}
-            {% endif %}
-            <button type="button"
-                    class="audio-output-item {% if prof == playback.output_profile %}active{% endif %}"
-                    onclick="selectAudioOutput('{{ prof }}')"
-                    title="{{ prof_tip }}">
-              <span class="truncate">{{ prof }}</span>
-              {% if prof == playback.output_profile %}
-                <span class="dot-indicator dot-green"></span>
-              {% endif %}
-            </button>
-          {% endfor %}
-        </div>
       </div>
 
       <!-- Expand Fullscreen Now Playing Button -->
-      <button type="button" class="btn-icon" onclick="openFullscreenNowPlaying()" title="Fullscreen Now Playing View (F11)">
+      <button type="button" class="btn-icon" onclick="openFullscreenNowPlaying()" title="Ambient Fullscreen View (F11)">
         <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
       </button>
     </div>

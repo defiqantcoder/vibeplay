@@ -1897,6 +1897,59 @@ def create_app(
         except Exception as err:
             return JSONResponse(status_code=500, content={"error": str(err)})
 
+    @app.get("/api/plugins")
+    async def api_plugins_list() -> JSONResponse:
+        """List registered add-ons and their enabled/initialization states."""
+        from vibeplay.plugins.base import get_plugin_registry
+        from vibeplay.plugins.dsp import DSPPlugin
+        from vibeplay.plugins.maintenance import MaintenancePlugin
+
+        reg = get_plugin_registry()
+        if not reg.get("dsp"):
+            reg.register(DSPPlugin())
+        if not reg.get("maintenance"):
+            reg.register(MaintenancePlugin())
+        return JSONResponse(content={"plugins": reg.list_plugins()})
+
+    @app.post("/api/plugins/toggle")
+    async def api_plugins_toggle(request: Request) -> JSONResponse:
+        """Toggle an add-on plugin enabled/disabled state."""
+        from vibeplay.plugins.base import get_plugin_registry
+        from vibeplay.plugins.dsp import DSPPlugin
+        from vibeplay.plugins.maintenance import MaintenancePlugin
+
+        try:
+            body = await request.json()
+            plugin_name = body.get("name")
+            reg = get_plugin_registry()
+            if not reg.get("dsp"):
+                reg.register(DSPPlugin())
+            if not reg.get("maintenance"):
+                reg.register(MaintenancePlugin())
+            p = reg.get(plugin_name)
+            if not p:
+                return JSONResponse(
+                    status_code=404, content={"error": f"Plugin '{plugin_name}' not found"}
+                )
+            if p.is_enabled:
+                p.disable()
+            else:
+                p.enable()
+            return JSONResponse(content={"name": p.name, "enabled": p.is_enabled})
+        except Exception as err:
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
+    @app.post("/api/library/duplicates")
+    async def api_library_duplicates() -> JSONResponse:
+        """Run duplicate track detection via the maintenance plugin."""
+        from vibeplay.plugins.maintenance.duplicates import find_duplicate_tracks
+
+        try:
+            duplicates = find_duplicate_tracks(resolved_db_path)
+            return JSONResponse(content={"duplicates": duplicates, "count": len(duplicates)})
+        except Exception as err:
+            return JSONResponse(status_code=500, content={"error": str(err)})
+
     @app.post("/api/desktop/open")
     async def api_desktop_open(request: Request) -> JSONResponse:
         """Open audio files, M3U/M3U8 playlists, or directories forwarded from XDG desktop (%U)."""

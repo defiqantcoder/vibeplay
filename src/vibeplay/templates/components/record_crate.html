@@ -1,0 +1,71 @@
+{# Listening Lounge & Record Crate Component #}
+<div id="record-crate-container" class="w-full flex flex-col gap-6 p-4 sm:p-6 text-[var(--text-primary)] hidden">
+  <!-- Crate Header & Mood Filter Bar -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl select-none">📦</span>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">The Record Crate</h2>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] font-mono font-medium">Vinyl Browsing</span>
+      </div>
+      <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
+        Browse your collection like flipping through a crate of vinyl records organized by acoustic energy and mood.
+      </p>
+    </div>
+
+    <!-- Mood Quick Filters -->
+    <div class="flex items-center gap-1.5 overflow-x-auto text-xs font-mono">
+      <button type="button" class="crate-mood-chip px-3 py-1.5 rounded-full bg-[var(--accent)] text-[var(--bg)] font-bold transition-all" data-mood="all" onclick="filterCrateByMood('all', this)">
+        All Vibes
+      </button>
+      <button type="button" class="crate-mood-chip px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all" data-mood="chill" onclick="filterCrateByMood('chill', this)">
+        Late Night Chill
+      </button>
+      <button type="button" class="crate-mood-chip px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all" data-mood="focus" onclick="filterCrateByMood('focus', this)">
+        Deep Focus
+      </button>
+      <button type="button" class="crate-mood-chip px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all" data-mood="upbeat" onclick="filterCrateByMood('upbeat', this)">
+        Upbeat Groove
+      </button>
+    </div>
+  </div>
+
+  <!-- Vinyl Record Sleeves Grid -->
+  <div id="crate-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+    {% for track in tracks %}
+    <div class="vinyl-sleeve-card relative group cursor-pointer flex flex-col gap-2.5 p-3 rounded-2xl bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--accent)]/60 hover:shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all" onclick="playTrack({{ track.id }})" oncontextmenu="openTrackContextMenu(event, {{ track.id }}, '{{ (track.title or 'Unknown')|replace('\'', '\\\'') }}', '{{ (track.artist or 'Unknown')|replace('\'', '\\\'') }}'); return false;">
+      <!-- Sleeve with Peeking Vinyl Record -->
+      <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-[var(--surface-container)] flex items-center justify-center shadow-md">
+        <!-- Vinyl Record Peeking out -->
+        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-4/5 h-4/5 rounded-full bg-[#111113] border-4 border-[#222226] shadow-xl transition-transform duration-300 group-hover:translate-x-3 pointer-events-none flex items-center justify-center">
+          <div class="w-1/3 h-1/3 rounded-full bg-[var(--accent)]/30 border border-[var(--accent)] flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-[var(--bg)]"></div>
+          </div>
+        </div>
+
+        <!-- Sleeve Jacket Front Cover -->
+        <div class="relative z-10 w-full h-full bg-gradient-to-br from-[var(--surface-container)] to-[var(--surface)] flex flex-col items-center justify-center text-center p-3 border border-[var(--border)]/40 rounded-xl">
+          <span class="text-3xl select-none mb-1 opacity-70 group-hover:opacity-100 transition-opacity">🎵</span>
+          <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--surface-container-high)] text-[var(--accent)] font-semibold border border-[var(--border)]">
+            {{ track.key or '8A' }} • {{ track.bpm|int if track.bpm else 120 }} BPM
+          </span>
+        </div>
+      </div>
+
+      <!-- Track Information -->
+      <div class="flex flex-col min-w-0">
+        <h4 class="text-xs font-bold text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">
+          {{ track.title or 'Unknown Title' }}
+        </h4>
+        <span class="text-[11px] text-[var(--text-muted)] truncate">
+          {{ track.artist or 'Unknown Artist' }}
+        </span>
+        <div class="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] pt-1">
+          <span>FLAC</span>
+          <span>{{ "%d:%02d"|format(track.duration // 60, track.duration % 60) if track.duration else "3:45" }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

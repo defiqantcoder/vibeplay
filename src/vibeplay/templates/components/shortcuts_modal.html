@@ -1,0 +1,93 @@
+{# Handy Keyboard Shortcuts Modal #}
+<div id="shortcuts-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeShortcutsModal();">
+  <div class="relative w-full max-w-[700px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-6 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
+    <!-- Ambient Glow -->
+    <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl select-none">⌨️</span>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">Handy Keyboard Shortcuts</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
+          Tactile hotkeys designed for instant, mouseless lounge navigation and playback control.
+        </p>
+      </div>
+      <button type="button" class="w-8 h-8 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors border border-[var(--border)]" onclick="closeShortcutsModal();" aria-label="Close Shortcuts">
+        ✕
+      </button>
+    </div>
+
+    <!-- Shortcuts Grid -->
+    <div class="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+      <!-- Section 1: Playback Controls -->
+      <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col gap-3">
+        <span class="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider">Playback Transport</span>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Play / Pause</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Space</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Previous / Next Track</span>
+          <div class="flex gap-1">
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">F9</kbd>
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">F10</kbd>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Seek -5s / +5s</span>
+          <div class="flex gap-1">
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">←</kbd>
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">→</kbd>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Volume Step +/- 5%</span>
+          <div class="flex gap-1">
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">↑</kbd>
+            <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">↓</kbd>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Views & Tools -->
+      <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col gap-3">
+        <span class="text-[11px] font-bold text-[var(--accent)] uppercase tracking-wider">Views &amp; Tools</span>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Ambient Fullscreen</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">F11</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Smart Playlist Creator</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Ctrl+P</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">EQ Studio</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Ctrl+E</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">The Add-on Toybox</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Ctrl+Shift+P</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Settings &amp; Themes</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Ctrl+,</kbd>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[var(--text-muted)]">Close / Dismiss</span>
+          <kbd class="px-2 py-1 rounded bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] font-bold">Esc</kbd>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="relative z-10 pt-2 flex items-center justify-between border-t border-[var(--border)]">
+      <span class="text-xs text-[var(--text-muted)] font-mono">Press '?' anywhere to open this cheatsheet</span>
+      <button type="button" class="px-5 py-2 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold text-xs hover:brightness-110 transition-all shadow-md" onclick="closeShortcutsModal();">
+        Got It
+      </button>
+    </div>
+  </div>
+</div>

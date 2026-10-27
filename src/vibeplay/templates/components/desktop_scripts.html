@@ -1574,6 +1574,419 @@ window.handleFsSeek = handleFsSeek;
 window.handleFsVolumeInput = handleFsVolumeInput;
 window.syncFullscreenPlayback = syncFullscreenPlayback;
 
+// ==========================================
+// 15 Stitch UI Pages Controller Logic
+// ==========================================
+
+// 1. The Add-on Toybox Modal (Screen 1)
+function openToyboxModal() {
+  const el = document.getElementById('toybox-backdrop');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeToyboxModal() {
+  const el = document.getElementById('toybox-backdrop');
+  if (el) el.classList.add('hidden');
+}
+
+function filterToyboxCards(category, btn) {
+  document.querySelectorAll('.toybox-filter-tab').forEach(t => {
+    t.classList.remove('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
+    t.classList.add('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+  });
+  if (btn) {
+    btn.classList.add('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
+    btn.classList.remove('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+  }
+  document.querySelectorAll('.toybox-card').forEach(card => {
+    if (category === 'all' || card.getAttribute('data-category') === category) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function togglePlugin(pluginName, enabled) {
+  fetch('/api/plugins/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: pluginName, enabled: enabled })
+  }).catch(() => {});
+}
+
+function triggerDeduplication() {
+  fetch('/api/library/duplicates', { method: 'POST' }).then(() => {
+    alert('Duplicate scan started in background worker.');
+  }).catch(() => {});
+}
+
+function triggerEnrichment() {
+  fetch('/api/library/enrich', { method: 'POST' }).then(() => {
+    alert('Metadata enrichment started in background worker.');
+  }).catch(() => {});
+}
+
+// 2. Sound Output Switcher Popover (Screen 2)
+function openOutputSwitcher() {
+  const el = document.getElementById('output-switcher-popover');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeOutputSwitcher() {
+  const el = document.getElementById('output-switcher-popover');
+  if (el) el.classList.add('hidden');
+}
+
+function toggleOutputSwitcher(e) {
+  if (e) e.stopPropagation();
+  const el = document.getElementById('output-switcher-popover');
+  if (el) el.classList.toggle('hidden');
+}
+
+function selectOutputRoute(route) {
+  fetch('/api/player/output', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile: route })
+  }).then(() => {
+    closeOutputSwitcher();
+    if (window.htmx) {
+      htmx.ajax('GET', '/api/player/transport', { target: '#transport-footer-container', swap: 'innerHTML' });
+    }
+  }).catch(() => {});
+}
+
+// 3. Parametric Equalizer Studio Modal (Screen 3)
+function openEQStudioModal() {
+  const el = document.getElementById('eq-studio-backdrop');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeEQStudioModal() {
+  const el = document.getElementById('eq-studio-backdrop');
+  if (el) el.classList.add('hidden');
+}
+
+const eqBandValues = [1.5, 0.0, -1.0, 2.0, 0.5];
+
+function updateEQBand(idx, val) {
+  eqBandValues[idx] = parseFloat(val);
+  const lbl = document.getElementById('eq-val-' + idx);
+  if (lbl) {
+    const num = parseFloat(val);
+    lbl.textContent = (num >= 0 ? '+' : '') + num.toFixed(1) + ' dB';
+  }
+  redrawEQCurve();
+}
+
+function redrawEQCurve() {
+  const path = document.getElementById('eqCurvePath');
+  const area = document.getElementById('eqAreaPath');
+  if (!path || !area) return;
+  const y0 = 60 - eqBandValues[0] * 3.5;
+  const y1 = 60 - eqBandValues[1] * 3.5;
+  const y2 = 60 - eqBandValues[2] * 3.5;
+  const y3 = 60 - eqBandValues[3] * 3.5;
+  const y4 = 60 - eqBandValues[4] * 3.5;
+  const d = `M 0,${y0} Q 150,${y1} 250,${y1} T 450,${y2} T 650,${y3} T 800,${y4}`;
+  path.setAttribute('d', d);
+  area.setAttribute('d', d + ' L 800,120 L 0,120 Z');
+}
+
+function applyEQPreset(preset) {
+  if (preset === 'flat') {
+    [0, 1, 2, 3, 4].forEach(i => {
+      const el = document.getElementById('eq-band-' + (i + 1));
+      if (el) el.value = 0;
+      updateEQBand(i, 0);
+    });
+  } else if (preset === 'bass_boost') {
+    const vals = [4.5, 2.5, 0.0, -0.5, 0.0];
+    vals.forEach((v, i) => {
+      const el = document.getElementById('eq-band-' + (i + 1));
+      if (el) el.value = v;
+      updateEQBand(i, v);
+    });
+  } else if (preset === 'vocal_air') {
+    const vals = [-1.0, 0.0, 2.0, 3.5, 2.0];
+    vals.forEach((v, i) => {
+      const el = document.getElementById('eq-band-' + (i + 1));
+      if (el) el.value = v;
+      updateEQBand(i, v);
+    });
+  } else if (preset === 'harman_target') {
+    const vals = [3.5, 1.5, 0.0, 1.0, 2.5];
+    vals.forEach((v, i) => {
+      const el = document.getElementById('eq-band-' + (i + 1));
+      if (el) el.value = v;
+      updateEQBand(i, v);
+    });
+  }
+}
+
+function resetEQBands() {
+  applyEQPreset('flat');
+}
+
+function toggleSpatialBinaural() {
+  fetch('/api/dsp/spatial/toggle', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      const lbl = document.getElementById('spatialStatusLabel');
+      if (lbl) {
+        lbl.textContent = data.mode === 'spatial_binaural' ? '3D Binaural Active' : 'Stereo Direct';
+      }
+    }).catch(() => {});
+}
+
+function saveAndApplyEQ() {
+  fetch('/api/dsp/peq/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bands: [
+        { fc: 80, gain: eqBandValues[0], q: 0.71, type: 'lowshelf' },
+        { fc: 250, gain: eqBandValues[1], q: 1.0, type: 'peaking' },
+        { fc: 1000, gain: eqBandValues[2], q: 1.0, type: 'peaking' },
+        { fc: 4000, gain: eqBandValues[3], q: 1.0, type: 'peaking' },
+        { fc: 12000, gain: eqBandValues[4], q: 0.71, type: 'highshelf' },
+      ],
+      preamp_db: -0.3
+    })
+  }).then(() => closeEQStudioModal()).catch(() => closeEQStudioModal());
+}
+
+// 4. Welcome Onboarding Modal (Screen 6)
+function openOnboardingModal() {
+  const el = document.getElementById('onboarding-backdrop');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeOnboardingModal() {
+  const el = document.getElementById('onboarding-backdrop');
+  if (el) el.classList.add('hidden');
+}
+
+function browseLibraryFolder() {
+  fetch('/api/desktop/browse-folder', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.folder) {
+        const lbl = document.getElementById('onboarding-folder-label');
+        if (lbl) lbl.textContent = 'Selected: ' + data.folder;
+      }
+    }).catch(() => {});
+}
+
+function completeOnboarding() {
+  closeOnboardingModal();
+  fetch('/api/library/scan', { method: 'POST' }).catch(() => {});
+}
+
+// 5. DAC Disconnected Alert & Recovery (Screen 11)
+function openDACAlertModal() {
+  const el = document.getElementById('dac-alert-backdrop');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeDACAlertModal() {
+  const el = document.getElementById('dac-alert-backdrop');
+  if (el) el.classList.add('hidden');
+}
+
+function retryDACConnection() {
+  selectOutputRoute('pure-bitperfect');
+  closeDACAlertModal();
+}
+
+// 6. Handy Keyboard Shortcuts Modal (Screen 12)
+function openShortcutsModal() {
+  const el = document.getElementById('shortcuts-backdrop');
+  if (el) el.classList.remove('hidden');
+}
+
+function closeShortcutsModal() {
+  const el = document.getElementById('shortcuts-backdrop');
+  if (el) el.classList.add('hidden');
+}
+
+// 7. Track Context Menu Popover (Screen 13)
+let activeContextTrackId = null;
+
+function openTrackContextMenu(e, trackId, title, artist) {
+  e.preventDefault();
+  e.stopPropagation();
+  activeContextTrackId = trackId;
+
+  const tLbl = document.getElementById('context-track-title');
+  const aLbl = document.getElementById('context-track-artist');
+  if (tLbl) tLbl.textContent = title;
+  if (aLbl) aLbl.textContent = artist;
+
+  const menu = document.getElementById('track-context-menu');
+  if (!menu) return;
+  menu.classList.remove('hidden');
+
+  const x = Math.min(e.clientX, window.innerWidth - 240);
+  const y = Math.min(e.clientY, window.innerHeight - 260);
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+
+function closeTrackContextMenu() {
+  const menu = document.getElementById('track-context-menu');
+  if (menu) menu.classList.add('hidden');
+  activeContextTrackId = null;
+}
+
+function contextActionPlayNow() {
+  if (activeContextTrackId) {
+    playTrack(activeContextTrackId);
+  }
+  closeTrackContextMenu();
+}
+
+function contextActionPlayNext() {
+  closeTrackContextMenu();
+}
+
+function contextActionAddToQueue() {
+  closeTrackContextMenu();
+}
+
+function contextActionInspectVibe() {
+  if (activeContextTrackId) {
+    if (window.htmx) {
+      htmx.ajax('GET', '/api/track/' + activeContextTrackId, {
+        target: '#workspace-inspector-content',
+        swap: 'innerHTML'
+      });
+      const drawer = document.getElementById('workspace-inspector-drawer');
+      if (drawer) drawer.classList.remove('collapsed');
+    }
+  }
+  closeTrackContextMenu();
+}
+
+function contextActionFindSimilar() {
+  closeTrackContextMenu();
+}
+
+// 8. View Switcher (Master Table vs Record Crate) (Screen 8, 9, 14)
+function switchLibraryView(view) {
+  const tbl = document.getElementById('library-table-container');
+  const crt = document.getElementById('record-crate-container');
+  const bTbl = document.getElementById('view-btn-table');
+  const bCrt = document.getElementById('view-btn-crate');
+
+  if (view === 'crate') {
+    if (tbl) tbl.style.display = 'none';
+    if (crt) crt.classList.remove('hidden');
+    if (bCrt) {
+      bCrt.classList.add('bg-[var(--surface-container)]', 'text-[var(--accent)]', 'font-bold');
+      bCrt.classList.remove('text-[var(--text-muted)]');
+    }
+    if (bTbl) {
+      bTbl.classList.remove('bg-[var(--surface-container)]', 'text-[var(--accent)]', 'font-bold');
+      bTbl.classList.add('text-[var(--text-muted)]');
+    }
+  } else {
+    if (tbl) tbl.style.display = 'block';
+    if (crt) crt.classList.add('hidden');
+    if (bTbl) {
+      bTbl.classList.add('bg-[var(--surface-container)]', 'text-[var(--accent)]', 'font-bold');
+      bTbl.classList.remove('text-[var(--text-muted)]');
+    }
+    if (bCrt) {
+      bCrt.classList.remove('bg-[var(--surface-container)]', 'text-[var(--accent)]', 'font-bold');
+      bCrt.classList.add('text-[var(--text-muted)]');
+    }
+  }
+}
+
+function filterCrateByMood(mood, btn) {
+  document.querySelectorAll('.crate-mood-chip').forEach(c => {
+    c.classList.remove('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
+    c.classList.add('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+  });
+  if (btn) {
+    btn.classList.add('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
+    btn.classList.remove('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+  }
+}
+
+// Document click to close popovers
+document.addEventListener('click', (e) => {
+  const outPop = document.getElementById('output-switcher-popover');
+  if (outPop && !outPop.classList.contains('hidden') && !outPop.contains(e.target) && !e.target.closest('#btn-audio-output-dropdown')) {
+    outPop.classList.add('hidden');
+  }
+  const ctx = document.getElementById('track-context-menu');
+  if (ctx && !ctx.classList.contains('hidden') && !ctx.contains(e.target)) {
+    ctx.classList.add('hidden');
+  }
+});
+
+// Global Keyboard Shortcut listener additions
+window.addEventListener('keydown', (e) => {
+  if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+    e.preventDefault();
+    openShortcutsModal();
+  } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+    e.preventDefault();
+    openToyboxModal();
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'e' || e.key === 'E')) {
+    e.preventDefault();
+    openEQStudioModal();
+  } else if (e.key === 'Escape') {
+    closeToyboxModal();
+    closeOutputSwitcher();
+    closeEQStudioModal();
+    closeOnboardingModal();
+    closeDACAlertModal();
+    closeShortcutsModal();
+    closeTrackContextMenu();
+  }
+});
+
+// Expose on window
+window.openToyboxModal = openToyboxModal;
+window.closeToyboxModal = closeToyboxModal;
+window.filterToyboxCards = filterToyboxCards;
+window.togglePlugin = togglePlugin;
+window.triggerDeduplication = triggerDeduplication;
+window.triggerEnrichment = triggerEnrichment;
+window.openOutputSwitcher = openOutputSwitcher;
+window.closeOutputSwitcher = closeOutputSwitcher;
+window.toggleOutputSwitcher = toggleOutputSwitcher;
+window.selectOutputRoute = selectOutputRoute;
+window.openEQStudioModal = openEQStudioModal;
+window.closeEQStudioModal = closeEQStudioModal;
+window.updateEQBand = updateEQBand;
+window.applyEQPreset = applyEQPreset;
+window.resetEQBands = resetEQBands;
+window.toggleSpatialBinaural = toggleSpatialBinaural;
+window.saveAndApplyEQ = saveAndApplyEQ;
+window.openOnboardingModal = openOnboardingModal;
+window.closeOnboardingModal = closeOnboardingModal;
+window.browseLibraryFolder = browseLibraryFolder;
+window.completeOnboarding = completeOnboarding;
+window.openDACAlertModal = openDACAlertModal;
+window.closeDACAlertModal = closeDACAlertModal;
+window.retryDACConnection = retryDACConnection;
+window.openShortcutsModal = openShortcutsModal;
+window.closeShortcutsModal = closeShortcutsModal;
+window.openTrackContextMenu = openTrackContextMenu;
+window.closeTrackContextMenu = closeTrackContextMenu;
+window.contextActionPlayNow = contextActionPlayNow;
+window.contextActionPlayNext = contextActionPlayNext;
+window.contextActionAddToQueue = contextActionAddToQueue;
+window.contextActionInspectVibe = contextActionInspectVibe;
+window.contextActionFindSimilar = contextActionFindSimilar;
+window.switchLibraryView = switchLibraryView;
+window.filterCrateByMood = filterCrateByMood;
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   initThemeEngine();

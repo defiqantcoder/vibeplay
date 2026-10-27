@@ -1,0 +1,128 @@
+{# The Add-on Toybox (Plugin Manager Modal) #}
+<div id="toybox-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeToyboxModal();">
+  <div class="relative w-full max-w-[840px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-6 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
+    <!-- Ambient Tube Glow Backgrounds -->
+    <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-28 -right-20 w-72 h-72 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header Section -->
+    <div class="relative z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl select-none">🧩</span>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">The Add-on Toybox</h2>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] font-mono font-medium">Modular Architecture</span>
+        </div>
+        <p class="text-sm text-[var(--text-muted)] mt-1.5 max-w-xl">
+          Modular sound gadgets and maintenance tools that remain completely isolated from the lean bit-perfect core audio loop until summoned.
+        </p>
+      </div>
+      <button type="button" id="toybox-close-btn" class="w-8 h-8 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors border border-[var(--border)]" onclick="closeToyboxModal();" aria-label="Close Toybox">
+        ✕
+      </button>
+    </div>
+
+    <!-- Filter Quick-tabs -->
+    <div class="relative z-10 flex items-center gap-2 overflow-x-auto text-xs font-mono">
+      <button type="button" class="toybox-filter-tab px-3 py-1.5 rounded-full bg-[var(--accent)] text-[var(--bg)] font-bold transition-all" data-filter="all" onclick="filterToyboxCards('all', this)">
+        All Toys (2)
+      </button>
+      <button type="button" class="toybox-filter-tab px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--border)]" data-filter="dsp" onclick="filterToyboxCards('dsp', this)">
+        Sound DSP
+      </button>
+      <button type="button" class="toybox-filter-tab px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--border)]" data-filter="maintenance" onclick="filterToyboxCards('maintenance', this)">
+        Library Maintenance
+      </button>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Card 1: Sound DSP & Acoustics Convolver -->
+      <div class="toybox-card bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between shadow-md transition-all hover:border-[var(--accent)]/50 group" data-category="dsp">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] font-semibold uppercase tracking-wider">
+              DSP &amp; HRTF • v0.1.0
+            </span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--text-muted)] border border-[var(--border)]">
+              Core Add-on
+            </span>
+          </div>
+          <h3 class="text-base font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2">
+            <span>🎚️</span> Sound DSP &amp; Acoustics
+          </h3>
+          <p class="text-xs text-[var(--text-muted)] leading-relaxed mb-4">
+            Parametric EQ (PEQ) with AutoEq headphone correction and KEMAR 7.1.4 HRTF binaural 3D spatial convolver. Automatically bypassed during pure ALSA direct playback for 0.0ms latency.
+          </p>
+          <div class="p-2.5 rounded-lg bg-[var(--surface-container)] border border-[var(--border)]/60 text-[11px] font-mono text-[var(--text-muted)] flex items-center justify-between">
+            <span>Bit-Perfect Auto-Bypass:</span>
+            <span class="text-[var(--accent)] font-semibold">Active (0 overhead)</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
+          <button type="button" class="text-xs font-mono font-medium text-[var(--accent)] hover:underline flex items-center gap-1" onclick="closeToyboxModal(); openEQStudioModal();">
+            Configure EQ Studio →
+          </button>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="plugin-toggle-dsp" checked class="sr-only peer" onchange="togglePlugin('dsp', this.checked)">
+            <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent)]"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Card 2: Library Maintenance & Quality Tools -->
+      <div class="toybox-card bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 flex flex-col justify-between shadow-md transition-all hover:border-[var(--accent)]/50 group" data-category="maintenance">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] font-semibold uppercase tracking-wider">
+              LIBRARY &amp; META • v0.1.0
+            </span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--text-muted)] border border-[var(--border)]">
+              Optional Utility
+            </span>
+          </div>
+          <h3 class="text-base font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2">
+            <span>🧹</span> Library Maintenance Tools
+          </h3>
+          <p class="text-xs text-[var(--text-muted)] leading-relaxed mb-4">
+            Duplicate Track Cleaner &amp; Audio Hash Matcher with AcoustID acoustic fingerprinting and MusicBrainz metadata enrichment. Runs on background worker threads without blocking playback.
+          </p>
+          <div class="flex flex-col gap-1.5 p-2.5 rounded-lg bg-[var(--surface-container)] border border-[var(--border)]/60 text-[11px] font-mono text-[var(--text-muted)]">
+            <div class="flex items-center justify-between">
+              <span>AcoustID Service:</span>
+              <span class="text-[var(--text-primary)]">Ready</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Execution Engine:</span>
+              <span class="text-[var(--text-primary)]">Asynchronous ThreadPool</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <button type="button" class="text-xs font-mono px-2.5 py-1 rounded bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-[var(--text-primary)] transition-colors" onclick="triggerDeduplication();">
+              Dedupe
+            </button>
+            <button type="button" class="text-xs font-mono px-2.5 py-1 rounded bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-[var(--text-primary)] transition-colors" onclick="triggerEnrichment();">
+              Enrich
+            </button>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="plugin-toggle-maintenance" checked class="sr-only peer" onchange="togglePlugin('maintenance', this.checked)">
+            <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent)]"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <div class="relative z-10 pt-2 flex items-center justify-between border-t border-[var(--border)] text-xs text-[var(--text-muted)] font-mono">
+      <span>2 plugins loaded • All zero-copy isolated</span>
+      <button type="button" class="px-5 py-2 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold hover:brightness-110 transition-all shadow-md" onclick="closeToyboxModal();">
+        Done
+      </button>
+    </div>
+  </div>
+</div>

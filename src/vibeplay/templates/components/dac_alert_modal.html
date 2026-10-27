@@ -1,0 +1,52 @@
+{# DAC Disconnected Alert & Recovery Popover #}
+<div id="dac-alert-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeDACAlertModal();">
+  <div class="relative w-full max-w-[500px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-7 shadow-2xl flex flex-col gap-5 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
+    <!-- Ambient Alert Glow -->
+    <div class="absolute -top-20 -right-20 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Alert Header -->
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl flex-shrink-0">
+        ⚠️
+      </div>
+      <div class="flex flex-col">
+        <div class="flex items-center gap-2">
+          <h3 class="text-base font-bold text-[var(--text-primary)]">Sound Output Changed</h3>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-semibold uppercase">
+            Failover Safe
+          </span>
+        </div>
+        <p class="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
+          The direct hardware USB DAC connection was interrupted. Playback was immediately rerouted to the PipeWire desktop sound server to prevent buffer stalls and silence.
+        </p>
+      </div>
+    </div>
+
+    <!-- Technical Status Box -->
+    <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] font-mono text-[11px] flex flex-col gap-1.5 text-[var(--text-muted)]">
+      <div class="flex items-center justify-between">
+        <span>Previous Output:</span>
+        <span class="text-[var(--text-primary)]">ALSA Direct hw:1,0 (Letshuoer DAC)</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span>Active Output:</span>
+        <span class="text-emerald-400 font-semibold">PipeWire System Default (48 kHz / 24-bit)</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span>Audio Stream State:</span>
+        <span class="text-[var(--accent)]">Continuously Playing (0 dropped samples)</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--border)]">
+      <button type="button" class="px-4 py-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" onclick="closeDACAlertModal();">
+        Dismiss
+      </button>
+      <button type="button" class="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold text-xs hover:brightness-110 transition-all shadow-md flex items-center gap-1.5" onclick="retryDACConnection();">
+        <span>🔄</span>
+        <span>Retry Hardware Lock</span>
+      </button>
+    </div>
+  </div>
+</div>

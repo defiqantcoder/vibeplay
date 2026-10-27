@@ -1,0 +1,80 @@
+{# Sound Output Switcher Popover #}
+<div id="output-switcher-popover" class="fixed bottom-24 right-8 z-50 w-80 sm:w-96 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl flex flex-col gap-4 text-[var(--text-primary)] hidden">
+  <!-- Header -->
+  <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🔊</span>
+      <h3 class="text-sm font-bold tracking-tight text-[var(--text-primary)]">Sound Output Switcher</h3>
+    </div>
+    <button type="button" class="w-6 h-6 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center text-xs transition-colors border border-[var(--border)]" onclick="closeOutputSwitcher();" aria-label="Close Output Switcher">
+      ✕
+    </button>
+  </div>
+
+  <!-- Device Selection List -->
+  <div class="flex flex-col gap-2.5">
+    <label class="text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider">Available Audio Routes</label>
+    
+    <!-- Route 1: Pure Bit-Perfect Direct ALSA -->
+    <div class="output-device-card p-3 rounded-xl bg-[var(--surface)] border border-[var(--accent)]/60 cursor-pointer hover:bg-[var(--surface-container-high)] transition-all flex flex-col gap-1.5 group" onclick="selectOutputRoute('pure-bitperfect')">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
+          ALSA Direct (hw:1,0)
+        </span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] font-semibold">
+          Bit-Perfect Lock
+        </span>
+      </div>
+      <p class="text-[11px] text-[var(--text-muted)]">
+        Direct hardware kernel reservation bypassing PulseAudio/PipeWire. Zero mixer coloration.
+      </p>
+      <div class="flex items-center justify-between text-[10px] font-mono text-[var(--accent)] pt-1">
+        <span>Lossless Bit-Matching: YES</span>
+        <span>Latency: &lt; 0.5ms</span>
+      </div>
+    </div>
+
+    <!-- Route 2: PipeWire System Audio -->
+    <div class="output-device-card p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] cursor-pointer hover:bg-[var(--surface-container-high)] hover:border-[var(--accent)]/40 transition-all flex flex-col gap-1.5 group" onclick="selectOutputRoute('pipewire')">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[var(--text-muted)]"></span>
+          PipeWire Shared Mixer
+        </span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--surface-container)] text-[var(--text-muted)] border border-[var(--border)]">
+          System Default
+        </span>
+      </div>
+      <p class="text-[11px] text-[var(--text-muted)]">
+        Standard Linux desktop desktop sound server. Supports desktop notifications and multi-app mixing.
+      </p>
+    </div>
+  </div>
+
+  <!-- Hardware Tuning & Latency Watchdog -->
+  <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col gap-2 font-mono text-[11px]">
+    <div class="flex items-center justify-between">
+      <span class="text-[var(--text-muted)]">DPC Latency Watchdog:</span>
+      <span class="text-[var(--accent)] font-semibold">12 µs (Optimal)</span>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-[var(--text-muted)]">ALSA Ring Buffer:</span>
+      <span class="text-[var(--text-primary)]">256 frames (2 periods)</span>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="text-[var(--text-muted)]">Exclusive HW Lock:</span>
+      <span class="text-[var(--accent)]">Engaged</span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex items-center justify-between pt-1 text-xs">
+    <button type="button" class="text-[var(--text-muted)] hover:text-[var(--accent)] font-mono transition-colors" onclick="openSettingsDialog('alsa')">
+      Advanced ALSA Settings →
+    </button>
+    <button type="button" class="px-4 py-1.5 rounded-lg bg-[var(--surface-container-high)] hover:bg-[var(--surface)] border border-[var(--border)] font-semibold text-xs transition-colors" onclick="closeOutputSwitcher()">
+      Close
+    </button>
+  </div>
+</div>
