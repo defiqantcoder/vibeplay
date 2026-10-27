@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -17,20 +17,22 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
 
-    - name: Install dependencies and uv
+    - name: Install system dependencies
       run: |
-        curl -LsSf https://astral.sh/uv/install.sh > install.sh
-        chmod +x install.sh
-        ./install.sh
-        sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
-        uv sync
+        sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1 xvfb libgl1-mesa-glx libasound2-dev pulseaudio
 
-    - name: Lint with ruff
+    - name: Install Python dependencies
       run: |
-        uv run ruff check
-        uv run ruff format --check
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: Lint with flake8
+      run: |
+        flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics
 
     - name: Test with pytest
       run: |
-        uv run pytest --cov=src/vibeplay --cov-report=xml
+        xvfb-run -a pytest tests/ -v
