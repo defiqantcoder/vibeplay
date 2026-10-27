@@ -11,9 +11,7 @@ from __future__ import annotations
 
 import atexit
 import logging
-import os
 import shutil
-import signal
 import socket
 import subprocess
 import threading
@@ -25,7 +23,6 @@ from urllib.request import urlopen
 
 import uvicorn
 
-from vibeplay.config import Settings, get_settings
 from vibeplay.desktop.constants import (
     DEFAULT_BACKEND_HOST,
     DEFAULT_BACKEND_PORT,
@@ -34,11 +31,6 @@ from vibeplay.desktop.constants import (
     DEFAULT_WINDOW_MIN_WIDTH,
     DEFAULT_WINDOW_WIDTH,
     WINDOW_TITLE,
-)
-from vibeplay.desktop.environment import (
-    find_free_loopback_port,
-    generate_ephemeral_session_token,
-    inspect_desktop_environment,
 )
 from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.web import create_app
@@ -50,7 +42,7 @@ DEFAULT_MPD_DATA_DIR = Path("~/.local/share/vibeplay/mpd").expanduser()
 
 def _sanitize_mpd_string(value: str) -> str:
     """Sanitize strings used in mpd.conf to prevent injection."""
-    return value.replace('\n', '').replace('\r', '').replace('\\', '\\\\').replace('"', '\\"')
+    return value.replace("\n", "").replace("\r", "").replace("\\", "\\\\").replace('"', '\\"')
 
 
 def generate_audiophile_mpd_config(
@@ -66,18 +58,10 @@ def generate_audiophile_mpd_config(
     and automatic fallback to PipeWire sound server.
     """
     if not is_loopback_host(host):
-        raise ValueError(
-            f"Security guardrail: MPD daemon must bind to loopback interface only, got '{host}'"
-        )
+        raise ValueError(f"Security guardrail: MPD daemon must bind to loopback interface only, got '{host}'")
 
     resolved_music_dir = (
-        music_dir
-        if music_dir is not None
-        else (
-            Path("~/Music").expanduser()
-            if Path("~/Music").expanduser().exists()
-            else Path.cwd()
-        )
+        music_dir if music_dir is not None else (Path("~/Music").expanduser() if Path("~/Music").expanduser().exists() else Path.cwd())
     )
     mpd_dir_str = _sanitize_mpd_string(str(mpd_dir.resolve()))
     music_dir_str = _sanitize_mpd_string(str(resolved_music_dir.resolve()))
@@ -272,8 +256,10 @@ class DesktopRunner:
         # Setup GTK application name, WM_CLASS, and window icon
         try:
             import gi
+
             gi.require_version("Gtk", "3.0")
             from gi.repository import GLib, Gtk
+
             GLib.set_prgname("vibeplay")
             GLib.set_application_name("VibePlay")
             icon_file = resolve_app_icon_path()

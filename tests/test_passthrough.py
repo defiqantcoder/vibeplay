@@ -81,9 +81,7 @@ def test_codec_mapping_and_descriptions() -> None:
 
 def test_configure_sink_passthrough() -> None:
     """Verify configure_sink_passthrough executes pactl set-sink-formats."""
-    with patch("shutil.which", return_value="/usr/bin/pactl"), patch(
-        "subprocess.run"
-    ) as mock_run:
+    with patch("shutil.which", return_value="/usr/bin/pactl"), patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
         success, msg = configure_sink_passthrough(

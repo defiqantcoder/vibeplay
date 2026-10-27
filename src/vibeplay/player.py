@@ -175,9 +175,7 @@ class MPDTransport:
             # UNIX socket path detection
             if self.host.startswith("/") or self.host.startswith("~"):
                 socket_path = str(Path(self.host).expanduser())
-                logger.debug(
-                    "Connecting to MPD via UNIX domain socket: %s", socket_path
-                )
+                logger.debug("Connecting to MPD via UNIX domain socket: %s", socket_path)
                 client.connect(socket_path)
             else:
                 logger.debug("Connecting to MPD via TCP: %s:%d", self.host, self.port)
@@ -260,9 +258,7 @@ class MPDTransport:
         except Exception:
             pass
 
-        raise PlaybackError(
-            f"Failed to add '{uri_or_path}' to MPD queue: {last_err}"
-        ) from last_err
+        raise PlaybackError(f"Failed to add '{uri_or_path}' to MPD queue: {last_err}") from last_err
 
     def add_tracks(self, paths: list[str]) -> int:
         """Queue multiple track paths in order."""
@@ -606,9 +602,7 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
     return ACTIVE_OUTPUT_PROFILE or "PipeWire Sound Server"
 
 
-def set_output_profile(
-    profile_name: str, settings: Settings | None = None
-) -> str:
+def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
     """Set the active hardware audio output profile and dynamically configure MPD outputs."""
     global ACTIVE_OUTPUT_PROFILE
     ACTIVE_OUTPUT_PROFILE = profile_name
@@ -659,26 +653,17 @@ def set_output_profile(
                 for out in mpd_outputs:
                     o_name = str(out.get("outputname", "")).lower()
                     if "letshuoer" in p_lower and (
-                        "letshuoer" in o_name
-                        or "dt01" in o_name
-                        or "hw:1,0" in o_name
-                        or "dac" in o_name
-                        or "direct" in o_name
-                        or "alsa" in o_name
+                        "letshuoer" in o_name or "dt01" in o_name or "hw:1,0" in o_name or "dac" in o_name or "direct" in o_name or "alsa" in o_name
                     ):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
                     elif "pipewire" in p_lower and "pipewire" in o_name:
                         target_id = str(out.get("outputid", out.get("id")))
                         break
-                    elif ("dac" in p_lower or "bit-perfect" in p_lower) and (
-                        "direct" in o_name or "alsa" in o_name or "dac" in o_name
-                    ):
+                    elif ("dac" in p_lower or "bit-perfect" in p_lower) and ("direct" in o_name or "alsa" in o_name or "dac" in o_name):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
-                    elif ("speaker" in p_lower or "analog" in p_lower) and (
-                        "speaker" in o_name or "analog" in o_name or "sof" in o_name
-                    ):
+                    elif ("speaker" in p_lower or "analog" in p_lower) and ("speaker" in o_name or "analog" in o_name or "sof" in o_name):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
 
@@ -708,9 +693,7 @@ def get_output_profile() -> str:
     return ACTIVE_OUTPUT_PROFILE
 
 
-def toggle_pause(
-    db_path: Path | None = None, settings: Settings | None = None
-) -> dict[str, Any]:
+def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
     """Toggle play/pause state in Music Player Daemon, auto-seeding if queue is empty."""
     global _FALLBACK_PROC
     if _FALLBACK_PROC is not None:
@@ -752,9 +735,7 @@ def toggle_pause(
                     if db_p.exists():
                         with get_connection(db_p) as conn:
                             cursor = conn.cursor()
-                            cursor.execute(
-                                "SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50"
-                            )
+                            cursor.execute("SELECT path FROM tracks WHERE status = 'active' ORDER BY id ASC LIMIT 50")
                             rows = cursor.fetchall()
                             if rows:
                                 paths = [r[0] for r in rows if r[0]]
@@ -791,9 +772,7 @@ def toggle_pause(
         return {"state": "pause", "error": str(err)}
 
 
-def seek_playback(
-    time_seconds: float, settings: Settings | None = None
-) -> dict[str, Any]:
+def seek_playback(time_seconds: float, settings: Settings | None = None) -> dict[str, Any]:
     """Seek playback to target time position in seconds."""
     cfg = settings or get_settings()
     try:
@@ -973,9 +952,7 @@ def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
         return {"volume": target_vol, "error": str(err)}
 
 
-def get_playback_status(
-    db_path: Path | None = None, settings: Settings | None = None
-) -> dict[str, Any]:
+def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
     """Retrieve real-time player telemetry, DAC buffer health, and active track."""
     cfg = settings or get_settings()
     try:
@@ -990,9 +967,7 @@ def get_playback_status(
 
             file_path = cur.get("file", "")
             track_db_id = None
-            cur_title = cur.get("title") or (
-                Path(file_path).stem if file_path else "vibeplay Ready"
-            )
+            cur_title = cur.get("title") or (Path(file_path).stem if file_path else "vibeplay Ready")
             cur_artist = cur.get("artist") or "Audiophile Precision"
             cur_album = cur.get("album") or "Studio Master"
 
@@ -1063,7 +1038,7 @@ def get_playback_status(
                 audio_spec = "--"
 
             st_vol = st.get("volume", "80")
-            is_hardware_lineout = (st_vol == "-1")
+            is_hardware_lineout = st_vol == "-1"
             if is_hardware_lineout:
                 vol = 100
                 volume_db = "0.0 dB (Hardware Line-Out)"
@@ -1102,7 +1077,7 @@ def get_playback_status(
                 if output_channels != native_channels:
                     channels_mismatch = True
 
-            volume_attenuated = (vol < 100 and not is_hardware_lineout)
+            volume_attenuated = vol < 100 and not is_hardware_lineout
 
             if is_active and is_lossless and not resampling_applied and not bit_depth_mismatch and not channels_mismatch and not volume_attenuated:
                 bit_perfect = True
@@ -1217,15 +1192,11 @@ def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     return {
         "codec": codec,
         "sample_rate": sample_rate,
-        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz"
-        if sample_rate >= 1000
-        else f"{sample_rate} Hz",
+        "sample_rate_str": f"{sample_rate / 1000.0:.1f} kHz" if sample_rate >= 1000 else f"{sample_rate} Hz",
         "bits_per_sample": bits_per_sample,
         "bit_depth_str": f"{bits_per_sample}-bit",
         "channels": channels,
-        "channels_str": "Stereo"
-        if channels == 2
-        else ("Mono" if channels == 1 else f"{channels} Ch"),
+        "channels_str": "Stereo" if channels == 2 else ("Mono" if channels == 1 else f"{channels} Ch"),
         "bitrate_kbps": f"{int(bitrate / 1000)} kbps" if bitrate else "Lossless VBR",
     }
 
