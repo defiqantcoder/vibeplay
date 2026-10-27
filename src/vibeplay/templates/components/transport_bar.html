@@ -51,7 +51,7 @@
       <!-- Hardware Telemetry Specs -->
       <div class="dac-indicator">
         <span class="rate">{{ playback.sample_rate }} / {{ playback.bit_depth }}</span>
-        <span class="mode">{{ playback.buffer_health }}</span>
+        <span class="mode" title="Bit-Perfect Status: Strict 5 criteria (lossless container, matching sample rate, matching bit-depth, matching channels, and 0 dB / unattenuated hardware line-out)">{{ playback.buffer_health }}</span>
       </div>
 
       <!-- Volume -->
@@ -95,7 +95,7 @@
           {% for prof in playback.output_profiles %}
             {% set prof_lower = prof | lower %}
             {% if "spatial" in prof_lower %}
-              {% set prof_tip = "7.1.4 3D Spatial Binaural: Convolves multi-channel audio using KEMAR HRTF impulses into immersive 3D audio for stereo headphones. Requires PipeWire output." %}
+              {% set prof_tip = "7.1.4 Spatial Audio: convolves 12 virtual surround/overhead channels into binaural stereo for standard headphones using SOFA HRTF filters." %}
             {% elif "letshuoer" in prof_lower or "dt01" in prof_lower %}
               {% set prof_tip = "Letshuoer USB DAC (Bit-Perfect Direct ALSA hw:1,0): Hardware direct bitstream delivery bypassing software mixers and volume attenuation." %}
             {% elif "bit-perfect" in prof_lower or "pure" in prof_lower %}

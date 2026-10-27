@@ -168,7 +168,7 @@
 
         <div class="panel-grid-2">
           <div class="panel-section">
-            <label class="section-label" for="cfg-peq-profile">Parametric EQ (PEQ) Profile Loader</label>
+            <label class="section-label" for="cfg-peq-profile" title="Parametric EQ: 10-band biquad cascade and anti-clipping negative preamp auto-staging.">Parametric EQ (PEQ) Profile Loader</label>
             <select id="cfg-peq-profile" class="settings-select" onchange="applyPeqProfile(this.value)">
               <option value="none" {% if not desktop_settings or desktop_settings.peq_profile == 'none' %}selected{% endif %}>Bypass / Flat (0.0 dB)</option>
               <option value="7hz_zero_2" {% if desktop_settings and desktop_settings.peq_profile == '7hz_zero_2' %}selected{% endif %}>7Hz Salnotes Zero:2 (Harman IEM Target)</option>
@@ -176,7 +176,7 @@
               <option value="sennheiser_hd600" {% if desktop_settings and desktop_settings.peq_profile == 'sennheiser_hd600' %}selected{% endif %}>Sennheiser HD 600 (Oratory1990 Harman OE)</option>
               <option value="apple_airpods_pro_2" {% if desktop_settings and desktop_settings.peq_profile == 'apple_airpods_pro_2' %}selected{% endif %}>Apple AirPods Pro 2 (Reference Correction)</option>
             </select>
-            <p class="section-help">Applies 64-bit biquad cascaded filters calibrated to transducer impedance curves.</p>
+            <p class="section-help" title="Parametric EQ: 10-band biquad cascade and anti-clipping negative preamp auto-staging.">Applies 64-bit biquad cascaded filters calibrated to transducer impedance curves.</p>
           </div>
 
           <div class="panel-section">
@@ -425,13 +425,27 @@
 
           <div class="panel-section">
             <label class="section-label" for="cfg-acoustid-api-key">AcoustID API Key (Fingerprinting)</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="password"
+                     id="cfg-acoustid-api-key"
+                     class="settings-input font-mono"
+                     placeholder="Optional API key..."
+                     value="{{ desktop_settings.acoustid_api_key if desktop_settings and desktop_settings.acoustid_api_key else '' }}"
+                     onchange="saveDesktopSettings()">
+              <button type="button" class="btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 11px;" onclick="togglePasswordVisibility('cfg-acoustid-api-key', this)">Show</button>
+            </div>
+            <p class="section-help">For online Chromaprint fingerprinting via MusicBrainz. If blank, local tag fallback is used. Get a free API key at <a href="https://acoustid.org/" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">acoustid.org</a>.</p>
+          </div>
+
+          <div class="panel-section" style="margin-top: 1rem;">
+            <label class="section-label" for="cfg-musicbrainz-contact">MusicBrainz Contact</label>
             <input type="text"
-                   id="cfg-acoustid-api-key"
-                   class="settings-input font-mono"
-                   placeholder="Optional API key..."
-                   value="{{ desktop_settings.acoustid_api_key if desktop_settings and desktop_settings.acoustid_api_key else '' }}"
+                   id="cfg-musicbrainz-contact"
+                   class="settings-input"
+                   placeholder="Required contact info (e.g. app-name/version, email, or URL)"
+                   value="{{ desktop_settings.musicbrainz_contact if desktop_settings and desktop_settings.musicbrainz_contact else '' }}"
                    onchange="saveDesktopSettings()">
-            <p class="section-help">For online Chromaprint fingerprinting via MusicBrainz. If blank, local tag fallback is used.</p>
+            <p class="section-help">Required by the <a href="https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">MusicBrainz API</a> to identify the application making requests.</p>
           </div>
         </div>
 

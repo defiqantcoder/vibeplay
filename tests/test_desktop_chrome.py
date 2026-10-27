@@ -107,7 +107,10 @@ class TestDesktopApiEndpoints:
         assert "the-unknown" in theme_ids
         assert "castle-in-the-sky" in theme_ids
 
-    def test_player_clear_endpoint(self, desktop_client: TestClient) -> None:
+    @patch("vibeplay.player.get_mpd_transport")
+    def test_player_clear_endpoint(self, mock_mpd, desktop_client: TestClient) -> None:
+        mock_transport = MagicMock()
+        mock_mpd.return_value.__enter__.return_value = mock_transport
         resp = desktop_client.post("/api/player/clear")
         assert resp.status_code == 200
         data = resp.json()

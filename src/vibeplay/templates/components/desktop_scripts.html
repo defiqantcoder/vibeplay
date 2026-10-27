@@ -292,7 +292,8 @@ function gatherSettingsFormPayload() {
     llm_provider: getVal('cfg-llm-provider', 'gemini'),
     gemini_api_key: getVal('cfg-gemini-key', ''),
     gemini_model: getVal('cfg-gemini-model', 'gemini-2.5-flash'),
-    acoustid_api_key: getVal('cfg-acoustid-key', ''),
+    acoustid_api_key: getVal('cfg-acoustid-api-key', ''),
+    musicbrainz_contact: getVal('cfg-musicbrainz-contact', ''),
   };
 }
 
@@ -355,7 +356,8 @@ function syncDomWithSettings(s) {
   setVal('cfg-llm-provider', s.llm_provider);
   setVal('cfg-gemini-key', s.gemini_api_key);
   setVal('cfg-gemini-model', s.gemini_model);
-  setVal('cfg-acoustid-key', s.acoustid_api_key);
+  setVal('cfg-acoustid-api-key', s.acoustid_api_key);
+  setVal('cfg-musicbrainz-contact', s.musicbrainz_contact);
 
   updateAudioDeviceConfig();
 }
