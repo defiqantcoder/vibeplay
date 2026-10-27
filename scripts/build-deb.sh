@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 ARCH="amd64"
 PKG_NAME="vibeplay"
 DEB_NAME="${PKG_NAME}_${VERSION}_${ARCH}.deb"

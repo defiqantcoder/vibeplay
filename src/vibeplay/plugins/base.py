@@ -19,7 +19,7 @@ class PluginMetadata:
     """Metadata describing a VibePlay add-on/plugin."""
 
     name: str
-    version: str = "0.1.0"
+    version: str = "0.2.0"
     description: str = ""
     author: str = "VibePlay Contributors"
     enabled: bool = True

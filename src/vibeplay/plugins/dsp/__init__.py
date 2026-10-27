@@ -22,7 +22,7 @@ class DSPPlugin(Plugin):
         super().__init__(
             metadata=PluginMetadata(
                 name="dsp",
-                version="0.1.0",
+                version="0.2.0",
                 description="Parametric EQ and SOFA 7.1.4 HRTF spatial convolution (bypassed in bit-perfect mode)",
                 tags=["dsp", "peq", "spatial", "audiophile"],
             )

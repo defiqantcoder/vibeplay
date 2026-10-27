@@ -22,13 +22,17 @@
       </button>
     </div>
 
-    <!-- Bit-Perfect Bypass Banner (Audiophile Invariant) -->
-    <div id="eq-bitperfect-notice" class="relative z-10 p-3 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/30 flex items-center justify-between text-xs font-mono">
-      <div class="flex items-center gap-2 text-[var(--accent)]">
-        <span class="text-sm">🛡️</span>
-        <span>Bit-Perfect Auto-Bypass: When Pure Bit-Perfect ALSA output is active, EQ is completely bypassed for 0.0ms latency.</span>
+    <!-- Bit-Perfect Bypass Banner (Audiophile Invariant: Option A) -->
+    <div id="eq-bitperfect-notice" class="relative z-10 p-3.5 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+      <div class="flex items-center gap-2.5 text-[var(--accent)]">
+        <span class="text-base select-none">🛡️</span>
+        <div>
+          <span class="font-bold">Bypassed:</span> Audio output is currently Pure Bit-Perfect. EQ curves are strictly bypassed to maintain sample bit-perfection.
+        </div>
       </div>
-      <span class="px-2 py-0.5 rounded bg-[var(--accent)]/20 text-[var(--accent)] font-bold">HW BYPASS</span>
+      <button type="button" class="px-3 py-1.5 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--accent)] border border-[var(--border)] font-bold text-xs transition-colors flex-shrink-0" onclick="selectOutputRoute('spatial-headphones');">
+        Switch to DSP Profile →
+      </button>
     </div>
 
     <!-- Frequency Curve Canvas / SVG -->

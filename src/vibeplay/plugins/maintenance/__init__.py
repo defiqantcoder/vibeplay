@@ -22,7 +22,7 @@ class MaintenancePlugin(Plugin):
         super().__init__(
             metadata=PluginMetadata(
                 name="maintenance",
-                version="0.1.0",
+                version="0.2.0",
                 description="Optional library maintenance tools (duplicate finder and AcoustID/MusicBrainz enrichment)",
                 tags=["maintenance", "duplicates", "enrichment"],
             )

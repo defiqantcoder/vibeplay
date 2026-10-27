@@ -940,7 +940,7 @@ function toggleAboutDialog() {
   closeAllMenus();
   alert(
     "vibeplay — Audiophile Precision Console\n" +
-    "Version: 0.1.0 (Desktop Native Shell)\n" +
+    "Version: 0.2.0 (Desktop Native Shell)\n" +
     "Linux / Ubuntu 24.04 LTS\n" +
     "WebKit2GTK + Direct ALSA Bit-Perfect Core\n" +
     "https://github.com/defiqantcoder/vibeplay"
@@ -1903,6 +1903,9 @@ function switchLibraryView(view) {
       bCrt.classList.add('text-[var(--text-muted)]');
     }
   }
+  try {
+    localStorage.setItem('vibeplay_library_view', view);
+  } catch (e) {}
 }
 
 function filterCrateByMood(mood, btn) {
@@ -1995,5 +1998,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initInspectorState();
   initTelemetryHudState();
   initFullscreenNowPlayingState();
+
+  try {
+    const savedView = localStorage.getItem('vibeplay_library_view');
+    if (savedView === 'crate') {
+      switchLibraryView('crate');
+    }
+  } catch (e) {}
 });
 

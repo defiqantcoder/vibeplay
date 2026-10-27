@@ -345,7 +345,7 @@ def create_app(
     app = FastAPI(
         title="vibeplay",
         description="Audiophile Precision Audio Analysis, Vibe Clustering & Smart Playlist Server",
-        version="0.1.0",
+        version="0.2.0",
     )
 
     if effective_api_key:

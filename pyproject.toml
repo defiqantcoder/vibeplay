@@ -1,6 +1,6 @@
 [project]
 name = "vibeplay"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local music library scanner, metadata enricher, audio feature analyzer, and vibe-based smart playlist generator."
 readme = "README.md"
 authors = [
