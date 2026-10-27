@@ -16,7 +16,7 @@ runner = CliRunner()
 def test_package_version() -> None:
     """Verify that vibeplay package exposes version string."""
     assert hasattr(vibeplay, "__version__")
-    assert vibeplay.__version__ == "0.1.0"
+    assert vibeplay.__version__ == "0.2.0"
 
 
 def test_cli_help() -> None:

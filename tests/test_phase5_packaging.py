@@ -30,6 +30,7 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
+from vibeplay import __version__
 from vibeplay.web import create_app
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -243,7 +244,7 @@ def test_local_binary_entrypoint_launches_without_uv_run(tmp_path: Path):
         check=False,
     )
     assert ver_proc.returncode == 0
-    assert "vibeplay-desktop 0.1.0" in ver_proc.stdout
+    assert f"vibeplay-desktop {__version__}" in ver_proc.stdout
 
     help_proc = subprocess.run(
         [str(venv_bin), "--help"],
