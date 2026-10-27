@@ -4624,3 +4624,501 @@ body[data-contrast='high-contrast'] {
   background-color: var(--bg-container-lowest);
   box-shadow: 0 1px 4px var(--shadow-modal);
 }
+
+/* ==========================================================================
+   Vibe Inspector Modal (Stitch Screen Overhaul)
+   ========================================================================== */
+
+#track-detail-modal {
+  max-width: 740px;
+  width: 94%;
+  padding: 0;
+  border-radius: 20px;
+  background-color: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 24px 64px -8px var(--shadow-modal), 0 0 40px -10px var(--primary-tint);
+  overflow: hidden;
+}
+
+.vibe-inspect-modal-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  gap: 1.15rem;
+  background-color: var(--bg-container);
+  color: var(--text-primary);
+}
+
+.vibe-inspect-top-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+
+.vibe-inspect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.vibe-inspect-meta-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.vibe-inspect-art-thumb {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px var(--shadow-modal);
+  overflow: hidden;
+}
+
+.vibe-inspect-art-thumb svg {
+  width: 30px;
+  height: 30px;
+  fill: var(--primary);
+}
+
+.vibe-inspect-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.vibe-inspect-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vibe-inspect-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vibe-inspect-track-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-container-high);
+  color: var(--text-muted);
+}
+
+.vibe-inspect-sub-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.vibe-inspect-artist {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.vibe-inspect-lossless-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-tint);
+  color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.vibe-inspect-telemetry-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-container-lowest);
+  color: var(--secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.vibe-inspect-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--bg-container-high);
+  color: var(--text-muted);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vibe-inspect-close-btn:hover {
+  background-color: var(--bg-container-highest);
+  color: var(--text-primary);
+}
+
+.vibe-inspect-close-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* Section Tag */
+.vibe-inspect-section-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.vibe-inspect-tag-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.vibe-inspect-tag-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 3 Big Gauge Bubbles */
+.vibe-inspect-gauges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .vibe-inspect-gauges-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vibe-gauge-bubble {
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.vibe-gauge-bubble:hover {
+  background-color: var(--bg-container-low);
+  border-color: var(--border-strong);
+}
+
+.vibe-gauge-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vibe-gauge-header.tempo {
+  color: var(--secondary);
+}
+
+.vibe-gauge-header.energy {
+  color: var(--primary);
+}
+
+.vibe-gauge-header.dance {
+  color: var(--secondary);
+}
+
+.vibe-gauge-body {
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vibe-gauge-tempo-val {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.vibe-gauge-tempo-unit {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Metronome Wave Bars */
+.vibe-metronome-bars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-container-high);
+}
+
+.vibe-metro-bar {
+  width: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--secondary);
+  animation: vibeMetroPulse 0.45s ease-in-out infinite alternate;
+}
+
+.vibe-metro-bar:nth-child(1) { height: 10px; animation-delay: 0.0s; }
+.vibe-metro-bar:nth-child(2) { height: 16px; animation-delay: 0.1s; box-shadow: 0 0 6px var(--secondary-glow); }
+.vibe-metro-bar:nth-child(3) { height: 8px;  animation-delay: 0.2s; }
+.vibe-metro-bar:nth-child(4) { height: 18px; animation-delay: 0.15s; }
+.vibe-metro-bar:nth-child(5) { height: 12px; animation-delay: 0.05s; }
+
+@keyframes vibeMetroPulse {
+  0% { transform: scaleY(0.5); opacity: 0.6; }
+  100% { transform: scaleY(1.15); opacity: 1; }
+}
+
+/* Circular SVG Dial */
+.vibe-dial-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vibe-dial-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.vibe-dial-track {
+  fill: transparent;
+  stroke: var(--bg-container-high);
+  stroke-width: 7;
+}
+
+.vibe-dial-fill-cyan {
+  fill: transparent;
+  stroke: var(--primary);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--primary-glow));
+}
+
+.vibe-dial-fill-amber {
+  fill: transparent;
+  stroke: var(--secondary);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--secondary-glow));
+}
+
+.vibe-dial-center-val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vibe-gauge-sublabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.vibe-gauge-sublabel.tempo {
+  background-color: var(--secondary-tint);
+  color: var(--secondary);
+}
+
+.vibe-gauge-sublabel.energy {
+  background-color: var(--primary-tint);
+  color: var(--primary);
+}
+
+.vibe-gauge-sublabel.dance {
+  background-color: var(--secondary-tint);
+  color: var(--secondary);
+}
+
+/* Musical DNA Badges Card */
+.vibe-inspect-dna-card {
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.vibe-dna-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-container-high);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.vibe-dna-pill.green-tint {
+  background-color: var(--tertiary-tint);
+  color: var(--tertiary);
+  font-weight: 600;
+}
+
+.vibe-dna-camelot-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--primary-tint);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* Raw Specs & Mood Grid */
+.vibe-inspect-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .vibe-inspect-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vibe-inspect-tech-box,
+.vibe-inspect-mood-box {
+  background-color: var(--bg-container-lowest);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}
+
+.vibe-inspect-tech-hdr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 0.65rem;
+}
+
+.spec-stat-grid-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.vibe-mood-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vibe-inspect-identifiers {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.5rem;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.vibe-inspect-path {
+  font-size: 10px;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.vibe-inspect-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.vibe-inspect-dsp-sig {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.vibe-inspect-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

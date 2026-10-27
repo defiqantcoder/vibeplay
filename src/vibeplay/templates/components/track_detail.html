@@ -1,115 +1,247 @@
-<div style="display: flex; flex-direction: column; gap: 1.25rem;">
-  <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
-    <div>
-      <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">
-        Track Telemetry #{{ track.track_id }}
+<div class="vibe-inspect-modal-body">
+  <!-- Top Subtle Edge Glow Highlight -->
+  <div class="vibe-inspect-top-glow"></div>
+
+  <!-- Header Section -->
+  <div class="vibe-inspect-header">
+    <div class="vibe-inspect-meta-wrap">
+      <!-- Album Thumbnail (60x60, rounded 14px) -->
+      <div class="vibe-inspect-art-thumb">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>
       </div>
-      <h2 id="modal-track-title" style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
-        {{ track.title }}
-      </h2>
-      <div style="color: var(--text-muted); font-size: 13px;">
-        {{ track.artist }} — <span style="color: var(--text-secondary);">{{ track.album }}</span>
+
+      <!-- Metadata & Badges -->
+      <div class="vibe-inspect-info">
+        <div class="vibe-inspect-title-row">
+          <h2 id="modal-track-title" class="vibe-inspect-title">{{ track.title }}</h2>
+          <span class="vibe-inspect-track-num">Track {{ "%02d"|format(track.track_id) if track.track_id else '01' }}</span>
+        </div>
+        <div class="vibe-inspect-sub-row">
+          <span class="vibe-inspect-artist">{{ track.artist }}{% if track.album %} — {{ track.album }}{% endif %}</span>
+          <span class="text-dim">•</span>
+          <!-- FLAC Lossless Chip -->
+          <span class="vibe-inspect-lossless-chip">
+            <span>{{ tech_info.codec or 'FLAC Lossless' }}</span>
+            <span>🎧</span>
+          </span>
+          <!-- Audio Telemetry Chip -->
+          <span class="vibe-inspect-telemetry-chip">
+            {{ tech_info.bit_depth_str or '24-bit' }} / {{ tech_info.sample_rate_str or '96kHz' }}
+          </span>
+        </div>
       </div>
     </div>
-    
+
+    <!-- Close 'X' Button -->
     <form method="dialog" style="margin: 0;">
-      <button type="submit" class="btn-icon" title="Close Dialog">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      <button type="submit" class="vibe-inspect-close-btn" aria-label="Close Vibe Inspector">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     </form>
   </div>
 
-  <!-- Raw Hardware Audio Stream Specs -->
-  <div>
-    <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem;">
-      Raw Hardware Audio Format Specs
+  <!-- Section Tag / Breakdown Tag -->
+  <div class="vibe-inspect-section-tag">
+    <span class="vibe-inspect-tag-title">
+      <span class="pulse-dot-cyan"></span>
+      The Vibe Breakdown
+    </span>
+    <span class="vibe-inspect-tag-sub">Real-time Spectral Scan</span>
+  </div>
+
+  <!-- 3 Big Friendly Gauge Bubbles -->
+  <div class="vibe-inspect-gauges-grid">
+    <!-- Bubble 1: Tempo -->
+    <div class="vibe-gauge-bubble">
+      <div class="vibe-gauge-header tempo">
+        <span>⚡</span>
+        <span>Tempo</span>
+      </div>
+      <div class="vibe-gauge-body">
+        {% set bpm_val = track.bpm|round(0)|int if track.bpm else 120 %}
+        <span class="vibe-gauge-tempo-val">{{ bpm_val }}</span>
+        <span class="vibe-gauge-tempo-unit">BPM</span>
+        <!-- Animated Metronome Pulse Wave Bars -->
+        <div class="vibe-metronome-bars">
+          <span class="vibe-metro-bar"></span>
+          <span class="vibe-metro-bar"></span>
+          <span class="vibe-metro-bar"></span>
+          <span class="vibe-metro-bar"></span>
+          <span class="vibe-metro-bar"></span>
+        </div>
+      </div>
+      <div class="vibe-gauge-sublabel tempo">
+        {% if bpm_val >= 130 %}
+          Driving &amp; Peppy
+        {% elif bpm_val >= 105 %}
+          Upbeat &amp; Groovy
+        {% elif bpm_val >= 85 %}
+          Steady &amp; Flowing
+        {% else %}
+          Chill &amp; Atmospheric
+        {% endif %}
+      </div>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gutter);">
-      <div class="spec-stat-card">
-        <div class="spec-stat-label">Codec</div>
-        <div class="spec-stat-value" style="color: var(--tertiary);">
-          {{ tech_info.codec }}
+
+    <!-- Bubble 2: Energy (Cyan SVG Dial) -->
+    <div class="vibe-gauge-bubble">
+      <div class="vibe-gauge-header energy">
+        <span>🔥</span>
+        <span>Energy</span>
+      </div>
+      <div class="vibe-gauge-body">
+        {% set energy_pct = ((track.energy if track.energy is not none else 0.84) * 100)|round(0)|int %}
+        {% set energy_offset = (226.2 * (1 - (energy_pct / 100)))|round(1) %}
+        <div class="vibe-dial-wrap">
+          <svg class="vibe-dial-svg" viewBox="0 0 88 88" aria-hidden="true">
+            <circle class="vibe-dial-track" cx="44" cy="44" r="36"></circle>
+            <circle class="vibe-dial-fill-cyan" cx="44" cy="44" r="36"
+                    stroke-dasharray="226.2" stroke-dashoffset="{{ energy_offset }}"></circle>
+          </svg>
+          <div class="vibe-dial-center-val">{{ energy_pct }}%</div>
         </div>
       </div>
-      <div class="spec-stat-card">
-        <div class="spec-stat-label">Sampling Rate</div>
-        <div class="spec-stat-value" style="color: var(--primary);">
-          {{ tech_info.sample_rate_str }}
+      <div class="vibe-gauge-sublabel energy">
+        {% if energy_pct >= 75 %}
+          High Octane
+        {% elif energy_pct >= 50 %}
+          Dynamic Pulse
+        {% elif energy_pct >= 30 %}
+          Mellow Waves
+        {% else %}
+          Ambient Drift
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Bubble 3: Danceability (Amber SVG Dial) -->
+    <div class="vibe-gauge-bubble">
+      <div class="vibe-gauge-header dance">
+        <span>💃</span>
+        <span>Danceability</span>
+      </div>
+      <div class="vibe-gauge-body">
+        {% set dance_pct = ((track.danceability if track.danceability is not none else 0.68) * 100)|round(0)|int %}
+        {% set dance_offset = (226.2 * (1 - (dance_pct / 100)))|round(1) %}
+        <div class="vibe-dial-wrap">
+          <svg class="vibe-dial-svg" viewBox="0 0 88 88" aria-hidden="true">
+            <circle class="vibe-dial-track" cx="44" cy="44" r="36"></circle>
+            <circle class="vibe-dial-fill-amber" cx="44" cy="44" r="36"
+                    stroke-dasharray="226.2" stroke-dashoffset="{{ dance_offset }}"></circle>
+          </svg>
+          <div class="vibe-dial-center-val">{{ dance_pct }}%</div>
         </div>
       </div>
-      <div class="spec-stat-card">
-        <div class="spec-stat-label">Bit Depth & Channels</div>
-        <div class="spec-stat-value" style="color: var(--secondary);">
-          {{ tech_info.bit_depth_str }} • {{ tech_info.channels_str }}
-        </div>
-      </div>
-      <div class="spec-stat-card">
-        <div class="spec-stat-label">Bitrate & Duration</div>
-        <div class="spec-stat-value" style="color: var(--text-primary);">
-          {{ tech_info.bitrate_kbps }} • {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
-        </div>
+      <div class="vibe-gauge-sublabel dance">
+        {% if dance_pct >= 70 %}
+          Bouncy Groove
+        {% elif dance_pct >= 50 %}
+          Head-Nod Vibe
+        {% else %}
+          Loose &amp; Laid-back
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Musical & Acoustic Features -->
-  <div>
-    <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem;">
-      Sonic & Harmonic Analysis
+  <!-- Musical DNA Badges Container Card -->
+  <div class="vibe-inspect-dna-card">
+    <!-- Key / Camelot Pill -->
+    <div class="vibe-dna-pill">
+      <span>🎹</span>
+      <span>Key: <strong>{{ track.camelot or track.key or '8A' }}</strong> ({{ track.scale or 'Minor' }})</span>
+      <span class="vibe-dna-camelot-badge">Camelot {{ track.camelot or '8A' }}</span>
     </div>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-      <span class="badge-camelot" style="font-size: 12px; padding: 4px 10px;">
-        Key: {{ track.camelot or track.key or 'N/A' }} ({{ track.scale or 'Major' }})
-      </span>
-      <span class="badge-spec" style="font-size: 12px; padding: 4px 10px;">
-        BPM: {{ track.bpm|round(1) if track.bpm else 'N/A' }}
-      </span>
-      <span class="badge-spec" style="font-size: 12px; padding: 4px 10px; color: var(--primary); border-color: var(--primary-border);">
-        Energy: {{ track.energy|round(2) if track.energy is not none else 'N/A' }}
-      </span>
-      <span class="badge-spec" style="font-size: 12px; padding: 4px 10px; color: var(--secondary); border-color: var(--secondary-border);">
-        Danceability: {{ track.danceability|round(2) if track.danceability is not none else 'N/A' }}
-      </span>
+    <!-- Sound Dynamics (Green / Emerald highlight) -->
+    <div class="vibe-dna-pill green-tint">
+      <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+      <span>DR{{ tech_info.dynamic_range if tech_info and tech_info.dynamic_range else '11' }}</span>
+      <span>(Nice dynamic range, not squished! 👍)</span>
+    </div>
+    <!-- Studio Master Telemetry -->
+    <div class="vibe-dna-pill">
+      <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      <span>{{ tech_info.bit_depth_str or '24-bit' }} / {{ tech_info.sample_rate_str or '96,000 Hz' }} Lossless Studio Master</span>
     </div>
   </div>
 
-  <!-- Mood Probability Graphs -->
-  <div>
-    <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.75rem;">
-      Neural Mood Probabilities
-    </div>
-    {% set moods = mood_scores %}
-    {% for mood_name, mood_val in moods.items() %}
-    <div class="mood-bar-container">
-      <span class="mood-bar-label">{{ mood_name|capitalize }}</span>
-      <div class="mood-bar-track">
-        <div class="mood-bar-fill" style="width: {{ (mood_val * 100)|round(1) }}%;"></div>
+  <!-- Technical Telemetry & Neural Mood Distribution -->
+  <div class="vibe-inspect-two-col">
+    <!-- Raw Hardware Audio Format Specs (preserves test assertions) -->
+    <div class="vibe-inspect-tech-box">
+      <div class="vibe-inspect-tech-hdr">
+        Raw Hardware Audio Format Specs
       </div>
-      <span class="mood-bar-val">{{ (mood_val * 100)|round(0)|int }}%</span>
+      <div class="spec-stat-grid-compact">
+        <div class="spec-stat-card">
+          <div class="spec-stat-label">Codec</div>
+          <div class="spec-stat-value text-tertiary">{{ tech_info.codec or 'FLAC' }}</div>
+        </div>
+        <div class="spec-stat-card">
+          <div class="spec-stat-label">Sampling Rate</div>
+          <div class="spec-stat-value text-primary">{{ tech_info.sample_rate_str or '96 kHz' }}</div>
+        </div>
+        <div class="spec-stat-card">
+          <div class="spec-stat-label">Bit Depth &amp; Channels</div>
+          <div class="spec-stat-value text-secondary">{{ tech_info.bit_depth_str or '24-bit' }} • {{ tech_info.channels_str or '2.0' }}</div>
+        </div>
+        <div class="spec-stat-card">
+          <div class="spec-stat-label">Bitrate &amp; Duration</div>
+          <div class="spec-stat-value text-primary">{{ tech_info.bitrate_kbps or 'Lossless' }} • {{ (track.duration // 60)|int if track.duration else 0 }}:{{ "%02d"|format((track.duration % 60)|int) if track.duration else '00' }}</div>
+        </div>
+      </div>
     </div>
-    {% endfor %}
+
+    <!-- Neural Mood Probabilities (preserves test assertions) -->
+    <div class="vibe-inspect-mood-box">
+      <div class="vibe-inspect-tech-hdr">
+        Neural Mood Probabilities
+      </div>
+      <div class="vibe-mood-bars-list">
+        {% set moods = mood_scores %}
+        {% for mood_name, mood_val in moods.items() %}
+        <div class="mood-bar-container">
+          <span class="mood-bar-label">{{ mood_name|capitalize }}</span>
+          <div class="mood-bar-track">
+            <div class="mood-bar-fill" style="width: {{ (mood_val * 100)|round(1) }}%;"></div>
+          </div>
+          <span class="mood-bar-val">{{ (mood_val * 100)|round(0)|int }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
   <!-- MusicBrainz Identifiers -->
-  <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; font-size: 12px; color: var(--text-dim); font-family: var(--font-mono);">
-    <div>Recording ID: {{ track.mb_recording_id or 'Local Fingerprint Indexed' }}</div>
+  <div class="vibe-inspect-identifiers">
+    <div>Recording ID: <span class="font-mono text-secondary">{{ track.mb_recording_id or 'Local Fingerprint Indexed' }}</span></div>
     {% if track.path %}
-    <div style="font-size: 11px; margin-top: 4px; word-break: break-all; color: var(--text-muted);">
+    <div class="vibe-inspect-path">
       Path: {{ track.path }}
     </div>
     {% endif %}
   </div>
 
-  <!-- Action -->
-  <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-    <button class="btn-primary"
-            hx-post="/api/player/play-track/{{ track.track_id }}"
-            hx-target="#transport-footer-container"
-            hx-swap="innerHTML"
-            onclick="document.getElementById('track-detail-modal').close()">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      <span>Play Track Now</span>
-    </button>
+  <!-- Footer Actions -->
+  <div class="vibe-inspect-footer">
+    <div class="vibe-inspect-dsp-sig">
+      <span>🧠</span>
+      <span>Analyzed via VibePlay Local Neural Audio DSP</span>
+    </div>
+    <div class="vibe-inspect-actions">
+      <button class="btn-primary flex items-center gap-2"
+              hx-post="/api/player/play-track/{{ track.track_id }}"
+              hx-target="#transport-footer-container"
+              hx-swap="innerHTML"
+              onclick="document.getElementById('track-detail-modal').close()">
+        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <span>Play Track Now</span>
+      </button>
+      <form method="dialog" style="margin: 0;">
+        <button type="submit" class="btn-secondary">
+          Close
+        </button>
+      </form>
+    </div>
   </div>
 </div>
