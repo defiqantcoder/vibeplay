@@ -2,59 +2,105 @@
   <!-- Scrub Timeline -->
   {% include "components/transport_scrub.html" %}
 
-  <!-- Main Controls Row -->
+  <!-- Main Controls Row: Boombox Capsule 3-Bay Layout -->
   <div class="transport-main-row">
-    <!-- Active Song Info -->
+    <!-- LEFT SECTION (NOW SPINNING): 56x56 Album artwork + Waveform bars + Meta + Big Screen -->
     <div class="now-playing">
-      <div class="album-art-thumb" onclick="openFullscreenNowPlaying()" title="Open Fullscreen Now Playing" style="cursor: pointer;">
+      <!-- 56x56px Album Artwork with Tactile 12px corners -->
+      <div class="album-art-thumb group cursor-pointer shadow-md" onclick="openFullscreenNowPlaying()" title="Open Ambient Fullscreen Experience (F11)">
         <svg class="icon" style="width: 24px; height: 24px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M7 18h2V6H7v12zm4 4h2V2h-2v20zm-8-8h2v-4H3v4zm12 4h2V6h-2v12zm4-8v4h2v-4h-2z"/></svg>
+        <!-- Mini animated audio wave bars overlay on hover / active -->
+        <div class="art-wave-overlay">
+          <span class="wave-bar wave-bar-1"></span>
+          <span class="wave-bar wave-bar-2"></span>
+          <span class="wave-bar wave-bar-3"></span>
+          <span class="wave-bar wave-bar-4"></span>
+        </div>
       </div>
-      <div class="now-playing-meta" onclick="openFullscreenNowPlaying()" title="Open Fullscreen Now Playing" style="cursor: pointer;">
-        <div class="now-playing-title">{{ playback.title }}</div>
-        <div class="now-playing-artist">{{ playback.artist }} — {{ playback.album }}</div>
+
+      <!-- Track Information & Cute Lossless Pill -->
+      <div class="now-playing-meta">
+        <div class="now-playing-title-row">
+          <span class="now-playing-title" onclick="openFullscreenNowPlaying()" title="Open Fullscreen Now Playing">{{ playback.title if playback and playback.title else 'No Track Playing' }}</span>
+          <button type="button" class="btn-heart-fav" title="Save to Favorites" onclick="toggleFavoriteCurrentTrack(event)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="now-playing-sub-row">
+          <span class="now-playing-artist" onclick="openFullscreenNowPlaying()">{{ playback.artist if playback and playback.artist else 'vibeplay core' }}{% if playback and playback.album %} • {{ playback.album }}{% endif %}</span>
+          <div class="lossless-pill-badge">
+            <span class="pulse-dot-cyan"></span>
+            <span>Lossless FLAC • {{ playback.sample_rate if playback and playback.sample_rate else '96kHz' }} 🎧</span>
+          </div>
+        </div>
       </div>
+
+      <!-- Expand Button: [Big Screen ↗] -->
+      <button type="button" class="btn-bigscreen-pill" onclick="openFullscreenNowPlaying()" title="Open Ambient Fullscreen Experience (F11)">
+        <span>Big Screen</span>
+        <span class="cyan-arrow">↗</span>
+      </button>
     </div>
 
-    <!-- Playback Buttons -->
+    <!-- CENTER SECTION: Transport Controls (Shuffle, Prev, 46px Cyan Play/Pause Capsule, Next, Repeat) -->
     <div class="transport-controls">
-      <button class="btn-icon"
+      <button type="button" class="btn-icon btn-transport-subtle active" id="btn-transport-shuffle" onclick="toggleShuffleMode(this)" title="Shuffle (Active)">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+      </button>
+
+      <button class="btn-icon btn-transport-nav"
               hx-post="/api/player/prev"
               hx-target="#transport-footer-container"
               hx-swap="innerHTML"
-              title="Previous Track">
+              title="Previous Track (F9)">
         <svg class="icon" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
       
-      <button class="btn-play-pause"
+      <button class="btn-play-pause custom-cyan-pill"
               hx-post="/api/player/toggle"
               hx-target="#transport-footer-container"
               hx-swap="innerHTML"
-              title="Play / Pause">
+              title="Play / Pause (Space / F10)">
         {% if playback.state == "play" %}
-          <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg class="icon icon-play" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         {% else %}
-          <svg class="icon" style="width: 20px; height: 20px;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="icon icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         {% endif %}
       </button>
 
-      <button class="btn-icon"
+      <button class="btn-icon btn-transport-nav"
               hx-post="/api/player/next"
               hx-target="#transport-footer-container"
               hx-swap="innerHTML"
-              title="Next Track">
+              title="Next Track (F10)">
         <svg class="icon" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      </button>
+
+      <button type="button" class="btn-icon btn-transport-subtle" id="btn-transport-repeat" onclick="toggleRepeatMode(this)" title="Repeat / Loop">
+        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
       </button>
     </div>
 
-    <!-- Right Telemetry & Output Controls -->
+    <!-- RIGHT SECTION (DAC & SOUND): Clickable DAC Pill + Bit-Perfect Pill + Volume + Gadgets -->
     <div class="transport-right">
-      <!-- Hardware Telemetry Specs -->
+      <!-- Hardware Telemetry Specs (Compact) -->
       <div class="dac-indicator">
         <span class="rate">{{ playback.sample_rate }} / {{ playback.bit_depth }}</span>
         <span class="mode">{{ playback.buffer_health }}</span>
       </div>
 
-      <!-- Volume -->
+      <!-- Clickable DAC Pill with Solid Green Dot -->
+      <div class="dac-status-capsule cursor-pointer" onclick="toggleOutputSwitcher(event)" title="Where should the music play? (Click to switch output)">
+        <span class="dac-green-dot"></span>
+        <span class="dac-name">🎧 {{ playback.output_profile if playback and playback.output_profile else 'FiiO KA15' }}</span>
+      </div>
+
+      <!-- Pure Bit-Perfect / Direct Mode Pill -->
+      <div class="bitperfect-capsule-badge" title="Pure Bit-Perfect Direct ALSA Hardware Stream">
+        <span>Bit-Perfect ✨</span>
+      </div>
+
+      <!-- Volume Stack -->
       <div class="volume-stack">
         <span class="btn-icon-mute"
               hx-post="/api/player/mute-toggle"
@@ -62,7 +108,7 @@
               hx-swap="innerHTML"
               style="cursor: pointer; display: inline-flex; align-items: center;"
               title="Toggle Mute (Ctrl+M)">
-          <svg class="icon" style="width: 18px; height: 18px; fill: var(--text-muted);" viewBox="0 0 24 24">
+          <svg class="icon" style="width: 18px; height: 18px;" viewBox="0 0 24 24">
             {% if playback.volume == 0 %}
               <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
             {% else %}
@@ -70,46 +116,36 @@
             {% endif %}
           </svg>
         </span>
-        <form hx-post="/api/player/volume" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0;">
+        <form hx-post="/api/player/volume" hx-target="#transport-footer-container" hx-swap="innerHTML" style="margin: 0; display: flex; align-items: center; gap: 6px;">
           <input type="range"
                  name="volume"
                  id="global-volume-slider"
-                 class="volume-slider"
+                 class="volume-slider custom-capsule-slider"
                  min="0"
                  max="100"
                  value="{{ playback.volume }}"
                  oninput="handleVolumeInput(this)"
                  onchange="this.form.requestSubmit()"
                  title="Volume: {{ playback.volume }}%">
+          <span class="vol-db-readout" id="vol-readout-text">{{ playback.volume }}%</span>
         </form>
       </div>
 
-      <!-- Boombox Quick Gadgets (EQ Studio, Add-on Toybox, Fullscreen) -->
+      <!-- Quick Gadgets (EQ Studio, Toybox) -->
       <div class="transport-gadgets flex items-center gap-1.5">
-        <!-- EQ Studio Quick Trigger -->
-        <button type="button" class="btn-icon" onclick="openEQStudioModal()" title="Parametric EQ Studio (Ctrl+E)">
-          <span style="font-size: 15px;">🎛️</span>
+        <button type="button" class="btn-gadget-circle" onclick="openEQStudioModal()" title="Parametric EQ Studio (Ctrl+E)">
+          <span>🎛️</span>
         </button>
-
-        <!-- The Add-on Toybox Quick Trigger -->
-        <button type="button" class="btn-icon" onclick="openToyboxModal()" title="The Add-on Toybox (Ctrl+Shift+P)">
-          <span style="font-size: 15px;">🧩</span>
+        <button type="button" class="btn-gadget-circle" onclick="openToyboxModal()" title="The Add-on Toybox (Ctrl+Shift+P)">
+          <span>🧩</span>
         </button>
+        <!-- Audio Output Profile Selector Trigger (Backwards compatibility) -->
+        <div class="audio-output-dropdown-container hidden">
+          <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleOutputSwitcher(event)">
+            <span class="active-output-text">{{ playback.output_profile }}</span>
+          </button>
+        </div>
       </div>
-
-      <!-- Audio Output Profile Selector -->
-      <div class="audio-output-dropdown-container">
-        <button type="button" class="btn-audio-output" id="btn-audio-output-dropdown" onclick="toggleOutputSwitcher(event)" title="Sound Output Switcher (Click to configure)">
-          <span class="pulse-dot" style="width: 5px; height: 5px; margin-right: 2px;"></span>
-          <span class="active-output-text truncate" style="max-width: 140px;">{{ playback.output_profile }}</span>
-          <svg class="icon icon-xs" style="width: 12px; height: 12px; margin-left: 2px;" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-        </button>
-      </div>
-
-      <!-- Expand Fullscreen Now Playing Button -->
-      <button type="button" class="btn-icon" onclick="openFullscreenNowPlaying()" title="Ambient Fullscreen View (F11)">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-      </button>
     </div>
   </div>
 </div>

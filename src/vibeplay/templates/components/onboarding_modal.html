@@ -1,67 +1,78 @@
-{# Welcome Onboarding & Setup Modal #}
-<div id="onboarding-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeOnboardingModal();">
-  <div class="relative w-full max-w-[720px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-6 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
+{# Welcome Onboarding & Setup Modal (Hi-Fi Lounge Design System) #}
+<div id="onboarding-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-200 hidden select-none" onclick="if(event.target === this) closeOnboardingModal();">
+  <div class="relative w-full max-w-[720px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-5 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
     <!-- Ambient Tube Glow -->
-    <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-28 -right-20 w-72 h-72 bg-[var(--accent)]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -top-24 -left-24 w-72 h-72 bg-[var(--primary)]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-28 -right-20 w-80 h-80 bg-[var(--secondary)]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[var(--primary)]/60 to-transparent"></div>
 
     <!-- Header Section -->
-    <div class="relative z-10 flex flex-col items-center text-center gap-2 border-b border-[var(--border)] pb-5">
-      <div class="w-14 h-14 rounded-2xl bg-[var(--surface)] border border-[var(--accent)]/40 flex items-center justify-center shadow-lg mb-1">
-        <span class="text-3xl select-none">📻</span>
+    <div class="relative z-10 flex flex-col items-center text-center gap-2 border-b border-[var(--border)] pb-4">
+      <div class="w-14 h-14 rounded-2xl bg-[var(--surface-container-lowest)] border border-[var(--border)] flex items-center justify-center shadow-lg mb-1 text-3xl">
+        📻
       </div>
-      <h2 class="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome to VibePlay Lounge</h2>
-      <p class="text-sm text-[var(--text-muted)] max-w-md">
+      <div class="flex items-center gap-2">
+        <h2 class="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome to VibePlay Lounge</h2>
+        <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
+      </div>
+      <p class="text-xs sm:text-sm text-[var(--text-muted)] max-w-md">
         An audiophile music station built around pure bit-perfect Linux audio, smart harmonic crates, and zero cloud lock-in.
       </p>
     </div>
 
     <!-- Step Checklist / Setup Options -->
-    <div class="relative z-10 flex flex-col gap-4">
-      <!-- Step 1: Music Library Path -->
+    <div class="relative z-10 flex flex-col gap-3.5">
+      <!-- Step 1: Music Library Folder -->
       <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-start gap-3">
-          <span class="w-7 h-7 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">1</span>
+          <span class="w-6 h-6 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">1</span>
           <div>
             <h4 class="text-sm font-bold text-[var(--text-primary)]">Music Library Folder</h4>
             <p class="text-xs text-[var(--text-muted)] mt-0.5" id="onboarding-folder-label">Select your FLAC, DSD, WAV, or MP3 collection.</p>
           </div>
         </div>
-        <button type="button" class="px-3.5 py-2 rounded-lg bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 flex-shrink-0" onclick="browseLibraryFolder()">
+        <button type="button" class="px-4 py-2 rounded-full bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-xs font-mono font-medium transition-colors flex items-center justify-center gap-1.5 flex-shrink-0" onclick="browseLibraryFolder()">
           <span>📁</span>
           <span>Browse Folder</span>
         </button>
       </div>
 
-      <!-- Step 2: Audio Device & DAC Detection -->
-      <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- Step 2: Extract Vibes on Import -->
+      <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group" onclick="const cb = document.getElementById('vibe-checkbox-input'); if(cb) { cb.checked = !cb.checked; }">
         <div class="flex items-start gap-3">
-          <span class="w-7 h-7 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">2</span>
+          <span class="w-6 h-6 rounded-full bg-[var(--secondary)]/15 text-[var(--secondary)] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">2</span>
           <div>
-            <h4 class="text-sm font-bold text-[var(--text-primary)]">DAC Hardware &amp; Transport</h4>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Auto-detected hardware endpoint</p>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-[var(--text-primary)]">Extract Vibes on Import</h4>
+              <span class="bg-[var(--secondary)]/15 text-[var(--secondary)] px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold">Recommended</span>
+            </div>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+              Analyze BPM, key signatures, energy levels, and acoustic dynamics so the natural language Vibe Cooker works its magic.
+            </p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <select id="onboarding-dac-select" class="px-3 py-1.5 rounded-lg bg-[var(--surface-container)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]">
-            <option value="pure-bitperfect">Pure Bit-Perfect ALSA Direct (hw:1,0)</option>
-            <option value="pipewire">PipeWire Shared Desktop Audio</option>
-          </select>
+        <div class="flex items-center flex-shrink-0" onclick="event.stopPropagation();">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="vibe-checkbox-input" checked class="sr-only peer">
+            <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary)]"></div>
+          </label>
         </div>
       </div>
 
-      <!-- Step 3: Acoustic Extraction Preference -->
+      <!-- Step 3: Bit-Perfect Sound Output -->
       <div class="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-start gap-3">
-          <span class="w-7 h-7 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">3</span>
+          <span class="w-6 h-6 rounded-full bg-[var(--status-ok,var(--tertiary))]/15 text-[var(--status-ok,var(--tertiary))] flex items-center justify-center font-mono font-bold text-xs flex-shrink-0 mt-0.5">3</span>
           <div>
-            <h4 class="text-sm font-bold text-[var(--text-primary)]">Acoustic Analysis &amp; Moods</h4>
-            <p class="text-xs text-[var(--text-muted)] mt-0.5">Essentia BPM, Camelot harmonic key, and energy profiling.</p>
+            <h4 class="text-sm font-bold text-[var(--text-primary)]">Bit-Perfect Sound Output</h4>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">Direct hardware DAC reservation or shared system audio.</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 text-xs font-mono text-[var(--accent)]">
-          <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
-          <span>Local Engine Ready</span>
+        <div class="flex items-center gap-2">
+          <select id="onboarding-dac-select" class="px-3 py-2 rounded-xl bg-[var(--surface-container)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)]">
+            <option value="pure-bitperfect">🎧 FiiO KA15 USB DAC (Direct ALSA)</option>
+            <option value="pipewire">💻 Built-in Speakers / PipeWire Shared</option>
+          </select>
         </div>
       </div>
     </div>
@@ -71,9 +82,9 @@
       <button type="button" class="text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" onclick="closeOnboardingModal();">
         Skip Setup
       </button>
-      <button type="button" id="launch-crate-btn" class="px-6 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold text-sm hover:brightness-110 transition-all shadow-lg flex items-center gap-2" onclick="completeOnboarding();">
-        <span>Launch Crate</span>
-        <span>→</span>
+      <button type="button" id="launch-crate-btn" class="px-6 py-2.5 rounded-full bg-[var(--primary)] text-[var(--on-primary)] font-bold text-xs sm:text-sm hover:brightness-110 active:scale-95 transition-all shadow-md flex items-center gap-2" onclick="completeOnboarding();">
+        <span>Load Up the Crate &amp; Start Jamming</span>
+        <span>🚀</span>
       </button>
     </div>
   </div>

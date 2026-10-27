@@ -315,4 +315,79 @@ if (typeof window.toggleFullscreenNowPlaying !== 'function') {
   };
 }
 
+if (typeof window.filterCrateCategory !== 'function') {
+  window.filterCrateCategory = function(category, btn) {
+    document.querySelectorAll('.crate-filter-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const rows = document.querySelectorAll('#library-table tbody tr');
+    rows.forEach(r => {
+      if (category === 'all') {
+        r.style.display = '';
+      } else if (category === 'lossless') {
+        const isLossless = r.querySelector('.quality-highres, .quality-dsd, .quality-flac');
+        r.style.display = isLossless ? '' : 'none';
+      } else if (category === 'vinyl') {
+        const text = r.textContent.toLowerCase();
+        r.style.display = (text.includes('vinyl') || text.includes('rip') || text.includes('tape') || text.includes('analog')) ? '' : 'none';
+      } else if (category === 'mixtapes') {
+        const text = r.textContent.toLowerCase();
+        r.style.display = (text.includes('mix') || text.includes('session') || text.includes('tape')) ? '' : 'none';
+      } else {
+        r.style.display = '';
+      }
+    });
+  };
+}
+
+if (typeof window.setTableDensity !== 'function') {
+  window.setTableDensity = function(mode) {
+    const table = document.getElementById('library-table');
+    const btnCozy = document.getElementById('density-cozy-btn');
+    const btnCompact = document.getElementById('density-compact-btn');
+    if (!table) return;
+    if (mode === 'compact') {
+      table.classList.add('density-compact');
+      table.classList.remove('density-cozy');
+      if (btnCompact) btnCompact.classList.add('active');
+      if (btnCozy) btnCozy.classList.remove('active');
+    } else {
+      table.classList.remove('density-compact');
+      table.classList.add('density-cozy');
+      if (btnCozy) btnCozy.classList.add('active');
+      if (btnCompact) btnCompact.classList.remove('active');
+    }
+    try { localStorage.setItem('vibeplay_table_density', mode); } catch (e) {}
+  };
+}
+
+if (typeof window.dismissBanner !== 'function') {
+  window.dismissBanner = function() {
+    const banner = document.getElementById('alert-banner');
+    if (banner) {
+      banner.style.opacity = '0';
+      setTimeout(() => { banner.style.display = 'none'; }, 250);
+    }
+  };
+}
+
+if (typeof window.toggleFavoriteCurrentTrack !== 'function') {
+  window.toggleFavoriteCurrentTrack = function(e) {
+    if (e) e.stopPropagation();
+    const btn = e ? e.currentTarget : null;
+    if (btn) {
+      btn.classList.toggle('is-favorited');
+      btn.style.transform = 'scale(1.25)';
+      setTimeout(() => { btn.style.transform = ''; }, 200);
+    }
+  };
+}
+
+if (typeof window.closeContextMenu !== 'function') {
+  window.closeContextMenu = function() {
+    const menu = document.getElementById('track-context-menu');
+    if (menu) menu.classList.add('hidden');
+  };
+}
+
+
 

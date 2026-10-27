@@ -1,4 +1,4 @@
-<!-- Scrub Timeline Micro-Component -->
+<!-- Scrub Timeline Micro-Component (Boombox Capsule Specification) -->
 <div class="transport-scrub-row"
      id="transport-scrub-row"
      {% if playback and playback.state == "play" %}
@@ -6,24 +6,32 @@
      hx-trigger="every 1s"
      hx-swap="outerHTML"
      {% endif %}>
-  <span class="timecode">
+  <span class="timecode timecode-elapsed">
     {% set el_m = ((playback.elapsed or 0) // 60)|int %}
     {% set el_s = ((playback.elapsed or 0) % 60)|int %}
     {{ "%02d:%02d"|format(el_m, el_s) }}
   </span>
   
-  <div class="scrub-bar"
+  <div class="scrub-bar custom-wave-scrub group"
        title="Click to Seek"
        onclick="const rect = this.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)); const total = {{ playback.duration or 0 }}; if (total > 0 && window.htmx) { htmx.ajax('POST', '/api/player/seek', { target: '#transport-footer-container', swap: 'innerHTML', values: { seconds: (pct * total).toFixed(1) } }); }"
        style="cursor: pointer;">
+    <!-- Subtle Dancing Wave Bars Silhouette in background -->
+    <div class="scrub-wave-silhouette pointer-events-none" aria-hidden="true">
+      <span style="height: 10px;"></span><span style="height: 14px;"></span><span style="height: 8px;"></span><span style="height: 16px;"></span><span style="height: 12px;"></span><span style="height: 18px;"></span><span style="height: 10px;"></span><span style="height: 14px;"></span><span style="height: 6px;"></span><span style="height: 12px;"></span><span style="height: 16px;"></span><span style="height: 8px;"></span><span style="height: 14px;"></span><span style="height: 18px;"></span><span style="height: 12px;"></span><span style="height: 10px;"></span><span style="height: 16px;"></span><span style="height: 14px;"></span><span style="height: 8px;"></span><span style="height: 12px;"></span>
+    </div>
     {% set pct = 0 %}
     {% if playback and playback.duration and playback.duration > 0 %}
       {% set pct = (((playback.elapsed or 0) / playback.duration) * 100)|round(1) %}
     {% endif %}
-    <div class="scrub-fill" style="width: {{ pct }}%;"></div>
+    <div class="scrub-fill custom-cyan-fill" style="width: {{ pct }}%;"></div>
+    <!-- Tactile Circular Thumb Indicator -->
+    <div class="scrub-thumb" style="left: calc({{ pct }}% - 7px);">
+      <div class="thumb-core"></div>
+    </div>
   </div>
   
-  <span class="timecode">
+  <span class="timecode timecode-total">
     {% set dur_m = ((playback.duration or 0) // 60)|int %}
     {% set dur_s = ((playback.duration or 0) % 60)|int %}
     {{ "%02d:%02d"|format(dur_m, dur_s) }}

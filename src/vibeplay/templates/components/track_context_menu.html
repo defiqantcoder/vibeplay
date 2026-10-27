@@ -1,31 +1,48 @@
-{# Track Context Menu Popover #}
-<div id="track-context-menu" class="fixed z-50 w-56 rounded-2xl bg-[var(--surface-container)] border border-[var(--border)] p-1.5 shadow-2xl flex flex-col gap-0.5 text-xs font-mono text-[var(--text-primary)] hidden" onclick="event.stopPropagation();">
+{# Track Context Menu Popover (Hi-Fi Lounge Design System) #}
+<div id="track-context-menu" class="fixed z-50 w-60 rounded-2xl bg-[var(--surface-container)] border border-[var(--border)] p-1.5 shadow-2xl flex flex-col gap-0.5 text-xs font-mono text-[var(--text-primary)] hidden backdrop-blur-xl select-none" onclick="event.stopPropagation();">
   <!-- Track Label Header -->
-  <div class="px-3 py-2 border-b border-[var(--border)]/60 text-[11px] flex flex-col">
+  <div class="px-3 py-2 border-b border-[var(--border)]/70 text-[11px] flex flex-col bg-[var(--surface-container-lowest)]/50 rounded-xl mb-1">
+    <div class="flex items-center justify-between text-[9px] uppercase tracking-wider text-[var(--text-muted)] font-semibold mb-0.5">
+      <span>Track Action</span>
+      <span class="text-[var(--primary)] font-bold">Node Menu</span>
+    </div>
     <span id="context-track-title" class="font-bold truncate text-[var(--text-primary)]">Track Title</span>
     <span id="context-track-artist" class="text-[10px] text-[var(--text-muted)] truncate">Artist</span>
   </div>
 
   <!-- Menu Actions -->
-  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--accent)] flex items-center gap-2.5 transition-colors" onclick="contextActionPlayNow()">
-    <span>▶️</span>
-    <span>Play Now</span>
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--primary)] flex items-center gap-2.5 transition-colors font-medium" onclick="contextActionPlayNow()">
+    <span class="text-sm text-[var(--primary)]">▶️</span>
+    <span>Play Right Now</span>
   </button>
-  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--accent)] flex items-center gap-2.5 transition-colors" onclick="contextActionPlayNext()">
-    <span>⏭️</span>
-    <span>Play Next in Queue</span>
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--text-primary)] flex items-center gap-2.5 transition-colors" onclick="contextActionPlayNext()">
+    <span class="text-sm text-[var(--text-muted)]">⏭️</span>
+    <span>Play Next in Line</span>
   </button>
-  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--accent)] flex items-center gap-2.5 transition-colors" onclick="contextActionAddToQueue()">
-    <span>➕</span>
-    <span>Add to End of Queue</span>
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--primary)] flex items-center gap-2.5 transition-colors text-[var(--primary)] font-medium" onclick="contextActionAddToQueue()">
+    <span class="text-sm">🍳</span>
+    <span>Toss into Vibe Cooker</span>
   </button>
-  <div class="h-[1px] bg-[var(--border)]/60 my-0.5"></div>
-  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--accent)] flex items-center gap-2.5 transition-colors" onclick="contextActionInspectVibe()">
-    <span>✨</span>
-    <span>Inspect Track Vibe</span>
+
+  <div class="h-[1px] bg-[var(--border)]/70 my-1 mx-1"></div>
+
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--secondary)] flex items-center gap-2.5 transition-colors" onclick="contextActionInspectVibe()">
+    <span class="text-sm text-[var(--secondary)]">✨</span>
+    <span>Check Song Vibes</span>
   </button>
-  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--accent)] flex items-center gap-2.5 transition-colors" onclick="contextActionFindSimilar()">
-    <span>〰️</span>
-    <span>Find Similar Energy</span>
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--status-ok,var(--tertiary))] flex items-center gap-2.5 transition-colors" onclick="contextActionFindSimilar()">
+    <span class="text-sm text-[var(--status-ok,var(--tertiary))]">〰️</span>
+    <span>Find Similar Tempo</span>
+  </button>
+
+  <div class="h-[1px] bg-[var(--border)]/70 my-1 mx-1"></div>
+
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--surface)] hover:text-[var(--text-primary)] flex items-center gap-2.5 transition-colors" onclick="closeContextMenu()">
+    <span class="text-sm text-[var(--text-muted)]">📂</span>
+    <span>Show in Explorer</span>
+  </button>
+  <button type="button" class="w-full px-3 py-2 rounded-xl text-left hover:bg-[var(--error)]/15 text-[var(--error)] flex items-center gap-2.5 transition-colors" onclick="closeContextMenu()">
+    <span class="text-sm">🗑️</span>
+    <span>Remove from Crate</span>
   </button>
 </div>

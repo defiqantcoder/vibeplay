@@ -204,38 +204,75 @@
 
 <!-- Tab 1: Library View -->
 <section id="tab-library" style="display: block;">
-  <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-    <div>
-      <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0;">
-        Music Library
-      </h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin: 0.25rem 0 0 0;">
-        Sortable and filterable by BPM, Camelot harmonic key, mood scores, and artist.
-      </p>
+  <!-- Master Crate Top Controls Bar (Stitch Specification) -->
+  <header class="master-crate-header">
+    <!-- Left Meta & Quick Category Filters -->
+    <div class="crate-header-left">
+      <div class="crate-header-title-group">
+        <h1 class="crate-title font-bold">Library &amp; Master Crate</h1>
+        <span class="sr-only">Music Library</span>
+        <span class="crate-count-chip font-mono">
+          {{ total_tracks }} Tracks Loaded 📦
+        </span>
+      </div>
+      <nav aria-label="Library View Filters" class="crate-filter-nav">
+        <button class="view-filter-btn active" data-filter="all" type="button" onclick="filterCrateCategory('all', this)">
+          All Tracks
+        </button>
+        <button class="view-filter-btn" data-filter="high-res" type="button" onclick="filterCrateCategory('high-res', this)">
+          High-Res Lossless ✨
+        </button>
+        <button class="view-filter-btn" data-filter="vinyl" type="button" onclick="filterCrateCategory('vinyl', this)">
+          Analog Vinyl Rips 📼
+        </button>
+        <button class="view-filter-btn" data-filter="mixtape" type="button" onclick="filterCrateCategory('mixtape', this)">
+          Mixtapes 🎛️
+        </button>
+        <button class="view-filter-btn" data-filter="recent" type="button" onclick="filterCrateCategory('recent', this)">
+          Recently Added 🕒
+        </button>
+      </nav>
     </div>
-    <div class="library-action-toolbar" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-      <button type="button" class="btn-action-primary" onclick="triggerAddFolder()" title="Choose Folder from File System (Ctrl+O)">
-        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-        <span>Add Folder...</span>
-      </button>
-      <button type="button" class="btn-action-secondary" onclick="triggerLibraryScan()" title="Scan for New Music Files (Ctrl+R)">
-        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        <span>Scan</span>
-      </button>
-      <button type="button" class="btn-action-secondary" onclick="triggerMetadataEnrich()" title="Enrich Metadata from MusicBrainz">
-        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
-        <span>Enrich</span>
-      </button>
-      <button type="button" class="btn-action-secondary" onclick="triggerFeatureAnalyze()" title="Analyze Audio Features (BPM, Key, Energy)">
-        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-        <span>Analyze</span>
-      </button>
-      <button type="button" class="btn-action-secondary" id="btn-toggle-inspector" onclick="toggleInspectorDrawer()" title="Toggle Inspector Drawer">
-        <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H5V5h9v12zm5 0h-3V5h3v12z"/></svg>
-        <span>Inspector</span>
-      </button>
+
+    <!-- Right Controls, Sorters, and Density Switcher -->
+    <div class="crate-header-right">
+      <div class="library-action-toolbar">
+        <button type="button" class="btn-action-primary" onclick="triggerAddFolder()" title="Choose Folder from File System (Ctrl+O)">
+          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          <span>Add Folder...</span>
+        </button>
+        <button type="button" class="btn-action-secondary" onclick="triggerLibraryScan()" title="Scan for New Music Files (Ctrl+R)">
+          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          <span>Scan</span>
+        </button>
+        <button type="button" class="btn-action-secondary" onclick="triggerMetadataEnrich()" title="Enrich Metadata from MusicBrainz">
+          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
+          <span>Enrich</span>
+        </button>
+        <button type="button" class="btn-action-secondary" onclick="triggerFeatureAnalyze()" title="Analyze Audio Features (BPM, Key, Energy)">
+          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          <span>Analyze</span>
+        </button>
+        <button type="button" class="btn-action-secondary" id="btn-toggle-inspector" onclick="toggleInspectorDrawer()" title="Toggle Inspector Drawer">
+          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H5V5h9v12zm5 0h-3V5h3v12z"/></svg>
+          <span>Inspector</span>
+        </button>
+        <button type="button" class="btn-action-secondary" onclick="toggleSmartSorter()" title="Smart Acoustic Sorter">
+          <span>Smart Sorter 🪄</span>
+        </button>
+      </div>
+
+      <!-- Density Switcher (Cozy vs Compact) -->
+      <div class="density-switcher">
+        <button class="density-btn active" id="density-cozy-btn" onclick="setTableDensity('cozy')" title="Cozy Density" type="button">
+          <span>⊞</span> Cozy
+        </button>
+        <button class="density-btn" id="density-compact-btn" onclick="setTableDensity('compact')" title="Compact Density" type="button">
+          <span>☰</span> Compact
+        </button>
+      </div>
     </div>
-  </div>
+  </header>
 
   <!-- Mood-First Browsing Chips Bar -->
   <div class="mood-chips-container" style="margin-bottom: 1rem;">

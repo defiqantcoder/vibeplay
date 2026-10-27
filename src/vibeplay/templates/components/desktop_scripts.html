@@ -179,7 +179,7 @@ function closeSettingsDialog() {
 }
 
 function switchSettingsTab(tabId) {
-  const tabs = ['transport', 'dsp', 'analyzer', 'theme', 'ai'];
+  const tabs = ['transport', 'dsp', 'analyzer', 'theme', 'ai', 'plugins'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const panel = document.getElementById(`panel-${t}`);
@@ -1953,7 +1953,75 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+function filterCrateCategory(category, btn) {
+  document.querySelectorAll('.crate-filter-pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const rows = document.querySelectorAll('#library-table tbody tr');
+  rows.forEach(r => {
+    if (category === 'all') {
+      r.style.display = '';
+    } else if (category === 'lossless') {
+      const isLossless = r.querySelector('.quality-highres, .quality-dsd, .quality-flac');
+      r.style.display = isLossless ? '' : 'none';
+    } else if (category === 'vinyl') {
+      const text = r.textContent.toLowerCase();
+      r.style.display = (text.includes('vinyl') || text.includes('rip') || text.includes('tape') || text.includes('analog')) ? '' : 'none';
+    } else if (category === 'mixtapes') {
+      const text = r.textContent.toLowerCase();
+      r.style.display = (text.includes('mix') || text.includes('session') || text.includes('tape')) ? '' : 'none';
+    } else {
+      r.style.display = '';
+    }
+  });
+}
+
+function setTableDensity(mode) {
+  const table = document.getElementById('library-table');
+  const btnCozy = document.getElementById('density-cozy-btn');
+  const btnCompact = document.getElementById('density-compact-btn');
+  if (!table) return;
+  if (mode === 'compact') {
+    table.classList.add('density-compact');
+    table.classList.remove('density-cozy');
+    if (btnCompact) btnCompact.classList.add('active');
+    if (btnCozy) btnCozy.classList.remove('active');
+  } else {
+    table.classList.remove('density-compact');
+    table.classList.add('density-cozy');
+    if (btnCozy) btnCozy.classList.add('active');
+    if (btnCompact) btnCompact.classList.remove('active');
+  }
+  try { localStorage.setItem('vibeplay_table_density', mode); } catch (e) {}
+}
+
+function dismissBanner() {
+  const banner = document.getElementById('alert-banner');
+  if (banner) {
+    banner.style.opacity = '0';
+    setTimeout(() => { banner.style.display = 'none'; }, 250);
+  }
+}
+
+function toggleFavoriteCurrentTrack(e) {
+  if (e) e.stopPropagation();
+  const btn = e ? e.currentTarget : null;
+  if (btn) {
+    btn.classList.toggle('is-favorited');
+    btn.style.transform = 'scale(1.25)';
+    setTimeout(() => { btn.style.transform = ''; }, 200);
+  }
+}
+
+function closeContextMenu() {
+  closeTrackContextMenu();
+}
+
 // Expose on window
+window.filterCrateCategory = filterCrateCategory;
+window.setTableDensity = setTableDensity;
+window.dismissBanner = dismissBanner;
+window.toggleFavoriteCurrentTrack = toggleFavoriteCurrentTrack;
+window.closeContextMenu = closeContextMenu;
 window.openToyboxModal = openToyboxModal;
 window.closeToyboxModal = closeToyboxModal;
 window.filterToyboxCards = filterToyboxCards;

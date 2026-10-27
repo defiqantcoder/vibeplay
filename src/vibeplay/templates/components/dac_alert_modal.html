@@ -1,52 +1,111 @@
-{# DAC Disconnected Alert & Recovery Popover #}
-<div id="dac-alert-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeDACAlertModal();">
-  <div class="relative w-full max-w-[500px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-7 shadow-2xl flex flex-col gap-5 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
-    <!-- Ambient Alert Glow -->
-    <div class="absolute -top-20 -right-20 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+{# DAC Disconnected Alert & Recovery Popover (Hi-Fi Lounge Design System) #}
+<div id="dac-alert-backdrop" class="fixed inset-0 z-50 flex flex-col items-center justify-start pt-12 px-4 bg-black/80 backdrop-blur-md transition-opacity duration-200 hidden select-none" onclick="if(event.target === this) closeDACAlertModal();">
+  <!-- 1. Floating Top Pill Banner (Rounded 20px, anchored at top center) -->
+  <aside class="flex items-center justify-between gap-4 bg-[var(--surface-container)] text-[var(--text-primary)] px-5 py-2.5 rounded-full shadow-2xl border border-[var(--border)] max-w-[840px] w-full transition-all duration-300" id="alert-banner" onclick="event.stopPropagation();">
+    <div class="flex items-center gap-3.5 flex-1 min-w-0">
+      <!-- Warning Icon Badge with Ambient Halo -->
+      <div class="relative flex-shrink-0">
+        <div class="w-8 h-8 rounded-full bg-[var(--error-tint,rgba(239,68,68,0.15))] flex items-center justify-center text-[var(--error)] shadow-md">
+          <span class="text-sm">🎧</span>
+        </div>
+        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--error)]"></span>
+      </div>
+      <!-- Banner Text Content -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-x-2 gap-y-0.5 min-w-0">
+        <span class="text-xs font-bold text-[var(--text-primary)] whitespace-nowrap">🎧 DAC Unplugged:</span>
+        <span class="text-xs text-[var(--text-muted)] truncate">
+          FiiO KA15 disconnected. Playback paused so your ears don't get startled!
+        </span>
+      </div>
+    </div>
+    <!-- Status Tag Pill + Dismiss Action -->
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <span class="hidden md:inline-flex items-center gap-1.5 text-[10px] font-mono bg-[var(--error)]/15 text-[var(--error)] px-2.5 py-1 rounded-full font-semibold">
+        <span class="w-1.5 h-1.5 rounded-full bg-[var(--error)] animate-pulse"></span>
+        Auto-Protected 🛡️
+      </span>
+      <button class="w-7 h-7 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" onclick="dismissBanner();" title="Dismiss Banner" type="button">
+        ✕
+      </button>
+    </div>
+  </aside>
 
-    <!-- Alert Header -->
+  <!-- 2. Floating Recovery Popover / Action Card -->
+  <div class="mt-6 w-full max-w-[500px] bg-[var(--surface-container)] rounded-2xl p-6 sm:p-7 shadow-2xl border border-[var(--border)] flex flex-col gap-5 relative overflow-hidden transition-all duration-300" id="recovery-card" onclick="event.stopPropagation();">
+    <!-- Top Subtle Status Glow Bar -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--error)] via-[var(--secondary)] to-[var(--primary)]"></div>
+    <div class="absolute -top-16 -right-16 w-36 h-36 bg-[var(--error)]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header with Friendly Icon -->
     <div class="flex items-start gap-4">
-      <div class="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-2xl flex-shrink-0">
-        ⚠️
+      <div class="w-12 h-12 rounded-2xl bg-[var(--surface-container-lowest)] border border-[var(--border)] flex items-center justify-center flex-shrink-0 text-xl shadow-md">
+        🔌
       </div>
       <div class="flex flex-col">
         <div class="flex items-center gap-2">
-          <h3 class="text-base font-bold text-[var(--text-primary)]">Sound Output Changed</h3>
-          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-semibold uppercase">
-            Failover Safe
-          </span>
+          <h2 class="text-lg font-bold text-[var(--text-primary)]">Sound Output Changed</h2>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--secondary)]/15 text-[var(--secondary)] font-semibold uppercase">Failover Safe</span>
         </div>
         <p class="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
-          The direct hardware USB DAC connection was interrupted. Playback was immediately rerouted to the PipeWire desktop sound server to prevent buffer stalls and silence.
+          Your USB audio chain was disconnected. We instantly safe-paused playback to prevent sudden clicks, volume bursts, or buffer stalls.
         </p>
       </div>
     </div>
 
-    <!-- Technical Status Box -->
-    <div class="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] font-mono text-[11px] flex flex-col gap-1.5 text-[var(--text-muted)]">
-      <div class="flex items-center justify-between">
-        <span>Previous Output:</span>
-        <span class="text-[var(--text-primary)]">ALSA Direct hw:1,0 (Letshuoer DAC)</span>
+    <!-- Audio Route State Visualization -->
+    <div class="bg-[var(--surface-container-lowest)] rounded-xl p-3 flex flex-col gap-2 border border-[var(--border)]/70 text-xs font-mono">
+      <div class="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Route Telemetry</div>
+      <!-- Disconnected Device Row -->
+      <div class="flex items-center justify-between p-2 rounded-lg bg-[var(--surface)] border border-[var(--border)]/40">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-[var(--error)] font-bold flex-shrink-0">❌</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-[var(--text-primary)] truncate">FiiO KA15</span>
+            <span class="text-[10px] text-[var(--error)] truncate">Exclusive ALSA Bit-Perfect (Offline)</span>
+          </div>
+        </div>
+        <span class="text-[10px] text-[var(--text-muted)] bg-[var(--surface-container)] px-2 py-0.5 rounded-full border border-[var(--border)]">Unplugged</span>
       </div>
-      <div class="flex items-center justify-between">
-        <span>Active Output:</span>
-        <span class="text-emerald-400 font-semibold">PipeWire System Default (48 kHz / 24-bit)</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span>Audio Stream State:</span>
-        <span class="text-[var(--accent)]">Continuously Playing (0 dropped samples)</span>
+      <!-- Available Fallback Row -->
+      <div class="flex items-center justify-between p-2 rounded-lg bg-[var(--surface)] border border-[var(--border)]/40">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-[var(--status-ok,var(--tertiary))] font-bold flex-shrink-0">💻</span>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-[var(--text-primary)] truncate">PipeWire Desktop Audio</span>
+            <span class="text-[10px] text-[var(--status-ok,var(--tertiary))] truncate">System Default / 48kHz Stereo</span>
+          </div>
+        </div>
+        <span class="text-[10px] text-[var(--status-ok,var(--tertiary))] bg-[var(--status-ok,var(--tertiary))]/15 px-2 py-0.5 rounded-full font-semibold">Available</span>
       </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-[var(--border)]">
-      <button type="button" class="px-4 py-2 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-container-high)] border border-[var(--border)] text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" onclick="closeDACAlertModal();">
-        Dismiss
+    <!-- Volume Safety Notice Box -->
+    <div class="flex items-center gap-2.5 bg-[var(--surface)] px-3.5 py-2.5 rounded-xl border border-[var(--border)]/60 text-xs">
+      <span class="text-base flex-shrink-0">🔉</span>
+      <p class="text-[11px] text-[var(--text-muted)] leading-relaxed">
+        Output safety guard engaged: System volume is clamped and will fade smoothly when playback resumes.
+      </p>
+    </div>
+
+    <!-- Friendly Action Buttons -->
+    <div class="flex flex-col gap-2 pt-1">
+      <!-- Primary Switch Route Button -->
+      <button class="w-full py-2.5 px-4 rounded-full bg-[var(--primary)] text-[var(--on-primary)] font-bold text-xs flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-md" id="btn-switch-speakers" onclick="selectOutputRoute('pipewire'); closeDACAlertModal();" type="button">
+        <span>Switch to Desktop Speakers &amp; Resume</span>
+        <span>🔊</span>
       </button>
-      <button type="button" class="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--bg)] font-bold text-xs hover:brightness-110 transition-all shadow-md flex items-center gap-1.5" onclick="retryDACConnection();">
+      <!-- Secondary Retry Hardware Lock Button -->
+      <button class="w-full py-2 px-4 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-primary)] border border-[var(--border)] text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm" id="btn-retry-dac" onclick="retryDACConnection();" type="button">
+        <span>I'll Plug It Back In / Retry Hardware Lock</span>
         <span>🔄</span>
-        <span>Retry Hardware Lock</span>
       </button>
+    </div>
+
+    <!-- Reassuring Footer Note -->
+    <div class="flex items-center justify-center gap-1.5 pt-1">
+      <span class="text-[10px] font-mono text-[var(--text-muted)] text-center">
+        Bit-Perfect lock safely disengaged • Zero pop clamp active
+      </span>
     </div>
   </div>
 </div>

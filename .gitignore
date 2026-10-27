@@ -52,6 +52,7 @@ htmlcov/
 *.cache
 local_music/
 models/
+stitch_*/
 
 # macOS / Windows
 Thumbs.db

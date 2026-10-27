@@ -3,48 +3,116 @@
 {% set current_arc = arc if arc is defined and arc else 'energy_ramp' %}
 
 <div class="guided-playlist-builder builder-tracks-container" id="guided-playlist-builder-root">
-  <!-- Natural Language Prompt Search Bar (Lean Heuristics Engine) -->
-  <div class="nl-playlist-search-card" style="background: var(--bg-container-mid); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
-      <div>
-        <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0 0 3px 0;">Instant Smart Playlist</h3>
-        <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-          Type a plain-language prompt to query library tracks and sequence harmonically with Camelot mixing.
-        </p>
-      </div>
-      <span class="badge-spec" style="font-size: 10px;">DETERMINISTIC HEURISTICS</span>
-    </div>
+  <!-- Top Hero Deck: Natural Language Vibe Synthesizer (Stitch Specification) -->
+  <section class="vibe-synthesizer-hero-deck">
+    <!-- Ambient Energy Glows -->
+    <div class="hero-glow-cyan pointer-events-none" aria-hidden="true"></div>
+    <div class="hero-glow-amber pointer-events-none" aria-hidden="true"></div>
 
-    <form hx-post="/api/playlist/generate"
-          hx-target="#main-content-area"
-          hx-swap="innerHTML"
-          hx-indicator="#nl-search-spinner"
-          style="display: flex; gap: 0.75rem; align-items: center;">
-      <div style="position: relative; flex: 1;">
-        <input type="text"
-               name="prompt"
-               id="nl-playlist-prompt-input"
-               class="input-text"
-               placeholder='e.g. "high energy workout", "chill lofi study vibes", "dance party around 125 bpm", "upbeat pop"'
-               value="{{ prompt if prompt is defined and prompt else '' }}"
-               style="width: 100%; padding-left: 2.2rem; font-size: 13px; height: 38px; border-radius: var(--radius-md); background: var(--bg-container-low); border: 1px solid var(--border-subtle); color: var(--text-primary);" />
-        <svg class="icon" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+    <div class="vibe-hero-content">
+      <!-- Section Title & Status Pill -->
+      <div class="vibe-hero-header">
+        <div>
+          <div class="vibe-title-row">
+            <h2 class="vibe-hero-title font-bold">
+              Tell me what you want to hear
+              <span class="chat-bubble-emoji">💬</span>
+            </h2>
+            <span class="vibe-engine-tag font-mono font-semibold">
+              VIBE ENGINE v4.2
+            </span>
+          </div>
+          <p class="vibe-hero-subtitle">
+            AI Acoustic Synthesis &amp; Harmonic Camelot Matching Engine • Bit-Perfect Hi-Fi Source
+          </p>
+        </div>
+        <div class="acoustic-model-pill">
+          <span class="font-mono text-outline uppercase">Acoustic Model:</span>
+          <span class="model-badge font-mono font-semibold">
+            <span class="pulse-dot"></span>
+            HarmonicFlow-LLM (Lossless)
+          </span>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary" style="height: 38px; padding: 0 1.25rem; font-weight: 600; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-        <span>Generate Playlist</span>
-        <span id="nl-search-spinner" class="htmx-indicator" style="font-size: 10px;">...</span>
-      </button>
-    </form>
 
-    <!-- Quick Preset Prompt Chips -->
-    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
-      <span style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">Try:</span>
-      <button type="button" class="btn-filter" style="font-size: 11px; padding: 3px 8px;" onclick="applyNlPrompt('high energy workout')">High Energy Workout</button>
-      <button type="button" class="btn-filter" style="font-size: 11px; padding: 3px 8px;" onclick="applyNlPrompt('chill lofi study vibes')">Chill Lofi Study</button>
-      <button type="button" class="btn-filter" style="font-size: 11px; padding: 3px 8px;" onclick="applyNlPrompt('dance party around 125 bpm')">Dance Party ~125 BPM</button>
-      <button type="button" class="btn-filter" style="font-size: 11px; padding: 3px 8px;" onclick="applyNlPrompt('upbeat pop')">Upbeat Pop</button>
+      <!-- Conversational Prompt Console -->
+      <form hx-post="/api/playlist/generate"
+            hx-target="#main-content-area"
+            hx-swap="innerHTML"
+            hx-indicator="#nl-search-spinner"
+            class="conversational-prompt-console">
+        <div class="prompt-spark-icon text-primary">
+          <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+        </div>
+        <div class="prompt-input-wrapper">
+          <input type="text"
+                 name="prompt"
+                 id="nl-playlist-prompt-input"
+                 class="conversational-input select-all"
+                 placeholder="Describe your vibe, mood, tempo, or sonic atmosphere in plain English..."
+                 value="{{ prompt if prompt is defined and prompt else '' }}" />
+        </div>
+        <div class="prompt-action-cluster">
+          <button type="button" class="btn-clear-prompt" onclick="document.getElementById('nl-playlist-prompt-input').value='';" title="Clear text">
+            ✕
+          </button>
+          <button type="button" class="btn-mic-prompt" title="Voice Prompt Mode">
+            🎙️
+          </button>
+          <button type="submit" class="btn-cook-mixtape" id="cookBtn">
+            <span>Cook Up Mixtape</span>
+            <span class="bolt-icon">⚡</span>
+            <span id="nl-search-spinner" class="htmx-indicator" style="font-size: 11px;">...</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Quick Suggestion Pills -->
+      <div class="quick-injections-bar">
+        <span class="quick-injections-label uppercase font-mono">Quick Injections:</span>
+        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Morning Coffee & Lo-Fi')">
+          <span>☕</span> Morning Coffee &amp; Lo-Fi
+        </button>
+        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('High Energy Workout >130 BPM')">
+          <span>🏃</span> High Energy Workout &gt;130 BPM
+        </button>
+        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Late Night Rainy Melancholy')">
+          <span>🌙</span> Late Night Rainy Melancholy
+        </button>
+        <button type="button" class="quick-injection-pill highlight-cyan" onclick="applyNlPrompt('Fast Pop-Punk Blast')">
+          <span>⚡</span> Fast Pop-Punk Blast
+          <span class="w-1.5 h-1.5 rounded-full bg-primary inline-block ml-1"></span>
+        </button>
+        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Deep Focus & Synth Textures')">
+          <span>🎧</span> Deep Focus &amp; Synth Textures
+        </button>
+      </div>
+
+      <!-- Parsed Sonic DNA Badges & Tuners -->
+      <div class="sonic-dna-bar">
+        <div class="dna-badges-cluster">
+          <span class="dna-label font-mono uppercase">
+            <span class="dna-icon">🧬</span> Parsed Sonic DNA:
+          </span>
+          <span class="dna-chip chip-amber font-semibold">
+            Energy: High 🔥
+          </span>
+          <span class="dna-chip chip-cyan font-semibold">
+            BPM: 130–155 ⚡
+          </span>
+          <span class="dna-chip chip-green font-semibold">
+            Danceability: 74% 💃
+          </span>
+          <span class="dna-chip chip-neutral font-medium">
+            Mood: Euphoric &amp; Punchy 🛹
+          </span>
+        </div>
+        <div class="dna-camelot-rel font-mono text-xs text-primary">
+          <span>Optimal Camelot Arc: <strong>8A → 9A → 10A (Boost)</strong></span>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
   <!-- 4-Step Stepper Navigation Header -->
   <nav class="builder-stepper" aria-label="Playlist Builder Steps">

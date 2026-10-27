@@ -1,65 +1,80 @@
-<div class="table-container">
-  <table class="data-table">
+<div class="table-container master-crate-table-container">
+  <table class="data-table master-crate-table" id="crate-table">
     <thead>
-      <tr>
-        <th style="width: 45px; text-align: center; cursor: pointer;"
+      <tr class="crate-table-header">
+        <th style="width: 50px; text-align: center; cursor: pointer;"
             title="Sort by ID"
             hx-get="/api/library/table?sort={% if current_sort == 'id_asc' %}id_desc{% else %}id_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          # {% if current_sort == 'id_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'id_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <span class="text-outline">#</span> {% if current_sort == 'id_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'id_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
         </th>
-        <th style="cursor: pointer;"
+        <th style="cursor: pointer; min-width: 220px;"
             title="Sort by Title"
             hx-get="/api/library/table?sort={% if current_sort == 'title_asc' %}title_desc{% else %}title_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Track &amp; Stream Source {% if current_sort == 'title_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'title_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <div class="th-sort-wrapper">
+            <span>Title 🔤</span>
+            {% if current_sort == 'title_asc' %}<span class="sort-arrow">▲</span>{% elif current_sort == 'title_desc' %}<span class="sort-arrow">▼</span>{% endif %}
+          </div>
         </th>
-        <th style="cursor: pointer;"
+        <th style="cursor: pointer; min-width: 140px;"
             title="Sort by Artist"
             hx-get="/api/library/table?sort={% if current_sort == 'artist_asc' %}artist_desc{% else %}artist_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Artist {% if current_sort == 'artist_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'artist_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <div class="th-sort-wrapper">
+            <span>Artist</span>
+            {% if current_sort == 'artist_asc' %}<span class="sort-arrow">▲</span>{% elif current_sort == 'artist_desc' %}<span class="sort-arrow">▼</span>{% endif %}
+          </div>
         </th>
-        <th style="cursor: pointer;"
+        <th style="cursor: pointer; min-width: 140px;"
             title="Sort by Album"
             hx-get="/api/library/table?sort={% if current_sort == 'album_asc' %}album_desc{% else %}album_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Album {% if current_sort == 'album_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'album_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <div class="th-sort-wrapper">
+            <span>Album</span>
+            {% if current_sort == 'album_asc' %}<span class="sort-arrow">▲</span>{% elif current_sort == 'album_desc' %}<span class="sort-arrow">▼</span>{% endif %}
+          </div>
         </th>
-        <th style="text-align: right; width: 75px; cursor: pointer;"
+        <th style="text-align: center; width: 100px; cursor: pointer;"
+            title="Sort by Format / Quality"
+            hx-get="/api/library/table?sort={% if current_sort == 'duration_asc' %}duration_desc{% else %}duration_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
+            hx-target="#library-table-container">
+          <span>Quality</span>
+        </th>
+        <th style="text-align: right; width: 90px; cursor: pointer;"
             title="Sort by BPM"
             hx-get="/api/library/table?sort={% if current_sort == 'bpm_asc' %}bpm_desc{% else %}bpm_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          BPM {% if current_sort == 'bpm_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'bpm_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <div class="th-sort-wrapper justify-end">
+            <span>Tempo ⚡</span>
+            {% if current_sort == 'bpm_asc' %}<span class="sort-arrow">▲</span>{% elif current_sort == 'bpm_desc' %}<span class="sort-arrow">▼</span>{% endif %}
+          </div>
         </th>
-        <th style="text-align: center; width: 85px; cursor: pointer;"
+        <th style="text-align: center; width: 95px; cursor: pointer;"
             title="Sort by Harmonic Key"
             hx-get="/api/library/table?sort={% if current_sort == 'harmonic_asc' %}harmonic_desc{% else %}harmonic_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Harmonic {% if current_sort == 'harmonic_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'harmonic_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <div class="th-sort-wrapper justify-center">
+            <span>Vibe Key</span>
+            {% if current_sort == 'harmonic_asc' %}<span class="sort-arrow">▲</span>{% elif current_sort == 'harmonic_desc' %}<span class="sort-arrow">▼</span>{% endif %}
+          </div>
         </th>
-        <th style="text-align: right; width: 110px; cursor: pointer;"
+        <th style="text-align: center; width: 110px; cursor: pointer;"
             title="Sort by Energy"
             hx-get="/api/library/table?sort={% if current_sort == 'energy_desc' %}energy_asc{% else %}energy_desc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Energy {% if current_sort == 'energy_desc' %}<span style="color: var(--primary);">▼</span>{% elif current_sort == 'energy_asc' %}<span style="color: var(--primary);">▲</span>{% endif %}
+          <span>Energy Bar</span>
         </th>
-        <th style="text-align: right; width: 110px; cursor: pointer;"
-            title="Sort by Danceability"
-            hx-get="/api/library/table?sort={% if current_sort == 'danceability_desc' %}danceability_asc{% else %}danceability_desc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
-            hx-target="#library-table-container">
-          Danceability {% if current_sort == 'danceability_desc' %}<span style="color: var(--primary);">▼</span>{% elif current_sort == 'danceability_asc' %}<span style="color: var(--primary);">▲</span>{% endif %}
-        </th>
-        <th style="text-align: right; width: 115px; cursor: pointer;"
+        <th style="text-align: right; width: 75px; cursor: pointer;"
             title="Sort by Duration"
             hx-get="/api/library/table?sort={% if current_sort == 'duration_asc' %}duration_desc{% else %}duration_asc{% endif %}&q={{ q }}&artist={{ artist }}&key={{ key }}&mood={{ mood }}&bpm_min={{ bpm_min or '' }}&bpm_max={{ bpm_max or '' }}"
             hx-target="#library-table-container">
-          Format {% if current_sort == 'duration_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'duration_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+          <span>Length</span>
         </th>
         <th style="text-align: center; width: 90px;">Actions</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="crate-table-body">
       {% for track in tracks %}
       <tr class="track-row {% if playback and playback.track_id == track.track_id %}active-playing-row{% endif %}"
           hx-post="/api/player/play-track/{{ track.track_id }}"
@@ -71,88 +86,101 @@
           style="cursor: pointer;">
         <td style="text-align: center; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px;">
           {% if playback and playback.track_id == track.track_id %}
-            <span class="dot-indicator dot-cyan animate-pulse"></span>
+            <div class="row-playing-indicator">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary pulse-dot-cyan"></span>
+            </div>
           {% else %}
-            {{ track.track_id }}
+            <span class="row-index-num font-mono">{{ "%02d"|format(loop.index) }}</span>
           {% endif %}
         </td>
         <td>
-          <div style="font-weight: 600; color: var(--text-primary);">{{ track.title }}</div>
-          <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">
-            {{ track.genre or 'Lossless PCM Audio Stream' }}
+          <div class="track-title-cell">
+            <div class="track-cell-art">
+              <svg class="w-4 h-4 fill-current opacity-70" viewBox="0 0 24 24"><path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/></svg>
+              {% if playback and playback.track_id == track.track_id %}
+              <div class="cell-dancing-bars">
+                <span class="wave-bar-1"></span>
+                <span class="wave-bar-2"></span>
+                <span class="wave-bar-3"></span>
+              </div>
+              {% endif %}
+            </div>
+            <div class="track-title-meta">
+              <div class="track-name font-bold">{{ track.title }}</div>
+              <div class="track-sub-info font-mono">{{ track.genre or 'Lossless PCM Master' }}</div>
+            </div>
           </div>
         </td>
-        <td style="color: var(--text-secondary);">{{ track.artist }}</td>
-        <td style="color: var(--text-muted);">{{ track.album }}</td>
-        <td style="text-align: right; font-family: var(--font-mono); font-weight: 500;">
-          {% if track.bpm %}{{ track.bpm|round(1) }}{% else %}—{% endif %}
+        <td style="color: var(--text-secondary);" class="font-medium">{{ track.artist }}</td>
+        <td style="color: var(--text-muted);" class="truncate">{{ track.album }}</td>
+        <td style="text-align: center;">
+          {% set fpath = track.path or track.file_path or '' %}
+          {% if fpath.endswith('.dsf') or fpath.endswith('.dff') %}
+            <span class="crate-quality-pill quality-dsd">DSD 11.2M 👑</span>
+          {% elif track.sample_rate and track.sample_rate > 48000 %}
+            <span class="crate-quality-pill quality-highres">96k/24b 👑</span>
+          {% else %}
+            <span class="crate-quality-pill quality-flac">FLAC ✨</span>
+          {% endif %}
+        </td>
+        <td style="text-align: right; font-family: var(--font-mono); font-weight: 600;">
+          {% if track.bpm %}
+            <span class="bpm-text text-secondary">{{ track.bpm|round(0)|int }} <span class="text-xs">bpm ⚡</span></span>
+          {% else %}
+            <span class="text-dim">—</span>
+          {% endif %}
         </td>
         <td style="text-align: center;">
           {% if track.camelot %}
-            <span class="badge-camelot">{{ track.camelot }}</span>
+            <span class="crate-key-badge">{{ track.camelot }}</span>
           {% elif track.key %}
-            <span class="badge-camelot">{{ track.key }}</span>
+            <span class="crate-key-badge">{{ track.key }}</span>
           {% else %}
             <span style="color: var(--text-dim);">—</span>
           {% endif %}
         </td>
-        <td style="text-align: right;">
+        <td style="text-align: center;">
           {% if track.energy is not none %}
-            <div class="mini-meter-container">
-              <div class="mini-meter-track">
-                <div class="mini-meter-fill" style="width: {{ (track.energy * 100)|round(0) }}%; background: {% if track.energy >= 0.7 %}var(--secondary){% elif track.energy >= 0.4 %}var(--primary){% else %}var(--tertiary){% endif %};"></div>
+            <div class="crate-energy-bar-wrap">
+              <div class="crate-energy-track">
+                <div class="crate-energy-fill {% if track.energy >= 0.7 %}energy-high{% elif track.energy >= 0.4 %}energy-mid{% else %}energy-low{% endif %}" style="width: {{ (track.energy * 100)|round(0) }}%;"></div>
               </div>
-              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); min-width: 28px;">
-                {{ track.energy|round(2) }}
-              </span>
+              <span class="crate-energy-val font-mono">{{ (track.energy * 100)|round(0)|int }}%</span>
             </div>
           {% else %}
             <span style="color: var(--text-dim); font-family: var(--font-mono);">—</span>
           {% endif %}
         </td>
-        <td style="text-align: right;">
-          {% if track.danceability is not none %}
-            <div class="mini-meter-container">
-              <div class="mini-meter-track">
-                <div class="mini-meter-fill" style="width: {{ (track.danceability * 100)|round(0) }}%; background: var(--secondary);"></div>
-              </div>
-              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); min-width: 28px;">
-                {{ track.danceability|round(2) }}
-              </span>
-            </div>
+        <td style="text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">
+          {% if track.duration %}
+            {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
           {% else %}
-            <span style="color: var(--text-dim); font-family: var(--font-mono);">—</span>
+            3:45
           {% endif %}
-        </td>
-        <td style="text-align: right;">
-          <span class="badge-spec" style="font-size: 9px; padding: 1px 6px;">
-            {% set fpath = track.path or track.file_path or '' %}
-            {% if fpath.endswith('.dsf') or fpath.endswith('.dff') %}
-              DSD256 11.2M
-            {% elif track.sample_rate and track.sample_rate > 48000 %}
-              FLAC {{ (track.sample_rate / 1000)|int }}k/24
-            {% else %}
-              FLAC 44.1k/16
-            {% endif %}
-          </span>
         </td>
         <td style="text-align: center;" onclick="event.stopPropagation();">
-          <div style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
-            <button class="btn-icon"
+          <div class="row-actions-group">
+            <button class="btn-circle-row"
                     hx-post="/api/player/play-track/{{ track.track_id }}"
                     hx-target="#transport-footer-container"
                     hx-swap="innerHTML"
                     title="Play Track"
                     aria-label="Play Track">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </button>
-            <button class="btn-icon"
+            <button class="btn-circle-row"
                     hx-get="/api/track/{{ track.track_id }}"
                     hx-target="#track-detail-modal"
                     hx-swap="innerHTML"
-                    title="View Audio Details"
+                    title="View Audio Details & Vibe"
                     aria-label="View Audio Details">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </button>
+            <button class="btn-circle-row"
+                    type="button"
+                    title="More actions"
+                    onclick="openTrackContextMenu(event, {{ track.track_id }}, '{{ (track.title or 'Unknown')|replace('\'', '\\\'') }}', '{{ (track.artist or 'Unknown')|replace('\'', '\\\'') }}');">
+              <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
             </button>
           </div>
         </td>
@@ -170,15 +198,15 @@
   <!-- Table Footnote Bar -->
   <div class="table-footnote">
     <div style="display: flex; align-items: center; gap: 1rem;">
-      <span id="footnote-dma-status" style="display: inline-flex; align-items: center; gap: 5px;">
-        <span class="dot-indicator dot-green"></span>
-        DMA Ring Buffer: 128 frames (1.33ms)
+      <span id="footnote-dma-status" style="display: inline-flex; align-items: center; gap: 6px;">
+        <span class="pulse-dot"></span>
+        <span>DMA Ring Buffer: 128 frames (1.33ms)</span>
       </span>
       <span>FIFO Overrun Protection: ARMED</span>
     </div>
     <div style="display: flex; align-items: center; gap: 1rem;">
       <span>Showing {{ tracks|length }} tracks</span>
-      <span style="color: var(--text-secondary);">Direct Bit-Perfect ALSA</span>
+      <span style="color: var(--primary); font-weight: 600;">Direct Bit-Perfect ALSA</span>
     </div>
   </div>
 </div>
