@@ -62,11 +62,11 @@
     <tbody>
       {% for track in tracks %}
       <tr class="track-row {% if playback and playback.track_id == track.track_id %}active-playing-row{% endif %}"
-          hx-get="/api/track/{{ track.track_id }}?view=inspector"
+          hx-post="/api/player/play-track/{{ track.track_id }}"
           hx-trigger="click"
-          hx-target="#workspace-inspector-content"
+          hx-target="#transport-footer-container"
           hx-swap="innerHTML"
-          onclick="selectTrackRow(this, '{{ track.track_id }}')"
+          onclick="handleTrackRowPlay(event, this, '{{ track.track_id }}')"
           style="cursor: pointer;">
         <td style="text-align: center; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px;">
           {% if playback and playback.track_id == track.track_id %}

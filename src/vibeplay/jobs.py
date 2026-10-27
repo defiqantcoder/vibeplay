@@ -362,7 +362,7 @@ def start_background_enrich(db_path: Path) -> tuple[str, bool]:
 
     def _worker() -> None:
         try:
-            from vibeplay.enrichment import enrich_tracks
+            from vibeplay.plugins.maintenance.enrichment import enrich_tracks
 
             def _cb(curr: int, total: int, track_name: str) -> None:
                 update_job_progress(

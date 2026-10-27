@@ -122,12 +122,6 @@
               <span>Clean Expired Caches (> 30d)</span>
             </div>
           </div>
-          <div class="menu-row" onclick="triggerCachePurge()">
-            <div class="menu-label-group">
-              <span class="menu-icon">🗑</span>
-              <span>Purge All Network & LLM Caches</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -168,12 +162,6 @@
             <div class="menu-label-group">
               <span class="menu-icon">📚</span>
               <span>View Music Library Table</span>
-            </div>
-          </div>
-          <div class="menu-row" onclick="showTab('clusters')">
-            <div class="menu-label-group">
-              <span class="menu-icon">🫧</span>
-              <span>View Acoustic Clusters</span>
             </div>
           </div>
           <div class="menu-row" onclick="showTab('builder')">
@@ -318,10 +306,18 @@
           <span>View</span>
         </button>
         <div class="menu-dropdown" id="dropdown-view">
+          <div class="menu-row" onclick="openFullscreenNowPlaying()">
+            <div class="menu-label-group">
+              <span class="menu-icon">🎦</span>
+              <span>Fullscreen Now Playing</span>
+            </div>
+            <kbd class="shortcut-kbd">F11</kbd>
+          </div>
+
           <div class="menu-row" onclick="toggleFullscreen()">
             <div class="menu-label-group">
               <span class="menu-icon">⛶</span>
-              <span>Toggle Fullscreen</span>
+              <span>Toggle Window Fullscreen</span>
             </div>
             <kbd class="shortcut-kbd">F12</kbd>
           </div>

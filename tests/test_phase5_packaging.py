@@ -74,13 +74,11 @@ def test_spec_bundles_required_datas_hiddenimports_and_excludes():
     assert datas_dict["vibeplay/templates"].is_dir()
     assert "vibeplay/static" in datas_dict
     assert datas_dict["vibeplay/static"].is_dir()
-    assert "vibe_dsp/profiles" in datas_dict
-    assert datas_dict["vibe_dsp/profiles"].is_dir()
 
     hidden = set(analysis_obj.kwargs["hiddenimports"])
     for req_mod in (
         "vibeplay.web",
-        "vibeplay.desktop.supervisor",
+        "vibeplay.desktop.runner",
         "vibe_dsp.peq",
         "vibe_dsp.spatial",
         "uvicorn.loops.auto",
@@ -137,7 +135,6 @@ def test_collect_pyinstaller_datas_includes_optional_models_and_hrtf(tmp_path: P
     datas = dict((dest, src) for src, dest in collect_pyinstaller_datas(fake_repo))
     assert "vibeplay/templates" in datas
     assert "vibeplay/static" in datas
-    assert "vibe_dsp/profiles" in datas
     assert "models" in datas
     assert "vibe_dsp/hrtf" in datas
 
@@ -163,7 +160,7 @@ def test_frozen_meipass_simulation_no_relative_path_assumptions(
     fake_meipass = tmp_path / "_MEI99999"
     shutil.copytree(REPO_ROOT / "src/vibeplay/templates", fake_meipass / "vibeplay/templates")
     shutil.copytree(REPO_ROOT / "src/vibeplay/static", fake_meipass / "vibeplay/static")
-    shutil.copytree(REPO_ROOT / "src/vibe_dsp/profiles", fake_meipass / "vibe_dsp/profiles")
+    (fake_meipass / "vibe_dsp/profiles").mkdir(parents=True)
     (fake_meipass / "models").mkdir(parents=True)
     (fake_meipass / "models" / "discogs-effnet-bs64-1.pb").write_bytes(b"dummy-pb")
 
@@ -213,15 +210,6 @@ def test_frozen_meipass_simulation_no_relative_path_assumptions(
     htmx_res = client.get("/static/htmx.min.js")
     assert htmx_res.status_code == 200
 
-    # Verify vibe_dsp PEQ profile lookup uses _MEIPASS/vibe_dsp/profiles
-    presets = list_available_presets(target_dir=tmp_path / "nonexistent_ee")
-    preset_names = {p["name"] for p in presets}
-    assert "sennheiser_hd600" in preset_names
-    hd600 = lookup_autoeq_model("sennheiser_hd600", allow_network=False)
-    assert hd600 is not None
-    assert hd600.calculated_preamp < 0.0
-    assert len(hd600.filters) > 0
-
 
 def test_verify_bundle_assets_detects_missing_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -239,7 +227,6 @@ def test_verify_bundle_assets_detects_missing_files(
     assert report.is_valid is False
     assert "templates/base.html" in report.missing_assets
     assert "static/style.css" in report.missing_assets
-    assert "profiles/sennheiser_hd600.txt" in report.missing_assets
 
 
 def test_local_binary_entrypoint_launches_without_uv_run(tmp_path: Path):

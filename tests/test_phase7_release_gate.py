@@ -94,6 +94,6 @@ def test_run_release_gate_checks_supervisor(tmp_path):
     assert report.passed is True
     assert len(report.checks) >= 6
 
-    supervisor_check = next(c for c in report.checks if c.name == "Supervisor Clean Teardown")
-    assert supervisor_check.passed is True
-    assert "no orphans" in supervisor_check.detail
+    teardown_check = next(c for c in report.checks if "Clean Teardown" in c.name)
+    assert teardown_check.passed is True
+    assert "no orphans" in teardown_check.detail

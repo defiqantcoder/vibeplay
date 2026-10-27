@@ -13,7 +13,6 @@ BUNDLE_ENTRYPOINT: str = "src/vibeplay/desktop/__main__.py"
 REQUIRED_TEMPLATE_FILES: tuple[str, ...] = (
     "base.html",
     "index.html",
-    "components/cluster_cards.html",
     "components/desktop_chrome.html",
     "components/desktop_scripts.html",
     "components/library_table.html",
@@ -30,18 +29,12 @@ REQUIRED_STATIC_FILES: tuple[str, ...] = (
     "htmx.min.js",
 )
 
-REQUIRED_DSP_PROFILES: tuple[str, ...] = (
-    "7hz_zero_2.txt",
-    "apple_airpods_pro_2.txt",
-    "moondrop_blessing_2.txt",
-    "sennheiser_hd600.txt",
-)
+REQUIRED_DSP_PROFILES: tuple[str, ...] = ()
 
 # Explicit data directories bundled into the PyInstaller archive: (repo_relative_src, bundle_dest)
 BUNDLE_DATAS: tuple[tuple[str, str], ...] = (
     ("src/vibeplay/templates", "vibeplay/templates"),
     ("src/vibeplay/static", "vibeplay/static"),
-    ("src/vibe_dsp/profiles", "vibe_dsp/profiles"),
 )
 
 # Hidden imports required for FastAPI/Uvicorn, Jinja2, PyWebView GTK3/WebKit2GTK on Ubuntu 24.04, and DSP
@@ -57,20 +50,19 @@ BUNDLE_HIDDEN_IMPORTS: tuple[str, ...] = (
     "vibeplay.desktop.environment",
     "vibeplay.desktop.mime",
     "vibeplay.desktop.packaging",
+    "vibeplay.desktop.runner",
     "vibeplay.desktop.settings",
-    "vibeplay.desktop.supervisor",
-    "vibeplay.desktop.telemetry_stream",
-    "vibeplay.duplicates",
-    "vibeplay.enrichment",
+    "vibeplay.plugins",
+    "vibeplay.plugins.base",
+    "vibeplay.plugins.dsp",
+    "vibeplay.plugins.maintenance",
     "vibeplay.exporter",
-    "vibeplay.llm",
     "vibeplay.player",
     "vibeplay.playlist",
     "vibeplay.scanner",
     "vibeplay.ui",
     "vibeplay.ui.menu",
     "vibeplay.ui.theme",
-    "vibeplay.vectors",
     "vibeplay.web",
     "vibeplay.analysis",
     "vibeplay.analysis.base",

@@ -1,0 +1,174 @@
+<!-- Dedicated Fullscreen Now-Playing View (Audiophile Reproducer) -->
+<div id="fullscreen-now-playing" class="fullscreen-now-playing-overlay hidden" role="dialog" aria-modal="true" aria-label="Fullscreen Now Playing">
+  <!-- Top Navigation & Controls Bar -->
+  <header class="fs-header">
+    <div class="fs-brand">
+      <span class="fs-brand-title">VIBEPLAY</span>
+      <span class="fs-brand-sep">/</span>
+      <span class="fs-brand-badge">BIT-PERFECT REPRODUCER</span>
+    </div>
+
+    <div class="fs-header-actions">
+      <!-- Visualizer Toggle Button -->
+      <button type="button"
+              class="fs-btn fs-btn-visualizer"
+              id="fs-visualizer-toggle-btn"
+              onclick="toggleFullscreenVisualizer()"
+              title="Toggle Audio Visualizer">
+        <svg class="icon fs-icon" viewBox="0 0 24 24">
+          <path d="M4 9h2v6H4zm4-4h2v14H8zm4-2h2v18h-2zm4 4h2v14h-2zm4 4h2v6h-2z"/>
+        </svg>
+        <span id="fs-visualizer-toggle-text">Visualizer: ON</span>
+      </button>
+
+      <!-- Exit Fullscreen Button -->
+      <button type="button"
+              class="fs-btn fs-btn-close"
+              onclick="closeFullscreenNowPlaying()"
+              title="Exit Fullscreen View (Esc)">
+        <svg class="icon fs-icon" viewBox="0 0 24 24">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+        <span>Exit (Esc)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Center Stage: Artwork & Metadata -->
+  <main class="fs-center-stage">
+    <!-- Album Art / Vinyl Disc Deck -->
+    <div class="fs-art-deck">
+      <div class="fs-album-art-card {% if playback and playback.state == 'play' %}is-playing{% endif %}" id="fs-album-card">
+        <!-- Vinyl Record Graphic Inside Sleeve -->
+        <div class="fs-vinyl-disc" id="fs-vinyl-disc">
+          <div class="fs-vinyl-grooves"></div>
+          <div class="fs-vinyl-center-label">
+            <svg class="fs-vinyl-icon" viewBox="0 0 24 24">
+              <path d="M12 3v9.28c-.47-.17-.97-.28-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Realtime Audio Visualizer Canvas -->
+      <div class="fs-visualizer-container" id="fs-visualizer-container">
+        <canvas id="fullscreen-visualizer-canvas" class="fs-visualizer-canvas" width="800" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- Track Metadata & Audiophile Technical Badges -->
+    <div class="fs-meta-deck">
+      <div class="fs-track-title-wrap">
+        <h1 class="fs-track-title" id="fs-now-title">{{ playback.title if playback else 'No Track Playing' }}</h1>
+      </div>
+      <div class="fs-track-artist" id="fs-now-artist">{{ playback.artist if playback else 'vibeplay core' }}</div>
+      <div class="fs-track-album" id="fs-now-album">{{ playback.album if playback else 'Audiophile Engine' }}</div>
+
+      <!-- Hardware Audio Specs Badges -->
+      <div class="fs-badges-row">
+        <span class="badge-spec fs-badge" id="fs-now-format">
+          {{ playback.sample_rate if playback else '96.0 kHz' }} / {{ playback.bit_depth if playback else '24-bit' }}
+        </span>
+        <span class="badge-spec fs-badge fs-badge-bitperfect" id="fs-now-bitperfect">
+          <span class="dot-indicator dot-green animate-pulse"></span>
+          <span>Bit-Perfect Direct</span>
+        </span>
+        <span class="badge-spec fs-badge fs-badge-sink" id="fs-now-sink">
+          {{ playback.output_profile if playback else 'ALSA hw:0,0' }}
+        </span>
+        <span class="badge-spec fs-badge" id="fs-now-buffer">
+          {{ playback.buffer_health if playback else '128f / 1.33ms' }}
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Transport Control Deck -->
+  <footer class="fs-transport-deck">
+    <!-- Interactive Timeline Scrub -->
+    <div class="fs-timeline-row">
+      <span class="fs-timecode" id="fs-time-elapsed">
+        {% set el_m = ((playback.elapsed or 0) // 60)|int if playback else 0 %}
+        {% set el_s = ((playback.elapsed or 0) % 60)|int if playback else 0 %}
+        {{ "%02d:%02d"|format(el_m, el_s) }}
+      </span>
+
+      <div class="fs-scrub-track"
+           id="fs-scrub-track"
+           onclick="handleFsSeek(event)"
+           title="Click to Seek">
+        {% set pct = 0 %}
+        {% if playback and playback.duration and playback.duration > 0 %}
+          {% set pct = (((playback.elapsed or 0) / playback.duration) * 100)|round(1) %}
+        {% endif %}
+        <div class="fs-scrub-fill" id="fs-scrub-fill" style="width: {{ pct }}%;"></div>
+      </div>
+
+      <span class="fs-timecode" id="fs-time-duration">
+        {% set dur_m = ((playback.duration or 0) // 60)|int if playback else 0 %}
+        {% set dur_s = ((playback.duration or 0) % 60)|int if playback else 0 %}
+        {{ "%02d:%02d"|format(dur_m, dur_s) }}
+      </span>
+    </div>
+
+    <!-- Main Playback Controls & Volume -->
+    <div class="fs-controls-row">
+      <div class="fs-controls-left">
+        <span class="fs-mode-indicator">
+          <span class="dot-indicator dot-cyan animate-pulse"></span>
+          <span>Exclusive Hardware Lock</span>
+        </span>
+      </div>
+
+      <!-- Center Buttons -->
+      <div class="fs-transport-buttons">
+        <button type="button"
+                class="fs-btn-transport"
+                onclick="triggerPrevTrack()"
+                title="Previous Track (F9 / Ctrl+Left)">
+          <svg class="icon fs-icon-lg" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+
+        <button type="button"
+                class="fs-btn-transport fs-btn-play"
+                id="fs-btn-play-pause"
+                onclick="triggerPlayToggle()"
+                title="Play / Pause (Space / F10)">
+          {% if playback and playback.state == "play" %}
+            <svg class="icon fs-icon-xl" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          {% else %}
+            <svg class="icon fs-icon-xl" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          {% endif %}
+        </button>
+
+        <button type="button"
+                class="fs-btn-transport"
+                onclick="triggerNextTrack()"
+                title="Next Track (F11 / Ctrl+Right)">
+          <svg class="icon fs-icon-lg" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Right Volume Controls -->
+      <div class="fs-controls-right">
+        <button type="button"
+                class="fs-btn-icon"
+                onclick="triggerMuteToggle()"
+                title="Toggle Mute (F6)">
+          <svg class="icon fs-icon" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+        <input type="range"
+               id="fs-volume-slider"
+               class="volume-slider fs-volume-slider"
+               min="0"
+               max="100"
+               value="{{ playback.volume if playback else 100 }}"
+               oninput="handleFsVolumeInput(this)"
+               title="Volume Level"/>
+        <span class="fs-volume-text" id="fs-volume-text">{{ playback.volume if playback else 100 }}%</span>
+      </div>
+    </div>
+  </footer>
+</div>

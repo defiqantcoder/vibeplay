@@ -363,15 +363,6 @@ def test_track_detail_modal(
     assert response_404.status_code == 404
 
 
-def test_cluster_cards_endpoint(
-    test_environment: tuple[Path, Settings, TestClient],
-) -> None:
-    """Verify cluster cards HTMX partial computes and displays cluster centroids."""
-    _, _, client = test_environment
-    response = client.get("/api/clusters/cards")
-    assert response.status_code == 200
-    assert "cluster-card" in response.text
-    assert "Build Cluster Playlist" in response.text
 
 
 def test_playlist_generation_reorder_and_export(

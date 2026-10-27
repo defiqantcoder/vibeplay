@@ -22,7 +22,6 @@ from vibeplay.db import (
     get_playlist_tracks,
     get_tracks_with_features,
 )
-from vibeplay.llm import parse_prompt_to_plan
 from vibeplay.player import (
     adjust_volume_step,
     get_audio_file_technical_info,
@@ -39,6 +38,7 @@ from vibeplay.player import (
 )
 from vibeplay.playlist import (
     GeneratedPlaylist,
+    NaturalLanguageQuery,
     PlaylistRuleConfig,
     PlaylistTrackItem,
     calculate_playlist_summary,
@@ -46,8 +46,10 @@ from vibeplay.playlist import (
     calculate_transition_metrics,
     generate_playlist,
     key_to_camelot,
+    load_vibe_tracks_and_vectors,
+    parse_natural_language_prompt,
+    query_tracks_by_prompt,
 )
-from vibeplay.vectors import ClusterSummary, compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
 
@@ -221,14 +223,9 @@ def get_filtered_tracks(
 
 def get_library_clusters(
     db_path: Path, settings: Settings | None = None
-) -> list[ClusterSummary]:
-    """Compute or load unsupervised vibe clusters for the library."""
-    try:
-        clust_res = compute_clusters(db_path=db_path, settings=settings)
-        return clust_res.clusters
-    except Exception as err:
-        logger.debug("Could not compute clusters: %s", err)
-        return []
+) -> list[dict[str, Any]]:
+    """Return empty clusters list since unsupervised clusters are pruned."""
+    return []
 
 
 def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | None:
@@ -247,7 +244,7 @@ def load_saved_playlist(db_path: Path, playlist_id: int) -> GeneratedPlaylist | 
     prev_vec: np.ndarray | None = None
 
     try:
-        track_ids, vectors, _ = get_or_build_vibe_vectors(db_path)
+        track_ids, vectors, _ = load_vibe_tracks_and_vectors(db_path)
         id_to_vec_idx = {tid: idx for idx, tid in enumerate(track_ids)}
     except Exception:
         vectors = None
@@ -636,15 +633,8 @@ def create_app(
 
     @app.get("/api/clusters/cards", response_class=HTMLResponse)
     async def api_cluster_cards(request: Request) -> Response:
-        """HTMX endpoint returning cluster cards component."""
-        clusters = get_library_clusters(resolved_db_path, cfg)
-        return templates.TemplateResponse(
-            request=request,
-            name="components/cluster_cards.html",
-            context={
-                "clusters": clusters,
-            },
-        )
+        """HTMX endpoint returning cluster cards component (purged in lean core)."""
+        return HTMLResponse("<div class='hidden'></div>")
 
     @app.post("/api/playlist/generate", response_class=HTMLResponse)
     async def api_generate_playlist(
@@ -679,27 +669,23 @@ def create_app(
 
         if prompt and prompt.strip():
             try:
-                plan = parse_prompt_to_plan(
-                    prompt.strip(), db_path=resolved_db_path, settings=cfg
-                )
-                name = plan.name
-                desc = plan.description
-                parsed_vibe = plan.vibe or parsed_vibe
-                parsed_arc = plan.arc or parsed_arc
+                nl_query = parse_natural_language_prompt(prompt.strip())
+                name = prompt.strip().title()
+                desc = f"Smart playlist for '{prompt.strip()}'"
+                parsed_vibe = nl_query.vibe or parsed_vibe
+                parsed_arc = nl_query.arc or parsed_arc
                 rules = PlaylistRuleConfig(
-                    mode=plan.mode,
-                    arc=plan.arc,
-                    vibe=plan.vibe,
-                    bpm_min=plan.bpm_min,
-                    bpm_max=plan.bpm_max,
-                    energy_min=plan.energy_min,
-                    energy_max=plan.energy_max,
-                    danceability_min=plan.danceability_min,
-                    danceability_max=plan.danceability_max,
-                    mood_min=plan.mood_min,
-                    genre_include=plan.genre_include,
-                    genre_exclude=plan.genre_exclude,
-                    limit=plan.limit or limit,
+                    mode="rules",
+                    arc=nl_query.arc,
+                    vibe=nl_query.vibe,
+                    bpm_min=nl_query.bpm_min,
+                    bpm_max=nl_query.bpm_max,
+                    energy_min=nl_query.energy_min,
+                    energy_max=nl_query.energy_max,
+                    danceability_min=nl_query.danceability_min,
+                    danceability_max=nl_query.danceability_max,
+                    genre_include=[nl_query.genre_like] if nl_query.genre_like else None,
+                    limit=nl_query.limit or limit,
                     max_artist_tracks=max_artist_tracks,
                 )
             except Exception as plan_err:
@@ -2042,16 +2028,6 @@ def create_app(
     @app.get("/api/desktop/telemetry/stream")
     async def api_desktop_telemetry_stream() -> StreamingResponse:
         """Stream desktop hardware & playback telemetry updates as Server-Sent Events (SSE)."""
-        from vibeplay.desktop.telemetry_stream import (
-            TelemetryMonitor,
-            TelemetrySnapshot,
-            format_sse_event,
-        )
-
-        if not hasattr(app.state, "telemetry_monitor"):
-            app.state.telemetry_monitor = TelemetryMonitor()
-        monitor: TelemetryMonitor = app.state.telemetry_monitor
-
         ds = load_desktop_settings(settings_file_path)
         playback = get_playback_status(resolved_db_path, cfg)
         state_str = str(playback.get("state") or "stop").lower()
@@ -2076,62 +2052,65 @@ def create_app(
                         (current_track_id,),
                     ).fetchone()
                     if row and row[0]:
-                        from vibeplay.playlist import key_to_camelot
                         camelot_key = key_to_camelot(row[0], row[1])
             except Exception:
                 pass
 
-        snapshot = TelemetrySnapshot(
-            xruns=0,
-            bit_perfect_locked=bool(ds.alsa_exclusive_lock),
-            sample_rate_hz=sample_rate_hz,
-            bit_depth=bit_depth,
-            alsa_device=ds.alsa_device,
-            dsp_profile=ds.dsp_profile,
-            spatial_enabled=bool(ds.spatial_enabled),
-            current_track_id=current_track_id,
-            current_track_title=playback.get("title"),
-            current_track_artist=playback.get("artist"),
-            service_healthy=bool(playback.get("daemon_online", True)),
-            buffer_frames=int(ds.alsa_buffer_frames or 128),
-            period_count=int(ds.alsa_period_count or 2),
-            jitter_ps=0.18,
-            dbfs=118.4 if bit_depth <= 16 else 124.2,
-            true_peak_db=-0.32,
-            headroom_db=float(ds.peq_preamp_db) if ds.peq_profile != "none" else 18.0,
-            playback_state=state_str,
-            camelot_key=camelot_key,
-        )
-        delta_events = monitor.process_snapshot(snapshot)
+        telemetry_payload = {
+            "xruns": 0,
+            "bit_perfect_locked": bool(ds.alsa_exclusive_lock),
+            "sample_rate_hz": sample_rate_hz,
+            "bit_depth": bit_depth,
+            "alsa_device": ds.alsa_device,
+            "dsp_profile": ds.dsp_profile,
+            "spatial_enabled": bool(ds.spatial_enabled),
+            "current_track_id": current_track_id,
+            "current_track_title": playback.get("title"),
+            "current_track_artist": playback.get("artist"),
+            "service_healthy": bool(playback.get("daemon_online", True)),
+            "buffer_frames": int(ds.alsa_buffer_frames or 128),
+            "period_count": int(ds.alsa_period_count or 2),
+            "jitter_ps": 0.18,
+            "dbfs": 118.4 if bit_depth <= 16 else 124.2,
+            "true_peak_db": -0.32,
+            "headroom_db": float(ds.peq_preamp_db) if ds.peq_profile != "none" else 18.0,
+            "playback_state": state_str,
+            "camelot_key": camelot_key,
+        }
+
+        last_snap = getattr(app.state, "_last_telemetry_snapshot", None)
+        delta_events: list[tuple[str, dict[str, Any]]] = []
+        if last_snap is not None:
+            if current_track_id != last_snap.get("current_track_id") and current_track_id is not None:
+                delta_events.append(
+                    (
+                        "track_transition",
+                        {
+                            "previous_track_id": last_snap.get("current_track_id"),
+                            "current_track_id": current_track_id,
+                            "title": playback.get("title"),
+                            "artist": playback.get("artist"),
+                        },
+                    )
+                )
+            if sample_rate_hz != last_snap.get("sample_rate_hz") or bit_depth != last_snap.get("bit_depth"):
+                delta_events.append(
+                    (
+                        "dac_lock_changed",
+                        {
+                            "sample_rate_hz": sample_rate_hz,
+                            "bit_depth": bit_depth,
+                            "alsa_device": ds.alsa_device,
+                        },
+                    )
+                )
+        app.state._last_telemetry_snapshot = telemetry_payload
 
         def _event_generator():
             yield "retry: 1000\n\n"
-            yield format_sse_event(
-                "telemetry_snapshot",
-                {
-                    "xruns": snapshot.xruns,
-                    "bit_perfect_locked": snapshot.bit_perfect_locked,
-                    "sample_rate_hz": snapshot.sample_rate_hz,
-                    "bit_depth": snapshot.bit_depth,
-                    "alsa_device": snapshot.alsa_device,
-                    "dsp_profile": snapshot.dsp_profile,
-                    "spatial_enabled": snapshot.spatial_enabled,
-                    "current_track_id": snapshot.current_track_id,
-                    "current_track_title": snapshot.current_track_title,
-                    "current_track_artist": snapshot.current_track_artist,
-                    "service_healthy": snapshot.service_healthy,
-                    "buffer_frames": snapshot.buffer_frames,
-                    "period_count": snapshot.period_count,
-                    "jitter_ps": snapshot.jitter_ps,
-                    "dbfs": snapshot.dbfs,
-                    "true_peak_db": snapshot.true_peak_db,
-                    "headroom_db": snapshot.headroom_db,
-                    "playback_state": snapshot.playback_state,
-                    "camelot_key": snapshot.camelot_key,
-                },
-            )
-            for evt_type, evt_data in delta_events:
-                yield format_sse_event(evt_type, evt_data)
+            yield f"event: telemetry_snapshot\ndata: {json.dumps(telemetry_payload)}\n\n"
+            for evt_name, evt_data in delta_events:
+                yield f"event: {evt_name}\ndata: {json.dumps(evt_data)}\n\n"
 
         return StreamingResponse(
             _event_generator(),
@@ -2144,69 +2123,14 @@ def create_app(
 
     @app.post("/api/ai/test")
     async def api_ai_test(request: Request) -> JSONResponse:
-        """Test LLM provider connection with current or supplied API key."""
-        payload: dict[str, Any] = {}
-        content_type = request.headers.get("content-type") or ""
-        if "application/json" in content_type:
-            try:
-                payload = await request.json()
-            except Exception:
-                payload = {}
-        else:
-            try:
-                form = await request.form()
-                payload = dict(form)
-            except Exception:
-                payload = dict(request.query_params)
-
-        key = payload.get("gemini_api_key") or cfg.gemini_api_key
-        provider_name = payload.get("llm_provider") or cfg.llm_provider or "gemini"
-
-        if provider_name == "off":
-            return JSONResponse(
-                content={
-                    "status": "ok",
-                    "message": "AI Integration is set to Off (Deterministic Offline Mode active).",
-                }
-            )
-
-        if not key and provider_name == "gemini":
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "error",
-                    "message": "Missing Gemini API key. Please enter a valid API key.",
-                },
-            )
-
-        try:
-            from vibeplay.llm import GeminiLLMProvider
-
-            model_name = (
-                payload.get("gemini_model")
-                or cfg.llm_model
-                or "gemini-2.5-flash"
-            )
-            prov = GeminiLLMProvider(api_key=key, model_name=model_name)
-            res = prov.generate_text(
-                "Reply with the single word: OK",
-                system_instruction="You are a system health check.",
-            )
-            return JSONResponse(
-                content={
-                    "status": "ok",
-                    "message": f"Successfully connected to Gemini API ({model_name})!",
-                    "sample_response": res.strip(),
-                }
-            )
-        except Exception as err:
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "status": "error",
-                    "message": f"Gemini connection test failed: {err}",
-                },
-            )
+        """Local health check (cloud AI features purged in lean core)."""
+        return JSONResponse(
+            content={
+                "status": "ok",
+                "message": "Local deterministic heuristic engine active. Cloud LLMs purged.",
+                "sample_response": "OK",
+            }
+        )
 
     @app.post("/api/desktop/browse-folder")
     async def api_desktop_browse_folder(request: Request) -> JSONResponse:

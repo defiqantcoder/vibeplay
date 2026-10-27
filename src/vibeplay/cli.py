@@ -25,13 +25,11 @@ from vibeplay.analysis import analyze_tracks
 from vibeplay.capabilities import check_all_capabilities
 from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
-from vibeplay.enrichment import enrich_tracks, get_report_data
 from vibeplay.exporter import export_playlist_to_file
-from vibeplay.llm import batch_vibe_tag_tracks, parse_prompt_to_plan
 from vibeplay.player import PlaybackError, play_playlist, play_seed
 from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
+from vibeplay.plugins.maintenance.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
-from vibeplay.vectors import compute_clusters, invalidate_cluster_cache
 
 logger = logging.getLogger("vibeplay")
 console = Console()
@@ -120,8 +118,7 @@ def scan(
     console.print()
     console.print(table)
 
-    if summary.new > 0 or summary.updated > 0 or summary.missing > 0:
-        invalidate_cluster_cache()
+
 
 
 
@@ -421,78 +418,7 @@ def clusters(
 
     console.print(f"[bold]Target database:[/bold] [cyan]{db_path}[/cyan]")
     console.print(
-        f"[dim]Running {algorithm.upper()} clustering (k={k if algorithm.lower() == 'kmeans' else 'auto'}, "
-        f"cache={'rebuild' if rebuild_cache else 'auto'})...[/dim]\n"
-    )
-
-    try:
-        result = compute_clusters(
-            db_path=db_path,
-            k=k,
-            algorithm=algorithm,
-            min_cluster_size=min_cluster_size,
-            rebuild_cache=rebuild_cache,
-            settings=settings,
-        )
-    except Exception as err:
-        console.print(f"[bold red]Clustering Error:[/bold red] {err}")
-        raise typer.Exit(code=1)
-
-    if not result.clusters or result.total_tracks == 0:
-        console.print(
-            "[yellow]No analyzed tracks found to cluster. Run 'vibeplay analyze' first.[/yellow]"
-        )
-        return
-
-    for cluster in result.clusters:
-        # Format dominant moods
-        moods_str = (
-            ", ".join(f"{mood} ({score:.2f})" for mood, score in cluster.dominant_moods)
-            or "N/A"
-        )
-
-        # Format top artists
-        artists_str = (
-            ", ".join(f"{artist} ({count})" for artist, count in cluster.top_artists)
-            or "None"
-        )
-
-        table = Table(
-            title=f"{cluster.label} — {cluster.size} tracks | Avg BPM: {cluster.avg_bpm:.1f}",
-            show_header=True,
-            header_style="bold magenta",
-        )
-        table.add_column("ID", style="dim", width=5)
-        table.add_column("Representative Track", style="bold")
-        table.add_column("Artist", style="cyan")
-        table.add_column("Album", style="dim")
-        table.add_column("BPM", justify="right", style="yellow")
-        table.add_column("Match", justify="right", style="green")
-
-        for rep in cluster.representative_tracks:
-            sim_pct = (
-                f"{rep['similarity_to_centroid']:.1%}"
-                if rep["similarity_to_centroid"] > 0
-                else "N/A"
-            )
-            bpm_str = f"{rep['bpm']:.1f}" if rep.get("bpm") is not None else "N/A"
-            table.add_row(
-                str(rep["track_id"]),
-                rep.get("title") or "Unknown",
-                rep.get("artist") or "Unknown",
-                rep.get("album") or "Unknown",
-                bpm_str,
-                sim_pct,
-            )
-
-        console.print(f"[bold cyan]Dominant Moods:[/bold cyan] {moods_str}")
-        console.print(f"[bold cyan]Top Artists:[/bold cyan]    {artists_str}")
-        console.print(table)
-        console.print()
-
-    console.print(
-        f"[bold green]Clustering Complete:[/bold green] Grouped {result.total_tracks} tracks into "
-        f"{len(result.clusters)} clusters using {result.algorithm.upper()}."
+        "[cyan]VibePlay has been refactored into a lean audiophile core. Use natural language prompts (e.g. 'high energy workout', 'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]"
     )
 
 
@@ -1100,7 +1026,7 @@ def desktop(
     ] = False,
 ) -> None:
     """Launch the unified vibeplay desktop application shell and runtime supervisor."""
-    from vibeplay.desktop.supervisor import DesktopSupervisor
+    from vibeplay.desktop.runner import DesktopRunner
 
     cfg = get_settings()
     db_path = db or cfg.db_path
@@ -1126,21 +1052,21 @@ def desktop(
         console.print("[bold green]All Release Gate checks PASSED successfully.[/bold green]")
         raise typer.Exit(code=0)
 
-    supervisor = DesktopSupervisor(
+    runner = DesktopRunner(
         db_path=db_path,
         host=host,
         port=port,
         start_mpd_child=not no_mpd,
     )
-    console.print("[bold cyan]Starting vibeplay desktop supervisor...[/bold cyan]")
+    console.print("[bold cyan]Starting vibeplay desktop player...[/bold cyan]")
     try:
-        supervisor.start(headless=headless)
+        runner.start(headless=headless)
     except KeyboardInterrupt:
-        console.print("[dim]Stopping supervisor...[/dim]")
-        supervisor.stop()
+        console.print("[dim]Stopping player...[/dim]")
+        runner.stop()
     except Exception as err:
-        console.print(f"[bold red]Supervisor Error:[/bold red] {err}")
-        supervisor.stop()
+        console.print(f"[bold red]Player Error:[/bold red] {err}")
+        runner.stop()
         raise typer.Exit(code=1)
 
 
@@ -1226,7 +1152,7 @@ def duplicates(
     ),
 ) -> None:
     """Find likely duplicate tracks in the library."""
-    from vibeplay.duplicates import find_duplicates
+    from vibeplay.plugins.maintenance.duplicates import find_duplicates
 
     cfg = get_settings()
     db_path = db or cfg.db_path

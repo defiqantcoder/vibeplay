@@ -81,11 +81,6 @@ def build_desktop_menu_bar() -> list[MenuSection]:
                     label="Clean Expired Caches (TTL > 30d)",
                     action_endpoint="/api/cache/cleanup",
                 ),
-                MenuItem(
-                    id="edit_purge_cache",
-                    label="Purge All Network & LLM Caches",
-                    action_endpoint="/api/cache/purge",
-                ),
             ],
         ),
         MenuSection(
@@ -102,16 +97,6 @@ def build_desktop_menu_bar() -> list[MenuSection]:
                     id="lib_analyze",
                     label="Run Essentia Feature Analyzer",
                     action_endpoint="/api/library/analyze",
-                ),
-                MenuItem(
-                    id="lib_duplicates",
-                    label="Scan for Lossless/Lossy Duplicates",
-                    action_endpoint="/api/library/duplicates",
-                ),
-                MenuItem(
-                    id="lib_clusters",
-                    label="Generate HDBSCAN Vibe Clusters",
-                    action_endpoint="/api/library/clusters",
                 ),
             ],
         ),

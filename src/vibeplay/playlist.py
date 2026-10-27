@@ -19,7 +19,6 @@ from vibeplay.db import (
     get_connection,
     get_tracks_with_features,
 )
-from vibeplay.vectors import compute_clusters, get_or_build_vibe_vectors
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +64,16 @@ CAMELOT_MINOR: dict[str, str] = {
     "C#": "12A",
     "DB": "12A",
 }
+
+MOOD_KEYS: tuple[str, ...] = (
+    "happy",
+    "sad",
+    "relaxed",
+    "aggressive",
+    "party",
+    "acoustic",
+    "electronic",
+)
 
 VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "chill": {
@@ -839,6 +848,394 @@ def _get_dedup_key(meta: dict[str, Any]) -> str:
     return f"raw:{artist}:{title}"
 
 
+@dataclass
+class NaturalLanguageQuery:
+    """Structured constraints translated from a plain-English user prompt."""
+
+    raw_prompt: str
+    energy_min: float | None = None
+    energy_max: float | None = None
+    danceability_min: float | None = None
+    danceability_max: float | None = None
+    bpm_min: float | None = None
+    bpm_max: float | None = None
+    genre_like: str | None = None
+    vibe: str | None = None
+    arc: str | None = None
+    limit: int = 25
+
+    def to_sqlite_where(self) -> tuple[str, dict[str, Any]]:
+        """Generate a SQLite WHERE clause fragment and parameter bindings."""
+        clauses: list[str] = []
+        params: dict[str, Any] = {}
+
+        if self.energy_min is not None:
+            clauses.append("f.energy >= :nl_energy_min")
+            params["nl_energy_min"] = self.energy_min
+        if self.energy_max is not None:
+            clauses.append("f.energy <= :nl_energy_max")
+            params["nl_energy_max"] = self.energy_max
+        if self.danceability_min is not None:
+            clauses.append("f.danceability >= :nl_dance_min")
+            params["nl_dance_min"] = self.danceability_min
+        if self.danceability_max is not None:
+            clauses.append("f.danceability <= :nl_dance_max")
+            params["nl_dance_max"] = self.danceability_max
+        if self.bpm_min is not None and self.bpm_max is not None:
+            clauses.append("f.bpm BETWEEN :nl_bpm_min AND :nl_bpm_max")
+            params["nl_bpm_min"] = self.bpm_min
+            params["nl_bpm_max"] = self.bpm_max
+        elif self.bpm_min is not None:
+            clauses.append("f.bpm >= :nl_bpm_min")
+            params["nl_bpm_min"] = self.bpm_min
+        elif self.bpm_max is not None:
+            clauses.append("f.bpm <= :nl_bpm_max")
+            params["nl_bpm_max"] = self.bpm_max
+
+        if self.genre_like:
+            clauses.append("(v.genre LIKE :nl_genre OR v.enriched_genres LIKE :nl_genre)")
+            params["nl_genre"] = f"%{self.genre_like}%"
+
+        where_sql = " AND ".join(clauses) if clauses else "1=1"
+        return where_sql, params
+
+
+def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
+    """Parse a plain-English user prompt into SQLite parameter bounds.
+
+    Pure local, deterministic regex and heuristic parser without external AI/LLMs.
+    """
+    import re
+
+    if not prompt or not prompt.strip():
+        return NaturalLanguageQuery(raw_prompt="")
+
+    p = prompt.strip().lower()
+    query = NaturalLanguageQuery(raw_prompt=prompt.strip())
+
+    # 1. BPM parsing
+    range_match = re.search(r"(?:between|from)?\s*(\d+(?:\.\d+)?)\s*(?:-|to|and)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+    if range_match:
+        b1, b2 = float(range_match.group(1)), float(range_match.group(2))
+        query.bpm_min = min(b1, b2)
+        query.bpm_max = max(b1, b2)
+    else:
+        around_match = re.search(r"(?:around|about|~)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+        if around_match:
+            target = float(around_match.group(1))
+            query.bpm_min = target - 5.0
+            query.bpm_max = target + 5.0
+        else:
+            above_match = re.search(r"(?:above|over|>|>=)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+            if above_match:
+                query.bpm_min = float(above_match.group(1))
+            else:
+                under_match = re.search(r"(?:under|below|<|<=)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+                if under_match:
+                    query.bpm_max = float(under_match.group(1))
+                else:
+                    single_bpm = re.search(r"\b(\d{2,3}(?:\.\d+)?)\s*bpm\b", p)
+                    if single_bpm:
+                        target = float(single_bpm.group(1))
+                        query.bpm_min = target - 5.0
+                        query.bpm_max = target + 5.0
+
+    # 2. Energy, Danceability & Mood Heuristics
+    if "high energy" in p and "workout" in p:
+        query.energy_min = 0.8
+        if query.bpm_min is None:
+            query.bpm_min = 130.0
+        query.vibe = "workout"
+    elif "workout" in p:
+        query.energy_min = 0.75
+        if query.bpm_min is None:
+            query.bpm_min = 120.0
+        query.vibe = "workout"
+    elif "high energy" in p or "intense" in p or "banger" in p or "hype" in p:
+        query.energy_min = 0.8
+        query.vibe = "energetic"
+
+    if "chill" in p and ("lofi" in p or "study" in p):
+        query.energy_max = 0.4
+        query.danceability_max = 0.5
+        if query.bpm_min is None and query.bpm_max is None:
+            query.bpm_min = 70.0
+            query.bpm_max = 95.0
+        query.vibe = "lofi"
+    elif "lofi" in p:
+        query.energy_max = 0.55
+        if query.bpm_min is None and query.bpm_max is None:
+            query.bpm_min = 70.0
+            query.bpm_max = 95.0
+        query.vibe = "lofi"
+    elif "chill" in p or "relax" in p or "calm" in p:
+        query.energy_max = 0.50
+        query.vibe = "chill"
+
+    if "dance party" in p or ("dance" in p and "party" in p):
+        query.danceability_min = 0.7
+        query.vibe = "party"
+    elif "dance" in p or "club" in p:
+        query.danceability_min = 0.7
+    elif "party" in p:
+        query.danceability_min = 0.65
+        query.energy_min = max(query.energy_min or 0.0, 0.60)
+        query.vibe = "party"
+
+    if "upbeat" in p:
+        query.danceability_min = max(query.danceability_min or 0.0, 0.6)
+
+    if "ambient" in p or "sleep" in p:
+        query.energy_max = min(query.energy_max or 1.0, 0.35)
+        query.danceability_max = min(query.danceability_max or 1.0, 0.40)
+        query.vibe = "ambient"
+    elif "focus" in p or "study" in p:
+        query.energy_max = min(query.energy_max or 1.0, 0.50)
+        query.danceability_max = min(query.danceability_max or 1.0, 0.50)
+        query.vibe = "deep_focus"
+
+    # 3. Genre Extraction
+    genre_keywords = [
+        "pop", "rock", "jazz", "electronic", "techno", "house", "hip hop", "hip-hop",
+        "rap", "ambient", "metal", "disco", "indie", "r&b", "soul", "funk", "folk",
+        "classical", "punk", "reggae", "blues", "country", "trance", "synthwave"
+    ]
+    for g in genre_keywords:
+        pattern = r"\b" + re.escape(g) + r"\b"
+        if re.search(pattern, p):
+            query.genre_like = "hip hop" if "hip" in g else g
+            break
+
+    # 4. Energy Arcs
+    arc_keywords = {
+        "ramp": "energy_ramp",
+        "wave": "peak_hour_wave",
+        "steady": "steady_pulse",
+        "chill": "late_night_chill",
+        "peak": "double_peak",
+        "roller": "sunrise_roller",
+        "dive": "deep_dive",
+        "burn": "slow_burn",
+    }
+    for kw, arc_name in arc_keywords.items():
+        if kw in p:
+            query.arc = arc_name
+            break
+
+    return query
+
+
+def query_tracks_by_prompt(
+    db_path: Path,
+    prompt: str,
+    limit: int = 25,
+) -> list[dict[str, Any]]:
+    """Query audio tracks matching a plain-English natural language prompt."""
+    query = parse_natural_language_prompt(prompt)
+    where_sql, params = query.to_sqlite_where()
+    params["limit"] = limit
+
+    with get_connection(db_path) as conn:
+        cursor = conn.cursor()
+        sql = f"""
+            SELECT
+                v.track_id,
+                v.path,
+                v.duration,
+                v.title,
+                v.artist,
+                v.album,
+                v.genre,
+                f.bpm,
+                f.danceability,
+                f.energy,
+                f.key,
+                f.scale,
+                f.loudness
+            FROM v_tracks_best_value v
+            JOIN features f ON v.track_id = f.track_id
+            WHERE {where_sql}
+            ORDER BY f.energy DESC, f.danceability DESC
+            LIMIT :limit
+        """
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        if not rows:
+            cursor.execute(
+                """
+                SELECT
+                    v.track_id,
+                    v.path,
+                    v.duration,
+                    v.title,
+                    v.artist,
+                    v.album,
+                    v.genre,
+                    f.bpm,
+                    f.danceability,
+                    f.energy,
+                    f.key,
+                    f.scale,
+                    f.loudness
+                FROM v_tracks_best_value v
+                JOIN features f ON v.track_id = f.track_id
+                ORDER BY f.energy DESC
+                LIMIT :limit
+                """,
+                {"limit": limit},
+            )
+            rows = cursor.fetchall()
+
+        results: list[dict[str, Any]] = []
+        for r in rows:
+            tid = int(r["track_id"])
+            p = Path(r["path"])
+            key_val = str(r["key"] or "C")
+            scale_val = str(r["scale"] or "major")
+            camelot_val = key_to_camelot(key_val, scale_val) or "8B"
+            results.append({
+                "track_id": tid,
+                "title": r["title"] or p.stem,
+                "artist": r["artist"] or "Unknown Artist",
+                "album": r["album"] or "Unknown Album",
+                "duration": float(r["duration"] or 180.0),
+                "genre": r["genre"] or "",
+                "bpm": float(r["bpm"] or 120.0),
+                "danceability": float(r["danceability"] or 0.5),
+                "energy": float(r["energy"] or 0.5),
+                "key": key_val,
+                "scale": scale_val,
+                "camelot": camelot_val,
+                "loudness": float(r["loudness"] or -10.0),
+                "path": r["path"],
+            })
+
+    return results
+
+
+def load_vibe_tracks_and_vectors(
+    db_path: Path,
+    settings: Settings | None = None,
+) -> tuple[np.ndarray, np.ndarray, dict[int, dict[str, Any]]]:
+    """Load tracks and compute normalized acoustic feature vectors directly from SQLite."""
+    with get_connection(db_path) as conn:
+        all_tracks_rows = get_tracks_with_features(conn)
+        if not all_tracks_rows:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(tracks)")
+            cols = {row[1] for row in cursor.fetchall()}
+            if "status" in cols:
+                cursor.execute(
+                    "SELECT id, path, title, artist, album, duration FROM tracks WHERE status = 'active' ORDER BY id ASC"
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, path, title, artist, album, duration FROM tracks ORDER BY id ASC"
+                )
+            raw_tracks = cursor.fetchall()
+            if not raw_tracks:
+                return np.array([], dtype=int), np.zeros((0, 8), dtype=np.float32), {}
+
+            synth_ids: list[int] = []
+            synth_meta: dict[int, dict[str, Any]] = {}
+            synth_vecs: list[np.ndarray] = []
+            for r in raw_tracks:
+                tid = int(r[0])
+                p = Path(r[1])
+                synth_ids.append(tid)
+                synth_meta[tid] = {
+                    "track_id": tid,
+                    "title": r[2] or p.stem,
+                    "artist": r[3] or "Unknown Artist",
+                    "album": r[4] or "Unknown Album",
+                    "album_artist": r[3] or "Unknown Artist",
+                    "year": None,
+                    "genre": None,
+                    "duration": float(r[5] or 180.0),
+                    "mb_recording_id": None,
+                    "enriched_genres": None,
+                    "enriched_tags": None,
+                    "bpm": 120.0,
+                    "key": "C",
+                    "scale": "major",
+                    "camelot": "8B",
+                    "energy": 0.50,
+                    "danceability": 0.50,
+                    "loudness": -10.0,
+                    "path": str(p),
+                    "mood_scores": {},
+                }
+                v = np.zeros(8, dtype=np.float32)
+                v[0] = 1.0
+                synth_vecs.append(v)
+            return np.array(synth_ids, dtype=int), np.array(synth_vecs, dtype=np.float32), synth_meta
+
+    track_ids: list[int] = []
+    meta_map: dict[int, dict[str, Any]] = {}
+    vectors_list: list[np.ndarray] = []
+
+    for r in all_tracks_rows:
+        tid = int(r["track_id"])
+        bpm_val = float(r["bpm"] or 120.0)
+        energy_val = float(r["energy"] or 0.5)
+        dance_val = float(r["danceability"] or 0.5)
+        loud_val = float(r["loudness"] or -10.0)
+        key_val = str(r["key"] or "C")
+        scale_val = str(r["scale"] or "major")
+        camelot_val = key_to_camelot(key_val, scale_val) or "8B"
+
+        mood_scores: dict[str, float] = {}
+        if r["mood_scores"]:
+            try:
+                mood_scores = json.loads(r["mood_scores"])
+            except Exception:
+                pass
+
+        track_ids.append(tid)
+        meta_map[tid] = {
+            "track_id": tid,
+            "path": r["path"],
+            "title": r["title"] or Path(r["path"]).stem,
+            "artist": r["artist"] or "Unknown Artist",
+            "album_artist": r["album_artist"] or r["artist"] or "Unknown Artist",
+            "album": r["album"] or "Unknown Album",
+            "year": r["year"],
+            "genre": r["genre"],
+            "duration": float(r["duration"]) if r["duration"] is not None else 180.0,
+            "mb_recording_id": r["mb_recording_id"],
+            "enriched_genres": r["enriched_genres"],
+            "enriched_tags": r["enriched_tags"],
+            "bpm": bpm_val,
+            "key": key_val,
+            "scale": scale_val,
+            "camelot": camelot_val,
+            "energy": energy_val,
+            "danceability": dance_val,
+            "loudness": loud_val,
+            "mood_scores": mood_scores,
+        }
+
+        bpm_norm = float(np.clip((bpm_val - 60.0) / 140.0, 0.0, 1.0))
+        loud_norm = float(np.clip((loud_val + 30.0) / 30.0, 0.0, 1.0))
+        h = mood_scores.get("happy", 0.5)
+        rel = mood_scores.get("relaxed", 0.5)
+        agg = mood_scores.get("aggressive", 0.2)
+        ac = mood_scores.get("acoustic", 0.2)
+
+        vec = np.array([energy_val, dance_val, bpm_norm, loud_norm, h, rel, agg, ac], dtype=np.float32)
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        vectors_list.append(vec)
+
+    return (
+        np.array(track_ids, dtype=int),
+        np.array(vectors_list, dtype=np.float32),
+        meta_map,
+    )
+
+
 def generate_playlist(
     db_path: Path,
     name: str = "Vibe Playlist",
@@ -935,58 +1332,14 @@ def generate_playlist(
         config_rules.genre_exclude = rules.genre_exclude
         config_rules.allow_half_double_time = rules.allow_half_double_time
 
-    # Load vectors and metadata
-    track_ids, vectors, meta_map = get_or_build_vibe_vectors(
+    # Load vectors and metadata directly from SQLite
+    track_ids, vectors, meta_map = load_vibe_tracks_and_vectors(
         db_path=db_path, settings=cfg
     )
     if len(track_ids) == 0:
-        with get_connection(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA table_info(tracks)")
-            cols = {row[1] for row in cursor.fetchall()}
-            if "status" in cols:
-                cursor.execute(
-                    "SELECT id, path, title, artist, album, duration FROM tracks WHERE status = 'active' ORDER BY id ASC"
-                )
-            else:
-                cursor.execute(
-                    "SELECT id, path, title, artist, album, duration FROM tracks ORDER BY id ASC"
-                )
-            raw_tracks = cursor.fetchall()
-
-        if not raw_tracks:
-            raise ValueError(
-                "Cannot generate playlist: no audio tracks found in library. Please scan your music folder first."
-            )
-
-        synth_ids = []
-        synth_meta_map = {}
-        synth_vectors = []
-        for r in raw_tracks:
-            tid = int(r[0])
-            p = Path(r[1])
-            synth_ids.append(tid)
-            synth_meta_map[tid] = {
-                "track_id": tid,
-                "title": r[2] or p.stem,
-                "artist": r[3] or "Unknown Artist",
-                "album": r[4] or "Unknown Album",
-                "duration": float(r[5] or 180.0),
-                "bpm": 120.0,
-                "key": "C",
-                "scale": "major",
-                "camelot": "8B",
-                "energy": 0.50,
-                "danceability": 0.50,
-                "path": str(p),
-            }
-            v = np.zeros(64, dtype=np.float32)
-            v[0] = 1.0
-            synth_vectors.append(v)
-
-        track_ids = np.array(synth_ids, dtype=int)
-        vectors = np.array(synth_vectors, dtype=np.float32)
-        meta_map = synth_meta_map
+        raise ValueError(
+            "Cannot generate playlist: no audio tracks found in library. Please scan your music folder first."
+        )
 
     # Apply vibe preset filters if vibe is specified
     if config_rules.vibe:
@@ -1045,21 +1398,7 @@ def generate_playlist(
     candidate_ids: set[int] = set()
 
     if mode == "cluster":
-        clust_res = compute_clusters(db_path=db_path, settings=cfg)
-        chosen_cluster = None
-        target_cid = cluster_id if cluster_id is not None else 0
-        for c in clust_res.clusters:
-            if c.cluster_id == target_cid:
-                chosen_cluster = c
-                break
-        if chosen_cluster:
-            candidate_ids = set(chosen_cluster.track_ids)
-            logger.info(
-                "Filtered to %d tracks in cluster %d", len(candidate_ids), target_cid
-            )
-        else:
-            logger.warning("Cluster %d not found; using all library tracks", target_cid)
-            candidate_ids = set(rich_tracks_by_id.keys())
+        candidate_ids = set(rich_tracks_by_id.keys())
     else:
         # Filter candidate pool with rule criteria
         for tid, meta in rich_tracks_by_id.items():

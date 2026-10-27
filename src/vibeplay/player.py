@@ -538,7 +538,23 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
             if fb_label not in profiles:
                 profiles.append(fb_label)
     except Exception:
-        pass
+        try:
+            from vibeplay.hardware import discover_audio_endpoints, get_active_or_best_dac
+
+            endpoints = discover_audio_endpoints()
+            for ep in endpoints:
+                c_lower = (ep.card_name + " " + ep.card_id).lower()
+                if "letshuoer" in c_lower or "dt01" in c_lower:
+                    label = f"Letshuoer USB DAC (Bit-Perfect {ep.hw_device})"
+                    if label not in profiles:
+                        profiles.insert(0, label)
+            best_dac = get_active_or_best_dac(endpoints)
+            if best_dac:
+                dac_label = f"USB DAC Bit-Perfect ({best_dac.card_name})"
+                if dac_label not in profiles and not any("letshuoer" in p.lower() for p in profiles):
+                    profiles.insert(0, dac_label)
+        except Exception:
+            pass
 
     # 2. Always ensure default universal options exist
     universal_options = [

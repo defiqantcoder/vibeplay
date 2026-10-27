@@ -10,7 +10,7 @@ import sys
 from vibeplay.desktop import (
     DEFAULT_BACKEND_HOST,
     DEFAULT_BACKEND_PORT,
-    DesktopSupervisor,
+    DesktopRunner,
     generate_audiophile_mpd_config,
     run_desktop,
 )
@@ -19,7 +19,7 @@ from vibeplay.desktop.__main__ import main
 __all__ = [
     "DEFAULT_BACKEND_HOST",
     "DEFAULT_BACKEND_PORT",
-    "DesktopSupervisor",
+    "DesktopRunner",
     "generate_audiophile_mpd_config",
     "main",
     "run_desktop",

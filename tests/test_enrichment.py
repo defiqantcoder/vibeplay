@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 from vibeplay.cli import app
 from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db, insert_track
-from vibeplay.enrichment import (
+from vibeplay.plugins.maintenance.enrichment import (
     cached_acoustid_lookup,
     enrich_tracks,
     resolve_track_enrichment,
@@ -127,9 +127,9 @@ MOCK_MUSICBRAINZ_RECORDING = {
 }
 
 
-@patch("vibeplay.enrichment.acoustid.fingerprint_file")
-@patch("vibeplay.enrichment.cached_acoustid_lookup")
-@patch("vibeplay.enrichment.cached_musicbrainz_recording")
+@patch("vibeplay.plugins.maintenance.enrichment.acoustid.fingerprint_file")
+@patch("vibeplay.plugins.maintenance.enrichment.cached_acoustid_lookup")
+@patch("vibeplay.plugins.maintenance.enrichment.cached_musicbrainz_recording")
 def test_resolve_track_high_confidence(
     mock_mb: MagicMock,
     mock_acoustid: MagicMock,
@@ -164,9 +164,9 @@ def test_resolve_track_high_confidence(
         assert "electronic pop" in (result.genres_json or "")
 
 
-@patch("vibeplay.enrichment.acoustid.fingerprint_file")
-@patch("vibeplay.enrichment.cached_acoustid_lookup")
-@patch("vibeplay.enrichment.cached_musicbrainz_recording")
+@patch("vibeplay.plugins.maintenance.enrichment.acoustid.fingerprint_file")
+@patch("vibeplay.plugins.maintenance.enrichment.cached_acoustid_lookup")
+@patch("vibeplay.plugins.maintenance.enrichment.cached_musicbrainz_recording")
 def test_resolve_track_low_confidence_needs_review(
     mock_mb: MagicMock,
     mock_acoustid: MagicMock,
@@ -195,8 +195,8 @@ def test_resolve_track_low_confidence_needs_review(
         assert result.canonical_title == "Low Conf Title"
 
 
-@patch("vibeplay.enrichment.acoustid.fingerprint_file")
-@patch("vibeplay.enrichment.cached_acoustid_lookup")
+@patch("vibeplay.plugins.maintenance.enrichment.acoustid.fingerprint_file")
+@patch("vibeplay.plugins.maintenance.enrichment.cached_acoustid_lookup")
 def test_resolve_track_unmatched(
     mock_acoustid: MagicMock,
     mock_fp: MagicMock,
@@ -226,7 +226,7 @@ def test_resolve_track_unmatched(
 def test_network_caching(test_db_with_track: Path) -> None:
     """Verify that network responses are saved in network_cache and reused."""
     with get_connection(test_db_with_track) as conn:
-        with patch("vibeplay.enrichment.acoustid.lookup") as mock_lookup:
+        with patch("vibeplay.plugins.maintenance.enrichment.acoustid.lookup") as mock_lookup:
             mock_lookup.return_value = {"status": "ok", "cached_test": True}
 
             # First call executes mock lookup
@@ -244,8 +244,8 @@ def test_network_caching(test_db_with_track: Path) -> None:
             assert mock_lookup.call_count == 1
 
 
-@patch("vibeplay.enrichment.get_settings")
-@patch("vibeplay.enrichment.resolve_track_enrichment")
+@patch("vibeplay.plugins.maintenance.enrichment.get_settings")
+@patch("vibeplay.plugins.maintenance.enrichment.resolve_track_enrichment")
 def test_enrich_tracks_batch(
     mock_resolve: MagicMock,
     mock_settings: MagicMock,
@@ -256,7 +256,7 @@ def test_enrich_tracks_batch(
         acoustid_api_key="dummy_api_key",
         enrichment_confidence_threshold=0.8,
     )
-    from vibeplay.enrichment import EnrichmentResult
+    from vibeplay.plugins.maintenance.enrichment import EnrichmentResult
 
     mock_resolve.return_value = EnrichmentResult(
         track_id=1,

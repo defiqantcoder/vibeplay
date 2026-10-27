@@ -2,7 +2,7 @@
 import pytest
 
 from vibeplay.db import get_connection, init_db, insert_track
-from vibeplay.duplicates import find_duplicates
+from vibeplay.plugins.maintenance.duplicates import find_duplicates
 
 
 @pytest.fixture

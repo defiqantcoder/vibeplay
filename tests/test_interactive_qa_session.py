@@ -36,7 +36,6 @@ from vibeplay.desktop.settings import (
     load_desktop_settings,
     save_desktop_settings,
 )
-from vibeplay.desktop.telemetry_stream import TelemetrySnapshot
 from vibeplay.jobs import (
     complete_job_run,
     create_job_run,
@@ -228,7 +227,7 @@ def test_flow_2a_background_jobs_and_concurrency_stress(qa_env):
         assert scan_job_id
 
     # 2. Trigger background enrich
-    with patch("vibeplay.enrichment.enrich_tracks") as mock_enrich:
+    with patch("vibeplay.plugins.maintenance.enrichment.enrich_tracks") as mock_enrich:
         mock_enrich.return_value = MagicMock(total=8, enriched=8, skipped=0, failed=0)
         res_enrich = client.post(
             "/api/library/enrich",

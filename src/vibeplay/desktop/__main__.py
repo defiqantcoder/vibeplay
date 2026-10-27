@@ -13,7 +13,10 @@ warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
 from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT
-from vibeplay.desktop.supervisor import DesktopSupervisor
+from vibeplay.desktop.runner import DesktopRunner
+
+# Backwards-compatibility alias for DesktopSupervisor
+DesktopSupervisor = DesktopRunner
 
 logger = logging.getLogger("vibeplay.desktop")
 
@@ -147,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
 
-    supervisor = DesktopSupervisor(
+    runner = DesktopRunner(
         db_path=args.db,
         host=args.host,
         port=args.port,
@@ -156,15 +159,15 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        supervisor.start(headless=args.headless)
+        runner.start(headless=args.headless)
         return 0
     except KeyboardInterrupt:
-        logger.info("Interrupted by user; stopping supervisor.")
-        supervisor.stop()
+        logger.info("Interrupted by user; stopping player.")
+        runner.stop()
         return 0
     except Exception as err:
-        logger.critical("Fatal error running desktop supervisor: %s", err, exc_info=args.debug)
-        supervisor.stop()
+        logger.critical("Fatal error running desktop player: %s", err, exc_info=args.debug)
+        runner.stop()
         return 1
 
 

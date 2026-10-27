@@ -54,10 +54,11 @@ from vibeplay.desktop.settings import (
     save_desktop_settings,
     update_desktop_settings,
 )
-from vibeplay.desktop.supervisor import (
+from vibeplay.desktop.runner import (
     DEFAULT_MPD_DATA_DIR,
-    DesktopSupervisor,
+    DesktopRunner,
     generate_audiophile_mpd_config,
+    resolve_app_icon_path,
     run_desktop,
 )
 
@@ -77,8 +78,8 @@ __all__ = [
     "DEFAULT_WINDOW_MIN_WIDTH",
     "DEFAULT_WINDOW_WIDTH",
     "DesktopEnvironment",
+    "DesktopRunner",
     "DesktopSettings",
-    "DesktopSupervisor",
     "GateCheckResult",
     "ReleaseGateReport",
     "TrackNotificationDispatcher",
@@ -94,6 +95,7 @@ __all__ = [
     "is_frozen_bundle",
     "is_loopback_host",
     "load_desktop_settings",
+    "resolve_app_icon_path",
     "resolve_dsp_profiles_dir",
     "resolve_models_dir",
     "resolve_package_resource",

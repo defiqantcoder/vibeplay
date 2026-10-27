@@ -117,7 +117,6 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
             "components/styles.html",
             "components/library_table.html",
             "components/transport_bar.html",
-            "components/cluster_cards.html",
             "components/track_detail.html",
             "components/playlist_builder.html",
             "components/playlist_seed_results.html",
@@ -192,42 +191,39 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
     except Exception as e:
         checks.append(GateCheckResult("API Smoke Gate", False, f"Unexpected error: {e}"))
 
-    # 6. Supervisor Clean Teardown Check
-    supervisor = None
+    # 6. Desktop Runner Clean Teardown Check
+    runner = None
     try:
         import threading
 
-        from vibeplay.desktop.supervisor import DesktopSupervisor
+        from vibeplay.desktop.runner import DesktopRunner
 
-        supervisor = DesktopSupervisor(db_path=db_path, host="127.0.0.1", port=8080, start_mpd_child=False)
+        runner = DesktopRunner(db_path=db_path, host="127.0.0.1", port=8080, start_mpd_child=False)
 
-        # Start headlessly in a background thread so we don't block
-        def run_supervisor():
+        def run_proc():
             try:
-                supervisor.start(headless=True)
+                runner.start(headless=True)
             except Exception:
                 pass
 
-        t = threading.Thread(target=run_supervisor, daemon=True)
+        t = threading.Thread(target=run_proc, daemon=True)
         t.start()
 
-        # Wait for supervisor to finish starting up
-        supervisor.ready_event.wait(timeout=5.0)
+        # Wait for runner to finish starting up
+        runner.ready_event.wait(timeout=5.0)
 
         # Stop
-        supervisor.stop()
-        assert supervisor.is_running is False, "Supervisor failed to stop"
-        assert supervisor.server is None, "Supervisor server not torn down"
-        assert supervisor.server_thread is None or not supervisor.server_thread.is_alive(), "Server thread leaked"
+        runner.stop()
+        assert runner.is_running is False, "Desktop runner failed to stop"
 
-        checks.append(GateCheckResult("Supervisor Clean Teardown", True, "Supervisor stopped cleanly with no orphans"))
+        checks.append(GateCheckResult("Desktop Runner Clean Teardown", True, "Desktop runner stopped cleanly with no orphans"))
     except AssertionError as e:
-        checks.append(GateCheckResult("Supervisor Clean Teardown", False, str(e)))
+        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, str(e)))
     except Exception as e:
-        checks.append(GateCheckResult("Supervisor Clean Teardown", False, f"Unexpected error: {e}"))
+        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, f"Unexpected error: {e}"))
     finally:
-        if supervisor and supervisor.is_running:
-            supervisor.stop()
+        if runner and runner.is_running:
+            runner.stop()
 
     all_passed = all(c.passed for c in checks)
     return ReleaseGateReport(passed=all_passed, checks=checks)

@@ -37,12 +37,12 @@ from vibeplay.config import Settings
 from vibeplay.playlist import (
     CAMELOT_MAJOR,
     CAMELOT_MINOR,
+    MOOD_KEYS,
     VIBE_PRESETS,
     camelot_distance,
     camelot_key_score,
     evaluate_energy_arc,
 )
-from vibeplay.vectors import MOOD_KEYS
 
 
 # =========================================================================
