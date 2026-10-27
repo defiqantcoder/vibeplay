@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
-from vibeplay.hardware import AudioEndpointInfo, discover_audio_endpoints
+from vibeplay.hardware import AudioEndpointInfo
 
 logger = logging.getLogger(__name__)
 

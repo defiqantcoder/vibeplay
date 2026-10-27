@@ -36,23 +36,10 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
-from vibeplay.desktop.security import (
-    ensure_secure_directory,
-    is_loopback_host,
-    secure_chmod,
-    validate_loopback_host,
-)
 from vibeplay.desktop.release_gate import (
     GateCheckResult,
     ReleaseGateReport,
     run_release_gate_checks,
-)
-from vibeplay.desktop.settings import (
-    DEFAULT_DESKTOP_SETTINGS_PATH,
-    DesktopSettings,
-    load_desktop_settings,
-    save_desktop_settings,
-    update_desktop_settings,
 )
 from vibeplay.desktop.runner import (
     DEFAULT_MPD_DATA_DIR,
@@ -60,6 +47,19 @@ from vibeplay.desktop.runner import (
     generate_audiophile_mpd_config,
     resolve_app_icon_path,
     run_desktop,
+)
+from vibeplay.desktop.security import (
+    ensure_secure_directory,
+    is_loopback_host,
+    secure_chmod,
+    validate_loopback_host,
+)
+from vibeplay.desktop.settings import (
+    DEFAULT_DESKTOP_SETTINGS_PATH,
+    DesktopSettings,
+    load_desktop_settings,
+    save_desktop_settings,
+    update_desktop_settings,
 )
 
 __all__ = [
@@ -94,6 +94,7 @@ __all__ = [
     "inspect_desktop_environment",
     "is_frozen_bundle",
     "is_loopback_host",
+    "secure_chmod",
     "load_desktop_settings",
     "resolve_app_icon_path",
     "resolve_dsp_profiles_dir",
