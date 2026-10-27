@@ -38,7 +38,6 @@ from vibeplay.player import (
 )
 from vibeplay.playlist import (
     GeneratedPlaylist,
-    NaturalLanguageQuery,
     PlaylistRuleConfig,
     PlaylistTrackItem,
     calculate_playlist_summary,
@@ -48,7 +47,6 @@ from vibeplay.playlist import (
     key_to_camelot,
     load_vibe_tracks_and_vectors,
     parse_natural_language_prompt,
-    query_tracks_by_prompt,
 )
 
 logger = logging.getLogger(__name__)

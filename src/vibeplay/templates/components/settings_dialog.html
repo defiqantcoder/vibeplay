@@ -518,6 +518,70 @@
           </div>
         </div>
       </main>
+      <!-- 5. AI & Metadata Integrations Tab -->
+      <div class="settings-panel" id="panel-ai">
+        <div class="panel-grid-2">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-gemini-key">Google Gemini API Key</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="password"
+                     id="cfg-gemini-key"
+                     class="settings-input font-mono"
+                     placeholder="AIzaSy..."
+                     value="{{ desktop_settings.gemini_api_key if desktop_settings and desktop_settings.gemini_api_key else '' }}"
+                     onchange="saveDesktopSettings()">
+              <button type="button" class="btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 11px;" onclick="togglePasswordVisibility('cfg-gemini-key', this)">Show</button>
+            </div>
+            <p class="section-help">Required for natural language playlist generation and harmonic prompts. Get a free API key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">aistudio.google.com/apikey</a>.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-llm-provider">AI Curation Mode</label>
+            <select id="cfg-llm-provider" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="gemini" {% if not desktop_settings or desktop_settings.llm_provider == 'gemini' %}selected{% endif %}>Google Gemini (Cloud AI Curated)</option>
+              <option value="off" {% if desktop_settings and desktop_settings.llm_provider == 'off' %}selected{% endif %}>Offline / Deterministic Rule-Based Only</option>
+            </select>
+            <p class="section-help">Choose between LLM semantic track selection or local mathematical constraint solving.</p>
+          </div>
+        </div>
+
+        <div class="panel-grid-2" style="margin-top: 1rem;">
+          <div class="panel-section">
+            <label class="section-label" for="cfg-gemini-model">Gemini Model Tier</label>
+            <select id="cfg-gemini-model" class="settings-select" onchange="saveDesktopSettings()">
+              <option value="gemini-2.5-flash" {% if not desktop_settings or desktop_settings.gemini_model == 'gemini-2.5-flash' %}selected{% endif %}>gemini-2.5-flash (Fast &amp; Accurate — Recommended)</option>
+              <option value="gemini-2.5-pro" {% if desktop_settings and desktop_settings.gemini_model == 'gemini-2.5-pro' %}selected{% endif %}>gemini-2.5-pro (Deep Harmonic Reasoning)</option>
+              <option value="gemini-1.5-flash" {% if desktop_settings and desktop_settings.gemini_model == 'gemini-1.5-flash' %}selected{% endif %}>gemini-1.5-flash (Legacy High Speed)</option>
+            </select>
+            <p class="section-help">Flash provides instant results; Pro performs comprehensive reasoning over large libraries.</p>
+          </div>
+
+          <div class="panel-section">
+            <label class="section-label" for="cfg-acoustid-key">AcoustID API Key (Fingerprinting)</label>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="password"
+                     id="cfg-acoustid-key"
+                     class="settings-input font-mono"
+                     placeholder="Optional API key..."
+                     value="{{ desktop_settings.acoustid_api_key if desktop_settings and desktop_settings.acoustid_api_key else '' }}"
+                     onchange="saveDesktopSettings()">
+              <button type="button" class="btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 11px;" onclick="togglePasswordVisibility('cfg-acoustid-key', this)">Show</button>
+            </div>
+            <p class="section-help">For online Chromaprint fingerprinting via MusicBrainz. If blank, local tag fallback is used. Get a free API key at <a href="https://acoustid.org/" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">acoustid.org</a>.</p>
+          </div>
+
+          <div class="panel-section" style="margin-top: 1rem;">
+            <label class="section-label" for="cfg-musicbrainz-contact">MusicBrainz Contact</label>
+            <input type="text"
+                   id="cfg-musicbrainz-contact"
+                   class="settings-input"
+                   placeholder="Required contact info (e.g. app-name/version, email, or URL)"
+                   value="{{ desktop_settings.musicbrainz_contact if desktop_settings and desktop_settings.musicbrainz_contact else '' }}"
+                   onchange="saveDesktopSettings()">
+            <p class="section-help">Required by the <a href="https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">MusicBrainz API</a> to identify the application making requests.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
