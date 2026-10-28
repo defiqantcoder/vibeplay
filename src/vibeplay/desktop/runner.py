@@ -11,9 +11,7 @@ from __future__ import annotations
 
 import atexit
 import logging
-import os
 import shutil
-import signal
 import socket
 import subprocess
 import threading
@@ -25,7 +23,6 @@ from urllib.request import urlopen
 
 import uvicorn
 
-from vibeplay.config import Settings, get_settings
 from vibeplay.desktop.constants import (
     DEFAULT_BACKEND_HOST,
     DEFAULT_BACKEND_PORT,
@@ -34,11 +31,6 @@ from vibeplay.desktop.constants import (
     DEFAULT_WINDOW_MIN_WIDTH,
     DEFAULT_WINDOW_WIDTH,
     WINDOW_TITLE,
-)
-from vibeplay.desktop.environment import (
-    find_free_loopback_port,
-    generate_ephemeral_session_token,
-    inspect_desktop_environment,
 )
 from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.web import create_app

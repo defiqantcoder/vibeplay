@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from vibe_dsp.peq import list_available_presets, lookup_autoeq_model
+from vibeplay import __version__
 from vibeplay.analysis.essentia_analyzer import EssentiaAnalyzer
 from vibeplay.config import Settings
 from vibeplay.db import init_db
@@ -30,7 +30,6 @@ from vibeplay.desktop.packaging import (
     resolve_templates_dir,
     verify_bundle_assets,
 )
-from vibeplay import __version__
 from vibeplay.web import create_app
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

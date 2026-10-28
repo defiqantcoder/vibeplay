@@ -371,6 +371,7 @@ def test_direct_alsa_line_out_volume_safety() -> None:
 def test_fallback_player_lifecycle_and_lock() -> None:
     """Verify _FALLBACK_LOCK prevents concurrent or orphaned fallback playback processes."""
     import subprocess
+
     import vibeplay.player as player_mod
 
     mock_proc = MagicMock(spec=subprocess.Popen)

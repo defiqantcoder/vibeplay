@@ -28,7 +28,7 @@ except ImportError:
 
 import json
 import math
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -40,10 +40,7 @@ from vibeplay.playlist import (
     MOOD_KEYS,
     VIBE_PRESETS,
     camelot_distance,
-    camelot_key_score,
-    evaluate_energy_arc,
 )
-
 
 # =========================================================================
 # Schema Definitions
@@ -610,7 +607,7 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     target_file = output_dir / "vibe_spec.json"
 
-    print(f"[*] Introspecting codebase and assembling VibeSpec...")
+    print("[*] Introspecting codebase and assembling VibeSpec...")
     try:
         spec = generate_vibe_spec()
     except Exception as exc:

@@ -458,7 +458,7 @@
             <span>Fine-Tune Order (Step 4) ➔</span>
           </button>
           {% if playlist.playlist_id %}
-          <a href="/api/playlist/{{ playlist.playlist_id }}/export-m3u8" class="btn-secondary" download>
+          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="btn-secondary" download>
             <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
             <span>Export M3U8</span>
           </a>
@@ -579,7 +579,7 @@
             <span>← Back to Preview</span>
           </button>
           {% if playlist.playlist_id %}
-          <a href="/api/playlist/{{ playlist.playlist_id }}/export-m3u8" class="btn-secondary" download>
+          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="btn-secondary" download>
             <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
             <span>Export M3U8</span>
           </a>

@@ -38,7 +38,6 @@ from vibeplay.player import (
 )
 from vibeplay.playlist import (
     GeneratedPlaylist,
-    NaturalLanguageQuery,
     PlaylistRuleConfig,
     PlaylistTrackItem,
     calculate_playlist_summary,
@@ -48,7 +47,6 @@ from vibeplay.playlist import (
     key_to_camelot,
     load_vibe_tracks_and_vectors,
     parse_natural_language_prompt,
-    query_tracks_by_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -1023,7 +1021,70 @@ def create_app(
             },
         )
 
-    @app.get("/api/playlist/{playlist_id}/export-m3u8")
+
+    from vibeplay.db import delete_saved_playlist, save_playlist
+
+    @app.post("/api/playlist/save")
+    async def api_playlist_save(
+        request: Request,
+        name: str = Form(...),
+        vibe_arc: str = Form(None),
+        track_ids_json: str = Form(...),
+    ) -> Response:
+        """Save a playlist to the saved_playlists table."""
+        try:
+            import json
+            track_ids = json.loads(track_ids_json)
+            with get_connection(resolved_db_path) as conn:
+                playlist_id = save_playlist(conn, name, vibe_arc, track_ids)
+            return JSONResponse({"status": "success", "playlist_id": playlist_id})
+        except Exception as e:
+            return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+
+    @app.post("/api/playlist/import")
+    async def api_playlist_import(request: Request) -> Response:
+        """Parse an uploaded M3U8 file and save a new playlist."""
+        form = await request.form()
+        file = form.get("file")
+        if not file or not hasattr(file, "filename"):
+            raise HTTPException(status_code=400, detail="No file provided")
+
+        content = (await file.read()).decode("utf-8")
+
+        tracks = []
+        for line in content.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                tracks.append(line)
+
+        with get_connection(resolved_db_path) as conn:
+            cursor = conn.cursor()
+            track_ids = []
+            for track_path in tracks:
+                cursor.execute("SELECT id FROM tracks WHERE path = ? OR path LIKE ?", (track_path, f"%{track_path}%"))
+                row = cursor.fetchone()
+                if row:
+                    track_ids.append(row["id"])
+
+            if not track_ids:
+                return JSONResponse({"status": "error", "message": "No matching tracks found"}, status_code=400)
+
+            name = file.filename.replace(".m3u8", "").replace(".m3u", "")
+            playlist_id = save_playlist(conn, name, "imported", track_ids)
+
+        return JSONResponse({"status": "success", "playlist_id": playlist_id, "matched_tracks": len(track_ids)})
+
+    @app.delete("/api/playlist/{playlist_id}")
+    async def api_playlist_delete(playlist_id: int) -> Response:
+        """Remove a saved playlist."""
+        with get_connection(resolved_db_path) as conn:
+            success = delete_saved_playlist(conn, playlist_id)
+            if success:
+                return JSONResponse({"status": "success"})
+            else:
+                raise HTTPException(status_code=404, detail="Playlist not found")
+
+    @app.get("/api/playlist/{playlist_id}/export")
     async def api_export_m3u8(playlist_id: int) -> Response:
         """Download playlist as standard UTF-8 extended M3U8 file."""
         with get_connection(resolved_db_path) as conn:
