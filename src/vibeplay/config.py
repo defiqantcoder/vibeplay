@@ -203,11 +203,11 @@ class Settings(BaseSettings):
     def get_desktop_settings_path(self, db_path: Path | None = None) -> Path:
         """Return the resolved path to the persisted desktop settings JSON file."""
         if self.desktop_settings_path is not None:
-            return self.desktop_settings_path.expanduser()
+            return Path(self.desktop_settings_path).expanduser()
         target_db = db_path or self.db_path
         default_db = Path("~/.local/share/vibeplay/vibeplay.db").expanduser()
-        if target_db.expanduser() != default_db:
-            return target_db.expanduser().parent / "desktop_settings.json"
+        if Path(target_db).expanduser() != default_db:
+            return Path(target_db).expanduser().parent / "desktop_settings.json"
         return Path("~/.config/vibeplay/desktop_settings.json").expanduser()
 
 
