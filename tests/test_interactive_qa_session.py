@@ -37,6 +37,7 @@ from vibeplay.jobs import (
     update_job_progress,
 )
 from vibeplay.playlist import (
+    TransitionContext,
     evaluate_energy_arc,
     evaluate_harmonic_transition,
 )
@@ -496,12 +497,12 @@ def test_flow_2c_guided_playlist_builder_and_harmonic_transitions(qa_env):
 
     # Check Camelot relationship logic
     # Track 1 (8A) -> Track 2 (8B): Relative Major/Minor (Harmonic match)
-    harm_eval = evaluate_harmonic_transition("A", "minor", "C", "major")
+    harm_eval = evaluate_harmonic_transition(TransitionContext("A", "minor", "C", "major"))
     assert harm_eval["harmonic_type"] == "relative"
     assert harm_eval["harmonic_badge"] == "seamless"
 
     # Track 1 (8A) -> Track 3 (9A): Camelot +1 Energy Boost
-    boost_eval = evaluate_harmonic_transition("A", "minor", "E", "minor")
+    boost_eval = evaluate_harmonic_transition(TransitionContext("A", "minor", "E", "minor"))
     assert boost_eval["harmonic_type"] == "boost"
     assert boost_eval["harmonic_badge"] == "harmonic-boost"
 

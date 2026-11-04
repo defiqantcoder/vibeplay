@@ -18,6 +18,7 @@ from vibeplay.db import (
     insert_track,
 )
 from vibeplay.playlist import (
+    TransitionContext,
     calculate_playlist_summary,
     calculate_transition_metrics,
     evaluate_energy_arc,
@@ -101,7 +102,7 @@ def test_env(tmp_path: Path):
 def test_evaluate_harmonic_transition_exact_and_relative():
     """Verify exact matches and relative major/minor matches evaluate to seamless transitions."""
     # Exact Match: 8A -> 8A
-    res1 = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=120.0)
+    res1 = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=120.0))
     assert res1["harmonic_type"] == "exact"
     assert res1["harmonic_badge"] == "seamless"
     assert res1["quality"] == "Seamless"
@@ -111,13 +112,13 @@ def test_evaluate_harmonic_transition_exact_and_relative():
     assert res1["clash_level"] == 0
 
     # Exact Match: 8B -> 8B
-    res2 = evaluate_harmonic_transition(from_camelot="8B", to_camelot="8B", from_bpm=124.0, to_bpm=124.0)
+    res2 = evaluate_harmonic_transition(TransitionContext(from_camelot="8B", to_camelot="8B", from_bpm=124.0, to_bpm=124.0))
     assert res2["harmonic_type"] == "exact"
     assert res2["harmonic_badge"] == "seamless"
     assert res2["relation_label"] == "8B -> 8B [Exact Harmonic Match]"
 
     # Relative Major/Minor: 8A -> 8B
-    res3 = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8B", from_bpm=120.0, to_bpm=120.0)
+    res3 = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8B", from_bpm=120.0, to_bpm=120.0))
     assert res3["harmonic_type"] == "relative"
     assert res3["harmonic_badge"] == "seamless"
     assert res3["quality"] == "Seamless"
@@ -126,7 +127,7 @@ def test_evaluate_harmonic_transition_exact_and_relative():
     assert res3["clash_level"] == 0
 
     # Relative Major/Minor: 8B -> 8A
-    res4 = evaluate_harmonic_transition(from_camelot="8B", to_camelot="8A", from_bpm=128.0, to_bpm=128.0)
+    res4 = evaluate_harmonic_transition(TransitionContext(from_camelot="8B", to_camelot="8A", from_bpm=128.0, to_bpm=128.0))
     assert res4["harmonic_type"] == "relative"
     assert res4["harmonic_badge"] == "seamless"
     assert res4["relation_label"] == "8B -> 8A [Exact Harmonic Match]"
@@ -135,7 +136,7 @@ def test_evaluate_harmonic_transition_exact_and_relative():
 def test_evaluate_harmonic_transition_energy_boost_and_drop():
     """Verify +1 energy boosts, -1 drops, and circular wrap-around transitions."""
     # +1 Energy Boost: 8A -> 9A
-    res_boost = evaluate_harmonic_transition(from_camelot="8A", to_camelot="9A", from_bpm=120.0, to_bpm=122.0)
+    res_boost = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="9A", from_bpm=120.0, to_bpm=122.0))
     assert res_boost["harmonic_type"] == "boost"
     assert res_boost["harmonic_badge"] == "harmonic-boost"
     assert res_boost["relation_label"] == "8A -> 9A [+1 Energy Boost]"
@@ -143,24 +144,24 @@ def test_evaluate_harmonic_transition_energy_boost_and_drop():
     assert res_boost["clash_level"] == 0
 
     # +1 Energy Boost wrap-around: 12A -> 1A
-    res_wrap_boost = evaluate_harmonic_transition(from_camelot="12A", to_camelot="1A", from_bpm=125.0, to_bpm=125.0)
+    res_wrap_boost = evaluate_harmonic_transition(TransitionContext(from_camelot="12A", to_camelot="1A", from_bpm=125.0, to_bpm=125.0))
     assert res_wrap_boost["harmonic_type"] == "boost"
     assert res_wrap_boost["relation_label"] == "12A -> 1A [+1 Energy Boost]"
 
     # -1 Energy Drop: 8A -> 7A
-    res_drop = evaluate_harmonic_transition(from_camelot="8A", to_camelot="7A", from_bpm=120.0, to_bpm=119.0)
+    res_drop = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="7A", from_bpm=120.0, to_bpm=119.0))
     assert res_drop["harmonic_type"] == "drop"
     assert res_drop["harmonic_badge"] == "acceptable"
     assert res_drop["relation_label"] == "8A -> 7A [-1 Energy Drop]"
     assert res_drop["harmonic_score"] == 85.0
 
     # -1 Energy Drop wrap-around: 1A -> 12A
-    res_wrap_drop = evaluate_harmonic_transition(from_camelot="1A", to_camelot="12A", from_bpm=120.0, to_bpm=120.0)
+    res_wrap_drop = evaluate_harmonic_transition(TransitionContext(from_camelot="1A", to_camelot="12A", from_bpm=120.0, to_bpm=120.0))
     assert res_wrap_drop["harmonic_type"] == "drop"
     assert res_wrap_drop["relation_label"] == "1A -> 12A [-1 Energy Drop]"
 
     # Diagonal mode shift: 8A -> 9B
-    res_diag = evaluate_harmonic_transition(from_camelot="8A", to_camelot="9B", from_bpm=120.0, to_bpm=120.0)
+    res_diag = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="9B", from_bpm=120.0, to_bpm=120.0))
     assert res_diag["harmonic_type"] == "pivot"
     assert res_diag["harmonic_badge"] == "acceptable"
     assert "Diagonal Mode Shift" in res_diag["relation_label"]
@@ -169,14 +170,14 @@ def test_evaluate_harmonic_transition_energy_boost_and_drop():
 def test_evaluate_harmonic_transition_clashes_and_dissonance():
     """Verify harmonic clashes produce clear warning labels and color badges."""
     # Backward jump of 2: 8A -> 6A
-    res_clash2 = evaluate_harmonic_transition(from_camelot="8A", to_camelot="6A", from_bpm=120.0, to_bpm=126.0)
+    res_clash2 = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="6A", from_bpm=120.0, to_bpm=126.0))
     assert res_clash2["harmonic_type"] == "clash"
     assert res_clash2["harmonic_badge"] == "clash"
     assert res_clash2["relation_label"] == "8A -> 6A [Harmonic Clash -2]"
     assert res_clash2["clash_level"] == 2
 
     # Opposite side of wheel: 8A -> 2A (+6 steps)
-    res_clash6 = evaluate_harmonic_transition(from_camelot="8A", to_camelot="2A", from_bpm=120.0, to_bpm=130.0)
+    res_clash6 = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="2A", from_bpm=120.0, to_bpm=130.0))
     assert res_clash6["harmonic_type"] == "clash"
     assert res_clash6["harmonic_badge"] == "clash"
     assert res_clash6["relation_label"] == "8A -> 2A [Harmonic Clash +6]"
@@ -186,27 +187,27 @@ def test_evaluate_harmonic_transition_clashes_and_dissonance():
 def test_evaluate_harmonic_transition_tempo_categories():
     """Verify BPM delta classifications into Smooth Lock, Mixable, Moderate Shift, and Tempo Jump."""
     # Smooth Lock (< 1.5%)
-    res_lock = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=121.0)
+    res_lock = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=121.0))
     assert res_lock["bpm_status"] == "Smooth Lock"
     assert res_lock["bpm_badge"] == "score-high"
 
     # Mixable (1.5% to 4.0%)
-    res_mix = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=124.0)
+    res_mix = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=124.0))
     assert res_mix["bpm_status"] == "Mixable"
     assert res_mix["bpm_badge"] == "score-high"
 
     # Moderate Shift (4.0% to 8.0%)
-    res_mod = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=128.0)
+    res_mod = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=128.0))
     assert res_mod["bpm_status"] == "Moderate Shift"
     assert res_mod["bpm_badge"] == "score-mid"
 
     # Tempo Jump (> 8.0%)
-    res_jump = evaluate_harmonic_transition(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=140.0)
+    res_jump = evaluate_harmonic_transition(TransitionContext(from_camelot="8A", to_camelot="8A", from_bpm=120.0, to_bpm=140.0))
     assert res_jump["bpm_status"] == "Tempo Jump"
     assert res_jump["bpm_badge"] == "score-low"
 
     # Unknown key neutral fallback
-    res_unk = evaluate_harmonic_transition(from_camelot=None, to_camelot="8A")
+    res_unk = evaluate_harmonic_transition(TransitionContext(from_camelot=None, to_camelot="8A"))
     assert res_unk["harmonic_type"] == "unknown"
     assert res_unk["harmonic_score"] == 70.0
 

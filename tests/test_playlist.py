@@ -119,16 +119,18 @@ def test_fold_bpm_and_transition_score() -> None:
 
 def test_evaluate_harmonic_transition_octave_fold() -> None:
     """Verify evaluate_harmonic_transition flags Half-Time / Double-Time and applies penalties."""
-    from vibeplay.playlist import evaluate_harmonic_transition
+    from vibeplay.playlist import TransitionContext, evaluate_harmonic_transition
 
     # 75 BPM to 150 BPM (2x jump) with unaligned energy
     res_fold = evaluate_harmonic_transition(
-        from_camelot="8A",
-        to_camelot="8A",
-        from_bpm=75.0,
-        to_bpm=150.0,
-        from_energy=0.2,
-        to_energy=0.9,
+        TransitionContext(
+            from_camelot="8A",
+            to_camelot="8A",
+            from_bpm=75.0,
+            to_bpm=150.0,
+            from_energy=0.2,
+            to_energy=0.9,
+        )
     )
     assert res_fold["is_octave_fold"] is True
     assert res_fold["bpm_status"] == "Half-Time / Double-Time"
@@ -137,11 +139,13 @@ def test_evaluate_harmonic_transition_octave_fold() -> None:
 
     # Same tempos with allow_half_double_time=True
     res_allowed = evaluate_harmonic_transition(
-        from_camelot="8A",
-        to_camelot="8A",
-        from_bpm=75.0,
-        to_bpm=150.0,
-        allow_half_double_time=True,
+        TransitionContext(
+            from_camelot="8A",
+            to_camelot="8A",
+            from_bpm=75.0,
+            to_bpm=150.0,
+            allow_half_double_time=True,
+        )
     )
     assert res_allowed["is_octave_fold"] is True
     assert res_allowed["bpm_status"] == "Half-Time / Double-Time"

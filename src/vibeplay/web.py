@@ -366,7 +366,9 @@ def create_app(
                 return JSONResponse(
                     status_code=401,
                     content={
-                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or ?api_key=..."
+                        "detail": (
+                            "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or ?api_key=..."
+                        )
                     },
                 )
 
@@ -961,7 +963,6 @@ def create_app(
             },
         )
 
-
     from vibeplay.db import delete_saved_playlist, save_playlist
 
     @app.post("/api/playlist/save")
@@ -974,6 +975,7 @@ def create_app(
         """Save a playlist to the saved_playlists table."""
         try:
             import json
+
             track_ids = json.loads(track_ids_json)
             with get_connection(resolved_db_path) as conn:
                 playlist_id = save_playlist(conn, name, vibe_arc, track_ids)
@@ -2296,14 +2298,14 @@ def create_app(
     app.state.plugin_manager = plugin_mgr
 
     @app.get("/api/plugins/list")
-    async def api_plugins_list() -> JSONResponse:
+    async def api_plugins_list_duplicate() -> JSONResponse:
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
         return JSONResponse(content={"plugins": pm.list_plugins()})
 
     @app.post("/api/plugins/{plugin_id}/toggle")
-    async def api_plugins_toggle(plugin_id: str, request: Request) -> JSONResponse:
+    async def api_plugins_toggle_duplicate(plugin_id: str, request: Request) -> JSONResponse:
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})

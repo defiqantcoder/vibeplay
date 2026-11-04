@@ -356,109 +356,117 @@ class TrackTransition:
         return asdict(self)
 
 
-def evaluate_harmonic_transition(
-    from_key: str | None = None,
-    from_scale: str | None = None,
-    to_key: str | None = None,
-    to_scale: str | None = None,
-    from_bpm: float | None = None,
-    to_bpm: float | None = None,
-    from_camelot: str | None = None,
-    to_camelot: str | None = None,
-    from_energy: float | None = None,
-    to_energy: float | None = None,
-    allow_half_double_time: bool = False,
-) -> dict[str, Any]:
-    """Evaluate harmonic compatibility and tempo transition between two tracks.
+@dataclass
+class TransitionContext:
+    from_key: str | None = None
+    from_scale: str | None = None
+    to_key: str | None = None
+    to_scale: str | None = None
+    from_bpm: float | None = None
+    to_bpm: float | None = None
+    from_camelot: str | None = None
+    to_camelot: str | None = None
+    from_energy: float | None = None
+    to_energy: float | None = None
+    allow_half_double_time: bool = False
 
-    Handles Camelot wheel notation ([1-12][A-B]), detecting exact harmonic matches,
-    relative major/minor matches, +1 energy boosts, -1 energy drops, and harmonic clashes.
-    Also calculates folded tempo delta and provides color-coded badge classes.
-    """
-    c1 = (from_camelot or key_to_camelot(from_key, from_scale) or "").strip().upper()
-    c2 = (to_camelot or key_to_camelot(to_key, to_scale) or "").strip().upper()
 
-    # Camelot Evaluation
+def _evaluate_camelot(c1: str, c2: str) -> dict[str, Any]:
     if not c1 or not c2 or len(c1) < 2 or len(c2) < 2:
-        harmonic_type = "unknown"
-        relation_label = "Neutral / Key Unknown"
-        harmonic_badge = "neutral"
-        harmonic_score = 70.0
-        clash_level = 0
+        return {
+            "harmonic_type": "unknown",
+            "relation_label": "Neutral / Key Unknown",
+            "harmonic_badge": "neutral",
+            "harmonic_score": 70.0,
+            "clash_level": 0,
+        }
+
+    try:
+        n1, m1 = int(c1[:-1]), c1[-1]
+        n2, m2 = int(c2[:-1]), c2[-1]
+    except (ValueError, IndexError):
+        n1, m1, n2, m2 = 0, "", 0, ""
+
+    if n1 <= 0 or n1 > 12 or n2 <= 0 or n2 > 12 or m1 not in ("A", "B") or m2 not in ("A", "B"):
+        return {
+            "harmonic_type": "unknown",
+            "relation_label": "Neutral / Key Unknown",
+            "harmonic_badge": "neutral",
+            "harmonic_score": 70.0,
+            "clash_level": 0,
+        }
+    elif n1 == n2 and m1 == m2:
+        return {
+            "harmonic_type": "exact",
+            "relation_label": f"{c1} -> {c2} [Exact Harmonic Match]",
+            "harmonic_badge": "seamless",
+            "harmonic_score": 100.0,
+            "clash_level": 0,
+        }
+    elif n1 == n2 and m1 != m2:
+        return {
+            "harmonic_type": "relative",
+            "relation_label": f"{c1} -> {c2} [Exact Harmonic Match]",
+            "harmonic_badge": "seamless",
+            "harmonic_score": 95.0,
+            "clash_level": 0,
+        }
+    elif m1 == m2 and (n2 - n1) % 12 == 1:
+        return {
+            "harmonic_type": "boost",
+            "relation_label": f"{c1} -> {c2} [+1 Energy Boost]",
+            "harmonic_badge": "harmonic-boost",
+            "harmonic_score": 90.0,
+            "clash_level": 0,
+        }
+    elif m1 == m2 and (n1 - n2) % 12 == 1:
+        return {
+            "harmonic_type": "drop",
+            "relation_label": f"{c1} -> {c2} [-1 Energy Drop]",
+            "harmonic_badge": "acceptable",
+            "harmonic_score": 85.0,
+            "clash_level": 0,
+        }
+    elif m1 != m2 and ((n2 - n1) % 12 == 1 or (n1 - n2) % 12 == 1):
+        return {
+            "harmonic_type": "pivot",
+            "relation_label": f"{c1} -> {c2} [Diagonal Mode Shift ±1]",
+            "harmonic_badge": "acceptable",
+            "harmonic_score": 75.0,
+            "clash_level": 1,
+        }
     else:
-        try:
-            n1, m1 = int(c1[:-1]), c1[-1]
-            n2, m2 = int(c2[:-1]), c2[-1]
-        except (ValueError, IndexError):
-            n1, m1, n2, m2 = 0, "", 0, ""
-
-        if n1 <= 0 or n1 > 12 or n2 <= 0 or n2 > 12 or m1 not in ("A", "B") or m2 not in ("A", "B"):
-            harmonic_type = "unknown"
-            relation_label = "Neutral / Key Unknown"
-            harmonic_badge = "neutral"
-            harmonic_score = 70.0
-            clash_level = 0
-        elif n1 == n2 and m1 == m2:
-            harmonic_type = "exact"
-            relation_label = f"{c1} -> {c2} [Exact Harmonic Match]"
-            harmonic_badge = "seamless"
-            harmonic_score = 100.0
-            clash_level = 0
-        elif n1 == n2 and m1 != m2:
-            harmonic_type = "relative"
-            relation_label = f"{c1} -> {c2} [Exact Harmonic Match]"
-            harmonic_badge = "seamless"
-            harmonic_score = 95.0
-            clash_level = 0
-        elif m1 == m2 and (n2 - n1) % 12 == 1:
-            harmonic_type = "boost"
-            relation_label = f"{c1} -> {c2} [+1 Energy Boost]"
-            harmonic_badge = "harmonic-boost"
-            harmonic_score = 90.0
-            clash_level = 0
-        elif m1 == m2 and (n1 - n2) % 12 == 1:
-            harmonic_type = "drop"
-            relation_label = f"{c1} -> {c2} [-1 Energy Drop]"
-            harmonic_badge = "acceptable"
-            harmonic_score = 85.0
-            clash_level = 0
-        elif m1 != m2 and ((n2 - n1) % 12 == 1 or (n1 - n2) % 12 == 1):
-            harmonic_type = "pivot"
-            relation_label = f"{c1} -> {c2} [Diagonal Mode Shift ±1]"
-            harmonic_badge = "acceptable"
-            harmonic_score = 75.0
-            clash_level = 1
+        fwd = (n2 - n1) % 12
+        bwd = (n1 - n2) % 12
+        if fwd <= 6:
+            sign = "+"
+            steps = fwd
         else:
-            fwd = (n2 - n1) % 12
-            bwd = (n1 - n2) % 12
-            if fwd <= 6:
-                sign = "+"
-                steps = fwd
-            else:
-                sign = "-"
-                steps = bwd
+            sign = "-"
+            steps = bwd
 
-            harmonic_type = "clash"
-            relation_label = f"{c1} -> {c2} [Harmonic Clash {sign}{steps}]"
-            harmonic_badge = "clash"
-            harmonic_score = max(20.0, 60.0 - steps * 8.0)
-            clash_level = 2
+        return {
+            "harmonic_type": "clash",
+            "relation_label": f"{c1} -> {c2} [Harmonic Clash {sign}{steps}]",
+            "harmonic_badge": "clash",
+            "harmonic_score": max(20.0, 60.0 - steps * 8.0),
+            "clash_level": 2,
+        }
 
-    # BPM Evaluation
-    is_octave_fold = False
-    if from_bpm is not None and to_bpm is not None and from_bpm > 0 and to_bpm > 0:
-        ratio = max(float(from_bpm), float(to_bpm)) / min(float(from_bpm), float(to_bpm))
-        if ratio >= 1.65:
-            is_octave_fold = True
 
-        f1 = fold_bpm(from_bpm)
-        f2 = fold_bpm(to_bpm)
+def _evaluate_bpm(ctx: TransitionContext) -> dict[str, Any]:
+    if ctx.from_bpm is not None and ctx.to_bpm is not None and ctx.from_bpm > 0 and ctx.to_bpm > 0:
+        ratio = max(float(ctx.from_bpm), float(ctx.to_bpm)) / min(float(ctx.from_bpm), float(ctx.to_bpm))
+        is_octave_fold = ratio >= 1.65
+
+        f1 = fold_bpm(ctx.from_bpm)
+        f2 = fold_bpm(ctx.to_bpm)
         bpm_diff = round(abs(f2 - f1), 1)
         bpm_pct = round(abs(f2 - f1) / f1 * 100.0, 1) if f1 > 0 else 0.0
 
         if is_octave_fold:
             bpm_status = "Half-Time / Double-Time"
-            bpm_badge = "score-mid" if not allow_half_double_time else "score-high"
+            bpm_badge = "score-mid" if not ctx.allow_half_double_time else "score-high"
         elif bpm_pct <= 1.5:
             bpm_status = "Smooth Lock"
             bpm_badge = "score-high"
@@ -473,11 +481,11 @@ def evaluate_harmonic_transition(
             bpm_badge = "score-low"
 
         score_val = bpm_transition_score(
-            from_bpm,
-            to_bpm,
-            energy1=from_energy,
-            energy2=to_energy,
-            allow_half_double_time=allow_half_double_time,
+            ctx.from_bpm,
+            ctx.to_bpm,
+            energy1=ctx.from_energy,
+            energy2=ctx.to_energy,
+            allow_half_double_time=ctx.allow_half_double_time,
         )
         bpm_score = round(score_val * 100.0, 1)
     else:
@@ -486,46 +494,72 @@ def evaluate_harmonic_transition(
         bpm_status = "BPM Neutral"
         bpm_badge = "score-mid"
         bpm_score = 70.0
-
-    total_score = round(0.60 * harmonic_score + 0.40 * bpm_score, 1)
-
-    if total_score >= 85.0:
-        overall_quality = "Seamless"
-        overall_badge_class = "score-high"
-    elif total_score >= 70.0:
-        overall_quality = "Harmonic"
-        overall_badge_class = "score-high"
-    elif total_score >= 50.0:
-        overall_quality = "Acceptable"
-        overall_badge_class = "score-mid"
-    else:
-        overall_quality = "Harmonic Clash"
-        overall_badge_class = "score-low"
+        is_octave_fold = False
 
     return {
-        "from_camelot": c1 or None,
-        "to_camelot": c2 or None,
-        "from_key": from_key,
-        "to_key": to_key,
-        "from_scale": from_scale,
-        "to_scale": to_scale,
-        "harmonic_type": harmonic_type,
-        "relation_label": relation_label,
-        "harmonic_badge": harmonic_badge,
-        "harmonic_score": round(harmonic_score, 1),
-        "from_bpm": from_bpm,
-        "to_bpm": to_bpm,
         "bpm_delta": bpm_diff,
         "bpm_delta_pct": bpm_pct,
         "bpm_status": bpm_status,
         "bpm_badge": bpm_badge,
+        "bpm_score": bpm_score,
+        "is_octave_fold": is_octave_fold,
+    }
+
+
+def _compute_overall_quality(total_score: float) -> tuple[str, str]:
+    if total_score >= 85.0:
+        return "Seamless", "score-high"
+    elif total_score >= 70.0:
+        return "Harmonic", "score-high"
+    elif total_score >= 50.0:
+        return "Acceptable", "score-mid"
+    else:
+        return "Harmonic Clash", "score-low"
+
+
+def evaluate_harmonic_transition(ctx: TransitionContext) -> dict[str, Any]:
+    """Evaluate harmonic compatibility and tempo transition between two tracks.
+
+    Handles Camelot wheel notation ([1-12][A-B]), detecting exact harmonic matches,
+    relative major/minor matches, +1 energy boosts, -1 energy drops, and harmonic clashes.
+    Also calculates folded tempo delta and provides color-coded badge classes.
+    """
+    c1 = (ctx.from_camelot or key_to_camelot(ctx.from_key, ctx.from_scale) or "").strip().upper()
+    c2 = (ctx.to_camelot or key_to_camelot(ctx.to_key, ctx.to_scale) or "").strip().upper()
+
+    harmonic_metrics = _evaluate_camelot(c1, c2)
+    bpm_metrics = _evaluate_bpm(ctx)
+
+    harmonic_score = harmonic_metrics["harmonic_score"]
+    bpm_score = bpm_metrics["bpm_score"]
+    total_score = round(0.60 * harmonic_score + 0.40 * bpm_score, 1)
+
+    overall_quality, overall_badge_class = _compute_overall_quality(total_score)
+
+    return {
+        "from_camelot": c1 or None,
+        "to_camelot": c2 or None,
+        "from_key": ctx.from_key,
+        "to_key": ctx.to_key,
+        "from_scale": ctx.from_scale,
+        "to_scale": ctx.to_scale,
+        "harmonic_type": harmonic_metrics["harmonic_type"],
+        "relation_label": harmonic_metrics["relation_label"],
+        "harmonic_badge": harmonic_metrics["harmonic_badge"],
+        "harmonic_score": round(harmonic_score, 1),
+        "from_bpm": ctx.from_bpm,
+        "to_bpm": ctx.to_bpm,
+        "bpm_delta": bpm_metrics["bpm_delta"],
+        "bpm_delta_pct": bpm_metrics["bpm_delta_pct"],
+        "bpm_status": bpm_metrics["bpm_status"],
+        "bpm_badge": bpm_metrics["bpm_badge"],
         "bpm_score": round(bpm_score, 1),
         "total_score": total_score,
         "normalized_score": round(total_score / 100.0, 4),
         "quality": overall_quality,
         "badge_class": overall_badge_class,
-        "clash_level": clash_level,
-        "is_octave_fold": is_octave_fold,
+        "clash_level": harmonic_metrics["clash_level"],
+        "is_octave_fold": bpm_metrics["is_octave_fold"],
     }
 
 
@@ -557,17 +591,19 @@ def calculate_transition_metrics(
         e2 = _get(t2, "energy")
 
         eval_result = evaluate_harmonic_transition(
-            from_key=k1,
-            from_scale=s1,
-            to_key=k2,
-            to_scale=s2,
-            from_bpm=bpm1,
-            to_bpm=bpm2,
-            from_camelot=c1,
-            to_camelot=c2,
-            from_energy=e1,
-            to_energy=e2,
-            allow_half_double_time=allow_half_double_time,
+            TransitionContext(
+                from_key=k1,
+                from_scale=s1,
+                to_key=k2,
+                to_scale=s2,
+                from_bpm=bpm1,
+                to_bpm=bpm2,
+                from_camelot=c1,
+                to_camelot=c2,
+                from_energy=e1,
+                to_energy=e2,
+                allow_half_double_time=allow_half_double_time,
+            )
         )
 
         item = {
@@ -800,17 +836,19 @@ def calculate_transition(
     total_score = 0.45 * vibe_sim + 0.30 * bpm_score + 0.25 * key_score
 
     eval_harm = evaluate_harmonic_transition(
-        from_key=from_meta.get("key"),
-        from_scale=from_meta.get("scale"),
-        to_key=to_meta.get("key"),
-        to_scale=to_meta.get("scale"),
-        from_bpm=from_meta.get("bpm"),
-        to_bpm=to_meta.get("bpm"),
-        from_camelot=c1,
-        to_camelot=c2,
-        from_energy=from_meta.get("energy"),
-        to_energy=to_meta.get("energy"),
-        allow_half_double_time=allow_half_double_time,
+        TransitionContext(
+            from_key=from_meta.get("key"),
+            from_scale=from_meta.get("scale"),
+            to_key=to_meta.get("key"),
+            to_scale=to_meta.get("scale"),
+            from_bpm=from_meta.get("bpm"),
+            to_bpm=to_meta.get("bpm"),
+            from_camelot=c1,
+            to_camelot=c2,
+            from_energy=from_meta.get("energy"),
+            to_energy=to_meta.get("energy"),
+            allow_half_double_time=allow_half_double_time,
+        )
     )
 
     return TrackTransition(

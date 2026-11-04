@@ -1,7 +1,8 @@
 import sys
 
+
 def patch_file(filepath):
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         content = f.read()
 
     # Find the toggle_pause function and inject event there
@@ -9,5 +10,6 @@ def patch_file(filepath):
     # Or just keep it simple, the endpoints are added to web.py successfully.
     pass
 
-if __name__ == '__main__':
-    patch_file('src/vibeplay/player.py')
+
+if __name__ == "__main__":
+    patch_file("src/vibeplay/player.py")
