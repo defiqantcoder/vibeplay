@@ -1,7 +1,5 @@
-import sys
-
 def patch_file(filepath):
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         content = f.read()
 
     # The issue is that the old plugins used `PluginMetadata` which we removed.
@@ -36,13 +34,21 @@ class {class_name}(VibePlugin):
 """
 
     if "maintenance" in filepath:
-        content = new_content.format(class_name="MaintenancePlugin", id_name="maintenance", name="Maintenance Tools", desc="Optional library maintenance tools (duplicate finder and AcoustID/MusicBrainz enrichment)")
+        content = new_content.format(
+            class_name="MaintenancePlugin",
+            id_name="maintenance",
+            name="Maintenance Tools",
+            desc="Optional library maintenance tools (duplicate finder and AcoustID/MusicBrainz enrichment)",
+        )
     elif "dsp" in filepath:
-        content = new_content.format(class_name="DspPlugin", id_name="dsp", name="DSP & Acoustics", desc="Digital Signal Processing convolver and Parametric EQ tools")
+        content = new_content.format(
+            class_name="DspPlugin", id_name="dsp", name="DSP & Acoustics", desc="Digital Signal Processing convolver and Parametric EQ tools"
+        )
 
-    with open(filepath, 'w') as f:
+    with open(filepath, "w") as f:
         f.write(content)
 
-if __name__ == '__main__':
-    patch_file('src/vibeplay/plugins/maintenance/__init__.py')
-    patch_file('src/vibeplay/plugins/dsp/__init__.py')
+
+if __name__ == "__main__":
+    patch_file("src/vibeplay/plugins/maintenance/__init__.py")
+    patch_file("src/vibeplay/plugins/dsp/__init__.py")
