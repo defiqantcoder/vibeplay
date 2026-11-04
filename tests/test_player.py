@@ -400,3 +400,82 @@ def test_fallback_player_lifecycle_and_lock() -> None:
     mock_proc.terminate.assert_called_once()
     mock_proc.kill.assert_called_once()
     assert player_mod._FALLBACK_PROC is None
+
+def test_get_output_profile() -> None:
+    """Test get_output_profile returns the currently active output profile."""
+    from vibeplay.player import get_output_profile
+    with patch("vibeplay.player.ACTIVE_OUTPUT_PROFILE", "Mocked Profile"):
+        assert get_output_profile() == "Mocked Profile"
+
+
+@pytest.mark.parametrize("fiio_connected", [True, False])
+def test_dynamic_outputs_deduplicate_and_filter_disconnected_fiio(fiio_connected: bool) -> None:
+    from types import SimpleNamespace
+
+    from vibeplay.player import get_dynamic_output_profiles
+
+    audit = SimpleNamespace(
+        endpoints=[],
+        active_dac=SimpleNamespace(card_name="FiiO DAC") if fiio_connected else None,
+        fallback_endpoint=None,
+    )
+    with patch("vibe_dsp.hardware.scan_hardware", return_value=audit), patch("vibeplay.player.get_mpd_transport") as transport:
+        client = transport.return_value.__enter__.return_value.client
+        client.outputs.return_value = [
+            {"outputname": "PipeWire Sound Server"},
+            {"outputname": "Custom Output"},
+            {"outputname": "Custom Output"},
+            {"outputname": "FiiO USB Output"},
+        ]
+        profiles = get_dynamic_output_profiles()
+
+    assert profiles.count("PipeWire Sound Server") == 1
+    assert profiles.count("Custom Output") == 1
+    assert ("FiiO USB Output" in profiles) == fiio_connected
+
+
+def test_seek_playback() -> None:
+    """Verify seek_playback correctly sends seekcur to MPD and clamps negative values."""
+    from unittest.mock import MagicMock, patch
+
+    from vibeplay.player import seek_playback
+
+    # 1. Happy path: MPD is playing
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "play"}
+
+        res = seek_playback(15.5)
+        assert res == {"state": "play"}
+        mock_client.seekcur.assert_called_once_with(15.5)
+
+    # 2. Happy path: clamping negative time
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "pause"}
+
+        res = seek_playback(-5.0)
+        assert res == {"state": "pause"}
+        mock_client.seekcur.assert_called_once_with(0.0)
+
+    # 3. No-op path: MPD is stopped
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "stop"}
+
+        res = seek_playback(10.0)
+        assert res == {"state": "stop"}
+        mock_client.seekcur.assert_not_called()
+
+    # 4. Exception handling
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.side_effect = Exception("MPD connection lost")
+
+        res = seek_playback(10.0)
+        assert res["state"] == "stopped"
+        assert "MPD connection lost" in res["error"]

@@ -1,4 +1,4 @@
-import re
+import ast
 
 with open("src/vibeplay/desktop/runner.py", "r") as f:
     content = f.read()
@@ -38,7 +38,10 @@ resolve_app_icon_path_str = """def resolve_app_icon_path() -> Path | None:
 content = content.replace(resolve_app_icon_path_str, "")
 
 # Add import for resolve_app_icon_path to runner.py to avoid breaking external imports (like __init__.py)
-content = content.replace("from vibeplay.desktop.app import run_webview, setup_gtk", "from vibeplay.desktop.app import run_webview, setup_gtk, resolve_app_icon_path")
+imports = [node for node in ast.parse(content).body if isinstance(node, ast.ImportFrom) and node.module == "vibeplay.desktop.app"]
+if not any(alias.name == "resolve_app_icon_path" and alias.asname in (None, alias.name) for node in imports for alias in node.names):
+    anchor = "from vibeplay.desktop.app import run_webview, setup_gtk"
+    content = content.replace(anchor, "from vibeplay.desktop.app import resolve_app_icon_path as resolve_app_icon_path\n" + anchor)
 
 with open("src/vibeplay/desktop/runner.py", "w") as f:
     f.write(content)
@@ -48,7 +51,8 @@ with open("src/vibeplay/desktop/app.py", "r") as f:
     app_content = f.read()
 
 app_content = app_content.replace("from vibeplay.desktop.runner import resolve_app_icon_path", "from pathlib import Path\n")
-app_content = app_content.replace("def setup_logging", resolve_app_icon_path_str + "\n\n\ndef setup_logging")
+if not any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "resolve_app_icon_path" for node in ast.parse(app_content).body):
+    app_content = app_content.replace("def setup_logging", resolve_app_icon_path_str + "\n\n\ndef setup_logging")
 
 with open("src/vibeplay/desktop/app.py", "w") as f:
     f.write(app_content)
