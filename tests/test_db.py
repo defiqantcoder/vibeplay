@@ -312,3 +312,112 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM tracks")
         count = cursor.fetchone()[0]
         assert count == num_threads * tracks_per_thread
+
+
+def test_get_unenriched_tracks_basic(tmp_path):
+    from vibeplay.db import get_unenriched_tracks, insert_or_replace_enrichment, insert_track
+
+    db_file = tmp_path / "test_unenriched.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        # Insert tracks
+        id1 = insert_track(conn, path="1.mp3", mtime=1, size=1, file_hash="h1", title="T1")
+        id2 = insert_track(conn, path="2.mp3", mtime=1, size=1, file_hash="h2", title="T2")
+        id3 = insert_track(conn, path="3.mp3", mtime=1, size=1, file_hash="h3", title="T3")
+
+        # Enrich one track
+        insert_or_replace_enrichment(
+            conn,
+            track_id=id2,
+            mb_recording_id=None,
+            mb_release_id=None,
+            mb_artist_id=None,
+            canonical_title="T2",
+            canonical_artist=None,
+            canonical_album_artist=None,
+            canonical_album=None,
+            canonical_year=None,
+            canonical_track_no=None,
+            canonical_track_total=None,
+            canonical_disc_no=None,
+            canonical_disc_total=None,
+            genres=None,
+            tags=None,
+            confidence=1.0,
+            status="matched",
+            source="test",
+            raw_metadata="{}",
+        )
+
+        tracks = get_unenriched_tracks(conn)
+
+        # Should only get id1 and id3
+        assert len(tracks) == 2
+        ids = [t["id"] for t in tracks]
+        assert id1 in ids
+        assert id3 in ids
+        assert id2 not in ids
+
+
+def test_get_unenriched_tracks_force(tmp_path):
+    from vibeplay.db import get_unenriched_tracks, insert_or_replace_enrichment, insert_track
+
+    db_file = tmp_path / "test_unenriched_force.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        id1 = insert_track(conn, path="1.mp3", mtime=1, size=1, file_hash="h1")
+
+        # Enrich track
+        insert_or_replace_enrichment(
+            conn,
+            track_id=id1,
+            mb_recording_id=None,
+            mb_release_id=None,
+            mb_artist_id=None,
+            canonical_title=None,
+            canonical_artist=None,
+            canonical_album_artist=None,
+            canonical_album=None,
+            canonical_year=None,
+            canonical_track_no=None,
+            canonical_track_total=None,
+            canonical_disc_no=None,
+            canonical_disc_total=None,
+            genres=None,
+            tags=None,
+            confidence=1.0,
+            status="matched",
+            source="test",
+            raw_metadata="{}",
+        )
+
+        # Normal request returns none
+        tracks_normal = get_unenriched_tracks(conn, force=False)
+        assert len(tracks_normal) == 0
+
+        # Force returns the track
+        tracks_force = get_unenriched_tracks(conn, force=True)
+        assert len(tracks_force) == 1
+        assert tracks_force[0]["id"] == id1
+
+
+def test_get_unenriched_tracks_limit_and_status(tmp_path):
+    from vibeplay.db import get_unenriched_tracks, insert_track, mark_tracks_missing
+
+    db_file = tmp_path / "test_unenriched_limit.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        insert_track(conn, path="1.mp3", mtime=1, size=1, file_hash="h1")
+        insert_track(conn, path="2.mp3", mtime=1, size=1, file_hash="h2")
+        insert_track(conn, path="3.mp3", mtime=1, size=1, file_hash="h3")
+        id4 = insert_track(conn, path="4.mp3", mtime=1, size=1, file_hash="h4")
+        mark_tracks_missing(conn, [id4])  # Missing status
+
+        tracks = get_unenriched_tracks(conn, limit=2)
+        assert len(tracks) == 2
+
+        tracks_all = get_unenriched_tracks(conn)
+        assert len(tracks_all) == 3  # missing shouldn't be included
