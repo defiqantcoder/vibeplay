@@ -446,15 +446,19 @@ def peq_generate(
     json_output: Annotated[bool, typer.Option("--json", help="Output generated profile and gain staging in JSON format.")] = False,
 ) -> None:
     """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging."""
-    profile, preset_path, rollback_script = generate_peq_profile(
-        input_source=input_source,
-        model=model,
-        name=name,
-        safety_margin=safety_margin,
-        export_easyeffects=export_easyeffects,
-        output_dir=output_dir,
-        backup=backup,
-    )
+    try:
+        profile, preset_path, rollback_script = generate_peq_profile(
+            input_source=input_source,
+            model=model,
+            name=name,
+            safety_margin=safety_margin,
+            export_easyeffects=export_easyeffects,
+            output_dir=output_dir,
+            backup=backup,
+        )
+    except ValueError as err:
+        console.print(f"[bold red]Error:[/bold red] {err}")
+        raise typer.Exit(code=1) from err
     if json_output:
         out_dict = profile.model_dump()
         if preset_path:
