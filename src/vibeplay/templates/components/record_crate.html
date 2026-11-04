@@ -1,5 +1,5 @@
 {# Listening Lounge & Record Crate Component (Stitch Specification) #}
-<div id="record-crate-container" class="master-record-crate-bay hidden">
+<div id="record-crate-container" class="master-record-crate-bay">
   <!-- Crate Header & Mood Filter Bar -->
   <div class="crate-bay-header">
     <div class="crate-bay-title-group">
@@ -33,7 +33,12 @@
   <!-- Vinyl Record Sleeves Grid -->
   <div id="crate-cards-grid" class="vinyl-crate-grid">
     {% for track in tracks %}
-    <div class="vinyl-sleeve-card group cursor-pointer" onclick="playTrack({{ track.track_id if track.track_id else track.id }})" oncontextmenu="openTrackContextMenu(event, {{ track.track_id if track.track_id else track.id }}, '{{ (track.title or 'Unknown')|replace('\'', '\\\'') }}', '{{ (track.artist or 'Unknown')|replace('\'', '\\\'') }}'); return false;">
+    <div class="vinyl-sleeve-card group cursor-pointer"
+         hx-post="/api/player/play-track/{{ track.track_id }}"
+         hx-target="#transport-footer-container"
+         hx-swap="innerHTML"
+         hx-trigger="click"
+         oncontextmenu="openTrackContextMenu(event, {{ track.track_id }}, '{{ (track.title or 'Unknown')|replace('\'', '\\\'') }}', '{{ (track.artist or 'Unknown')|replace('\'', '\\\'') }}'); return false;">
       <!-- Sleeve with Peeking Vinyl Record -->
       <div class="vinyl-sleeve-housing">
         <!-- Vinyl Record Peeking out from inside jacket -->
@@ -55,7 +60,7 @@
             <span class="pill-dot">•</span>
             <span>{{ track.bpm|round(0)|int if track.bpm else 120 }} BPM</span>
           </div>
-          {% if playback and playback.track_id == (track.track_id if track.track_id else track.id) %}
+          {% if playback and playback.track_id == track.track_id %}
           <div class="jacket-now-playing-tag">
             <span class="pulse-dot-cyan"></span>
             <span>SPINNING</span>
@@ -77,6 +82,10 @@
           <span>{{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) if track.duration else "3:45" }}</span>
         </div>
       </div>
+    </div>
+    {% else %}
+    <div class="col-span-full p-space-lg text-center text-on-surface-variant font-body-md">
+      No tracks found
     </div>
     {% endfor %}
   </div>

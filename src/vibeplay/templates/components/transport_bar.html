@@ -149,3 +149,7 @@
     </div>
   </div>
 </div>
+
+<!-- Out-of-band swap for header playing-on indicator -->
+<span id="header-playing-on-text" hx-swap-oob="true" class="font-label-sm text-label-sm text-on-surface-variant">Playing on: <strong class="text-on-surface font-semibold">{% if playback and playback.output_profile %}{{ playback.output_profile }}{% else %}FiiO KA15{% endif %}</strong></span>
+

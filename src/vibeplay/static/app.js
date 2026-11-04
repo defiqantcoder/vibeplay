@@ -2,27 +2,31 @@
 
 // Tab Navigation
 function showTab(tabId) {
-  const tabs = ['library', 'clusters', 'builder'];
+  let target = tabId;
+  if (target === 'table') target = 'library';
+  if (!target) target = 'lounge';
+
+  const tabs = ['lounge', 'crate', 'library', 'builder', 'clusters'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const btn = document.getElementById(`nav-btn-${t}`);
     const sideBtn = document.getElementById(`side-nav-${t}`);
     if (section) {
-      if (t === tabId) {
+      if (t === target) {
         section.style.display = 'block';
       } else {
         section.style.display = 'none';
       }
     }
     if (btn) {
-      if (t === tabId) {
+      if (t === target) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
     }
     if (sideBtn) {
-      if (t === tabId) {
+      if (t === target) {
         sideBtn.classList.add('active');
       } else {
         sideBtn.classList.remove('active');
@@ -30,6 +34,8 @@ function showTab(tabId) {
     }
   });
 }
+window.showTab = showTab;
+
 
 // Open Track Detail Modal
 function openTrackModal() {
@@ -189,6 +195,12 @@ function computeHexLuminance(hexColor) {
 function applyTheme(themeId, persist = true) {
   document.documentElement.setAttribute('data-theme', themeId);
   document.body.setAttribute('data-theme', themeId);
+  if (document.body.dataset) {
+    document.body.dataset.theme = themeId;
+  }
+  if (document.documentElement.dataset) {
+    document.documentElement.dataset.theme = themeId;
+  }
 
   if (persist) {
     // Clear inline custom accent overrides when switching preset themes
@@ -227,6 +239,8 @@ function applyTheme(themeId, persist = true) {
   // Close menus
   closeAllMenus();
 }
+window.applyTheme = applyTheme;
+
 
 function syncAccentHexInput(hexVal) {
   const textInput = document.getElementById('cfg-custom-accent');
@@ -340,24 +354,39 @@ function closeSettingsDialog() {
 }
 
 function switchSettingsTab(tabId) {
-  const tabs = ['transport', 'dsp', 'analyzer', 'theme', 'ai', 'plugins'];
+  const tabs = ['theme', 'transport', 'dsp', 'analyzer', 'plugins', 'ai'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab-btn-${t}`);
     const panel = document.getElementById(`panel-${t}`);
     if (btn) {
-      if (t === tabId) btn.classList.add('active');
-      else btn.classList.remove('active');
+      if (t === tabId) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+      }
     }
     if (panel) {
-      if (t === tabId) panel.classList.add('active');
-      else panel.classList.remove('active');
+      if (t === tabId) {
+        panel.classList.add('active');
+        panel.style.display = 'block';
+      } else {
+        panel.classList.remove('active');
+        panel.style.display = 'none';
+      }
     }
   });
 }
+window.switchSettingsTab = switchSettingsTab;
 
 function openSettingsTab(tabName) {
   toggleSettingsDialog(tabName);
 }
+window.openSettingsTab = openSettingsTab;
+window.toggleSettingsDialog = toggleSettingsDialog;
+window.closeSettingsDialog = closeSettingsDialog;
+
 
 function togglePasswordVisibility(inputId, btn) {
   const input = document.getElementById(inputId);
@@ -993,6 +1022,7 @@ function toggleInspectorDrawer() {
   if (!drawer) return;
   drawer.classList.toggle('collapsed');
   const isCollapsed = drawer.classList.contains('collapsed');
+  drawer.style.display = isCollapsed ? 'none' : 'block';
   try {
     localStorage.setItem('vibeplay_inspector_collapsed', isCollapsed ? '1' : '0');
   } catch (e) {}
@@ -1003,10 +1033,13 @@ function initInspectorState() {
   if (!drawer) return;
   try {
     const saved = localStorage.getItem('vibeplay_inspector_collapsed');
-    if (saved === '1') {
+    const shouldCollapse = saved === '1' || saved === null || window.innerWidth < 1366;
+    if (shouldCollapse) {
       drawer.classList.add('collapsed');
-    } else if (saved === null && window.innerWidth < 1366) {
-      drawer.classList.add('collapsed');
+      drawer.style.display = 'none';
+    } else {
+      drawer.classList.remove('collapsed');
+      drawer.style.display = 'block';
     }
   } catch (e) {}
 }
@@ -1793,106 +1826,249 @@ function triggerEnrichment() {
 }
 
 // 2. Sound Output Switcher Popover (Screen 2)
-function openOutputSwitcher() {
+function openOutputSwitcher(e) {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  closeAllMenus();
   const el = document.getElementById('output-switcher-popover');
-  if (el) el.classList.remove('hidden');
+  if (el) {
+    el.classList.remove('hidden');
+    el.style.display = 'block';
+  }
 }
+window.openOutputSwitcher = openOutputSwitcher;
 
 function closeOutputSwitcher() {
   const el = document.getElementById('output-switcher-popover');
-  if (el) el.classList.add('hidden');
+  if (el) {
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
 }
+window.closeOutputSwitcher = closeOutputSwitcher;
 
 function toggleOutputSwitcher(e) {
-  if (e) e.stopPropagation();
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  closeAllMenus();
   const el = document.getElementById('output-switcher-popover');
-  if (el) el.classList.toggle('hidden');
+  if (!el) return;
+  const isHidden = el.classList.contains('hidden') || el.style.display === 'none';
+  if (isHidden) {
+    el.classList.remove('hidden');
+    el.style.display = 'block';
+  } else {
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
 }
+window.toggleOutputSwitcher = toggleOutputSwitcher;
 
 function selectOutputRoute(route) {
-  fetch('/api/player/output', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profile: route })
-  }).then(() => {
-    closeOutputSwitcher();
-    if (window.htmx) {
-      htmx.ajax('GET', '/api/player/transport', { target: '#transport-footer-container', swap: 'innerHTML' });
-    }
-  }).catch(() => {});
+  closeOutputSwitcher();
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/output', {
+      values: { profile: route },
+      target: '#transport-footer-container',
+      swap: 'innerHTML'
+    });
+  } else {
+    const formData = new FormData();
+    formData.append('profile', route);
+    fetch('/api/player/output', {
+      method: 'POST',
+      body: formData
+    })
+      .then(r => r.text())
+      .then(html => {
+        const container = document.getElementById('transport-footer-container');
+        if (container) container.innerHTML = html;
+      })
+      .catch(err => console.error('Error switching output route:', err));
+  }
 }
+window.selectOutputRoute = selectOutputRoute;
 
-// 3. Parametric Equalizer Studio Modal (Screen 3)
+
+// 3. Parametric Equalizer Studio Modal (Screen 3 - The Soundbar 10-Band EQ)
+let isBypassed = false;
+let bandValues = [4.5, 3.8, 2.0, 1.2, 0.4, -0.5, 1.0, 2.2, 3.4, 4.2];
+let currentPreAmp = -1.5;
+
 function openEQStudioModal() {
   const el = document.getElementById('eq-studio-backdrop');
-  if (el) el.classList.remove('hidden');
+  if (el) {
+    el.classList.remove('hidden');
+    renderCurve();
+  }
 }
+window.openEQStudioModal = openEQStudioModal;
 
 function closeEQStudioModal() {
   const el = document.getElementById('eq-studio-backdrop');
   if (el) el.classList.add('hidden');
 }
+window.closeEQStudioModal = closeEQStudioModal;
 
-const eqBandValues = [1.5, 0.0, -1.0, 2.0, 0.5];
-
-function updateEQBand(idx, val) {
-  eqBandValues[idx] = parseFloat(val);
-  const lbl = document.getElementById('eq-val-' + idx);
-  if (lbl) {
-    const num = parseFloat(val);
-    lbl.textContent = (num >= 0 ? '+' : '') + num.toFixed(1) + ' dB';
-  }
-  redrawEQCurve();
+function toggleEQPresetDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('presetMenu');
+  if (menu) menu.classList.toggle('hidden');
 }
+window.toggleEQPresetDropdown = toggleEQPresetDropdown;
 
-function redrawEQCurve() {
-  const path = document.getElementById('eqCurvePath');
+function updatePreAmp(val) {
+  const num = parseFloat(val);
+  currentPreAmp = num;
+  const textEl = document.getElementById('preAmpValueText');
+  const fillEl = document.getElementById('preAmpFill');
+  const thumbEl = document.getElementById('preAmpThumb');
+  
+  if (textEl) textEl.textContent = (num > 0 ? '+' : '') + num.toFixed(1) + ' dB';
+  const percent = ((num + 12) / 24) * 100;
+  if (fillEl) fillEl.style.height = percent + '%';
+  if (thumbEl) thumbEl.style.bottom = `calc(${percent}% - 10px)`;
+}
+window.updatePreAmp = updatePreAmp;
+
+function handleBandChange(index, val) {
+  const num = parseFloat(val);
+  bandValues[index] = num;
+  updateBandUI(index, num);
+  renderCurve();
+}
+window.handleBandChange = handleBandChange;
+
+function updateBandUI(index, val) {
+  const dbLabel = document.querySelector(`.band-db[data-band="${index}"]`);
+  const fills = document.querySelectorAll('.band-fill');
+  const thumbs = document.querySelectorAll('.band-thumb');
+  const sliders = document.querySelectorAll('.band-slider');
+
+  if (sliders && sliders[index]) sliders[index].value = val;
+  if (dbLabel) {
+    dbLabel.textContent = (val > 0 ? '+' : '') + val.toFixed(1);
+    if (val > 0) {
+      dbLabel.className = 'font-label-sm text-[10px] text-primary-container font-semibold band-db';
+    } else if (val < 0) {
+      dbLabel.className = 'font-label-sm text-[10px] text-on-surface-variant font-semibold band-db';
+    } else {
+      dbLabel.className = 'font-label-sm text-[10px] text-outline font-semibold band-db';
+    }
+  }
+  const percent = ((val + 12) / 24) * 100;
+  if (fills && fills[index]) fills[index].style.height = `${percent}%`;
+  if (thumbs && thumbs[index]) thumbs[index].style.bottom = `calc(${percent}% - 8px)`;
+}
+window.updateBandUI = updateBandUI;
+
+function selectPreset(name, values) {
+  const label = document.getElementById('currentPresetLabel');
+  if (label) label.textContent = name;
+  bandValues = [...values];
+  bandValues.forEach((val, i) => updateBandUI(i, val));
+  renderCurve();
+  const menu = document.getElementById('presetMenu');
+  if (menu) menu.classList.add('hidden');
+}
+window.selectPreset = selectPreset;
+
+function renderCurve() {
+  const xs = [50, 130, 210, 295, 385, 475, 565, 655, 745, 825];
+  const pts = bandValues.map((v, i) => {
+    const y = 90 - (v / 12) * 70;
+    return { x: xs[i], y: Math.max(16, Math.min(164, y)) };
+  });
+
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i];
+    const p1 = pts[i + 1];
+    const mx = (p0.x + p1.x) / 2;
+    d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+  }
+
+  const curveEl = document.getElementById('eqCurvePath');
+  const areaEl = document.getElementById('eqAreaPath');
+
+  if (curveEl) curveEl.setAttribute('d', d);
+  if (areaEl) areaEl.setAttribute('d', `${d} L ${pts[pts.length - 1].x} 90 L ${pts[0].x} 90 Z`);
+
+  // Update node dot positions
+  const nodes = document.querySelectorAll('#nodesLayer > div');
+  pts.forEach((pt, i) => {
+    if (nodes[i]) {
+      const leftPct = (pt.x / 860) * 100;
+      const topPct = (pt.y / 180) * 100;
+      nodes[i].style.left = `${leftPct}%`;
+      nodes[i].style.top = `${topPct}%`;
+    }
+  });
+}
+window.renderCurve = renderCurve;
+
+function toggleBypass() {
+  isBypassed = !isBypassed;
+  const dot = document.getElementById('bypassIndicator');
+  const text = document.getElementById('bypassText');
+  const curve = document.getElementById('eqCurvePath');
   const area = document.getElementById('eqAreaPath');
-  if (!path || !area) return;
-  const y0 = 60 - eqBandValues[0] * 3.5;
-  const y1 = 60 - eqBandValues[1] * 3.5;
-  const y2 = 60 - eqBandValues[2] * 3.5;
-  const y3 = 60 - eqBandValues[3] * 3.5;
-  const y4 = 60 - eqBandValues[4] * 3.5;
-  const d = `M 0,${y0} Q 150,${y1} 250,${y1} T 450,${y2} T 650,${y3} T 800,${y4}`;
-  path.setAttribute('d', d);
-  area.setAttribute('d', d + ' L 800,120 L 0,120 Z');
-}
 
-function applyEQPreset(preset) {
-  if (preset === 'flat') {
-    [0, 1, 2, 3, 4].forEach(i => {
-      const el = document.getElementById('eq-band-' + (i + 1));
-      if (el) el.value = 0;
-      updateEQBand(i, 0);
-    });
-  } else if (preset === 'bass_boost') {
-    const vals = [4.5, 2.5, 0.0, -0.5, 0.0];
-    vals.forEach((v, i) => {
-      const el = document.getElementById('eq-band-' + (i + 1));
-      if (el) el.value = v;
-      updateEQBand(i, v);
-    });
-  } else if (preset === 'vocal_air') {
-    const vals = [-1.0, 0.0, 2.0, 3.5, 2.0];
-    vals.forEach((v, i) => {
-      const el = document.getElementById('eq-band-' + (i + 1));
-      if (el) el.value = v;
-      updateEQBand(i, v);
-    });
-  } else if (preset === 'harman_target') {
-    const vals = [3.5, 1.5, 0.0, 1.0, 2.5];
-    vals.forEach((v, i) => {
-      const el = document.getElementById('eq-band-' + (i + 1));
-      if (el) el.value = v;
-      updateEQBand(i, v);
-    });
+  if (isBypassed) {
+    if (dot) dot.className = 'w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_var(--secondary,#f59e0b)]';
+    if (text) {
+      text.textContent = 'DSP Bypassed';
+      text.className = 'text-secondary font-semibold';
+    }
+    if (curve) curve.style.opacity = '0.2';
+    if (area) area.style.opacity = '0.05';
+  } else {
+    if (dot) dot.className = 'w-2 h-2 rounded-full bg-outline';
+    if (text) {
+      text.textContent = 'Bypass DSP';
+      text.className = 'text-on-surface-variant';
+    }
+    if (curve) curve.style.opacity = '1';
+    if (area) area.style.opacity = '1';
   }
 }
+window.toggleBypass = toggleBypass;
 
-function resetEQBands() {
-  applyEQPreset('flat');
+function applyCurve() {
+  const btn = document.getElementById('applyBtn');
+  if (btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span>Curves Engaged ✨</span><span class="material-symbols-outlined text-[16px]">done_all</span>';
+    btn.classList.add('bg-tertiary', 'shadow-[0_0_24px_rgba(78,222,163,0.5)]');
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.classList.remove('bg-tertiary', 'shadow-[0_0_24px_rgba(78,222,163,0.5)]');
+    }, 1200);
+  }
+  saveAndApplyEQ();
 }
+window.applyCurve = applyCurve;
+
+function saveAndApplyEQ() {
+  const freqs = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+  const types = ['lowshelf', 'peaking', 'peaking', 'peaking', 'peaking', 'peaking', 'peaking', 'peaking', 'peaking', 'highshelf'];
+  const qs = [0.71, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.71];
+
+  const bands = freqs.map((f, i) => ({
+    fc: f,
+    gain: bandValues[i] || 0.0,
+    q: qs[i],
+    type: types[i]
+  }));
+
+  fetch('/api/dsp/peq/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bands: bands,
+      preamp_db: currentPreAmp
+    })
+  }).catch(() => {});
+}
+window.saveAndApplyEQ = saveAndApplyEQ;
 
 function toggleSpatialBinaural() {
   fetch('/api/dsp/spatial/toggle', { method: 'POST' })
@@ -1904,23 +2080,7 @@ function toggleSpatialBinaural() {
       }
     }).catch(() => {});
 }
-
-function saveAndApplyEQ() {
-  fetch('/api/dsp/peq/apply', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      bands: [
-        { fc: 80, gain: eqBandValues[0], q: 0.71, type: 'lowshelf' },
-        { fc: 250, gain: eqBandValues[1], q: 1.0, type: 'peaking' },
-        { fc: 1000, gain: eqBandValues[2], q: 1.0, type: 'peaking' },
-        { fc: 4000, gain: eqBandValues[3], q: 1.0, type: 'peaking' },
-        { fc: 12000, gain: eqBandValues[4], q: 0.71, type: 'highshelf' },
-      ],
-      preamp_db: -0.3
-    })
-  }).then(() => closeEQStudioModal()).catch(() => closeEQStudioModal());
-}
+window.toggleSpatialBinaural = toggleSpatialBinaural;
 
 // 4. Welcome Onboarding Modal (Screen 6)
 function openOnboardingModal() {
@@ -2040,6 +2200,12 @@ function contextActionFindSimilar() {
 
 // 8. View Switcher (Master Table vs Record Crate) (Screen 8, 9, 14)
 function switchLibraryView(view) {
+  if (view === 'crate' && document.getElementById('tab-crate')) {
+    showTab('crate');
+  } else if (view === 'table' && document.getElementById('tab-library')) {
+    showTab('library');
+  }
+
   const tbl = document.getElementById('library-table-container');
   const crt = document.getElementById('record-crate-container');
   const bTbl = document.getElementById('view-btn-table');
@@ -2394,3 +2560,198 @@ document.addEventListener('keydown', (event) => {
       htmx.ajax('POST', '/api/player/next', {
         target: '#transport-footer-container',
         swap: 'innerHTML'
+      });
+    }
+    return;
+  }
+});
+
+// Interactive Handlers for UI Elements & Modals
+function focusLibrarySearch() {
+  const el = document.getElementById('global-header-search') || document.getElementById('library-search-input');
+  if (el) el.focus();
+}
+window.focusLibrarySearch = focusLibrarySearch;
+
+function syncToLibrarySearch(query) {
+  const libInput = document.getElementById('library-search-input');
+  if (libInput) {
+    libInput.value = query;
+    if (typeof htmx !== 'undefined') {
+      htmx.trigger(libInput, 'input');
+    }
+  }
+}
+window.syncToLibrarySearch = syncToLibrarySearch;
+
+function toggleShuffleMode(btn) {
+  const b = btn || document.getElementById('btn-transport-shuffle');
+  if (b) {
+    b.classList.toggle('active');
+    const isActive = b.classList.contains('active');
+    try {
+      localStorage.setItem('vibeplay_shuffle', isActive ? '1' : '0');
+    } catch (e) {}
+  }
+}
+window.toggleShuffleMode = toggleShuffleMode;
+window.toggleShuffle = toggleShuffleMode;
+
+function toggleRepeatMode(btn) {
+  const b = btn || document.getElementById('btn-transport-repeat');
+  if (b) {
+    b.classList.toggle('active');
+    const isActive = b.classList.contains('active');
+    try {
+      localStorage.setItem('vibeplay_repeat', isActive ? '1' : '0');
+    } catch (e) {}
+  }
+}
+window.toggleRepeatMode = toggleRepeatMode;
+window.toggleRepeat = toggleRepeatMode;
+
+function handleScrubTimeline(event, input) {
+  const val = input ? parseFloat(input.value) : 0;
+  if (typeof seekPlayback === 'function') {
+    seekPlayback(val);
+  } else if (window.htmx) {
+    htmx.ajax('POST', '/api/player/seek', { values: { seconds: val }, target: '#transport-footer-container', swap: 'innerHTML' });
+  }
+}
+window.handleScrubTimeline = handleScrubTimeline;
+
+function handlePlayerClear() {
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/clear', { target: '#transport-footer-container', swap: 'innerHTML' });
+  } else {
+    fetch('/api/player/clear', { method: 'POST' }).catch(() => {});
+  }
+}
+window.handlePlayerClear = handlePlayerClear;
+
+function toggleSmartSorter(btn) {
+  const menu = document.getElementById('smart-sorter-menu');
+  if (menu) menu.classList.toggle('hidden');
+}
+window.toggleSmartSorter = toggleSmartSorter;
+
+function togglePluginDynamic(pluginId, el) {
+  if (typeof togglePlugin === 'function') {
+    togglePlugin(pluginId, el);
+  }
+}
+window.togglePluginDynamic = togglePluginDynamic;
+
+function selectSeedTrack(el) {
+  if (!el) return;
+  const tid = el.getAttribute('data-track-id');
+  const title = el.getAttribute('data-title');
+  const artist = el.getAttribute('data-artist');
+  const album = el.getAttribute('data-album');
+  const bpm = el.getAttribute('data-bpm');
+  const camelot = el.getAttribute('data-camelot');
+
+  const hiddenId = document.getElementById('builder-selected-seed-id');
+  if (hiddenId) hiddenId.value = tid;
+
+  const formSeedId = document.getElementById('builder-form-seed-id');
+  if (formSeedId) formSeedId.value = tid;
+
+  const card = document.getElementById('selected-seed-card');
+  if (card) card.style.display = 'flex';
+
+  const tEl = document.getElementById('selected-seed-title');
+  if (tEl) tEl.textContent = title;
+
+  const aEl = document.getElementById('selected-seed-artist');
+  if (aEl) aEl.textContent = artist + ' — ' + album;
+
+  const bEl = document.getElementById('selected-seed-bpm');
+  if (bEl) bEl.textContent = bpm ? bpm + ' BPM' : '— BPM';
+
+  const cEl = document.getElementById('selected-seed-camelot');
+  if (cEl) cEl.textContent = camelot || '—';
+
+  const nextBtn = document.getElementById('btn-goto-step-2');
+  if (nextBtn) {
+    nextBtn.removeAttribute('disabled');
+    nextBtn.style.opacity = '1';
+    nextBtn.style.cursor = 'pointer';
+  }
+}
+window.selectSeedTrack = selectSeedTrack;
+
+function updateArcSelection(radio) {
+  document.querySelectorAll('.arc-card').forEach(card => {
+    card.classList.remove('active');
+  });
+  if (radio && radio.checked && radio.closest('.arc-card')) {
+    radio.closest('.arc-card').classList.add('active');
+  }
+}
+window.updateArcSelection = updateArcSelection;
+
+function applyNlPrompt(promptText) {
+  const input = document.getElementById('nl-playlist-prompt-input');
+  if (input) {
+    input.value = promptText;
+    const form = input.closest('form');
+    if (form) {
+      if (typeof htmx !== 'undefined') {
+        htmx.trigger(form, 'submit');
+      } else {
+        form.submit();
+      }
+    }
+  }
+}
+window.applyNlPrompt = applyNlPrompt;
+
+function switchBuilderStep(stepNumber) {
+  for (let s = 1; s <= 4; s++) {
+    const pill = document.getElementById('pill-step-' + s);
+    const panel = document.getElementById('builder-step-' + s);
+    if (pill) {
+      if (s === stepNumber) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    }
+    if (panel) {
+      panel.style.display = (s === stepNumber) ? 'block' : 'none';
+    }
+  }
+  if (stepNumber === 4 && typeof initPlaylistDragDrop === 'function') {
+    initPlaylistDragDrop();
+  }
+}
+window.switchBuilderStep = switchBuilderStep;
+
+function openSettingsDialog(initialTab) {
+  if (typeof closeAllMenus === 'function') closeAllMenus();
+  const dialog = document.getElementById('settings-dialog');
+  if (!dialog) return;
+  dialog.classList.remove('hidden');
+  dialog.style.display = '';
+  if (!dialog.open) {
+    if (typeof dialog.showModal === 'function') {
+      try {
+        dialog.showModal();
+      } catch (e) {
+        dialog.setAttribute('open', '');
+      }
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  }
+  if (typeof loadDesktopSettingsIntoModal === 'function') {
+    loadDesktopSettingsIntoModal();
+  }
+  if (initialTab && typeof openSettingsTab === 'function') {
+    openSettingsTab(initialTab);
+  }
+}
+window.openSettingsDialog = openSettingsDialog;
+
+

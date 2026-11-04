@@ -1128,7 +1128,7 @@ def create_app(
             daemon=True,
         )
         t.start()
-        t.join(timeout=0.035)
+        t.join(timeout=0.015)
         playback = get_playback_status(resolved_db_path, cfg)
         if t.is_alive():
             if playback.get("state") == "play":
@@ -1168,7 +1168,7 @@ def create_app(
             daemon=True,
         )
         t.start()
-        t.join(timeout=0.035)
+        t.join(timeout=0.015)
         playback = get_playback_status(resolved_db_path, cfg)
         playback["state"] = "play"
         _maybe_notify_track_transition(playback)
@@ -1191,7 +1191,7 @@ def create_app(
             daemon=True,
         )
         t.start()
-        t.join(timeout=0.035)
+        t.join(timeout=0.015)
         playback = get_playback_status(resolved_db_path, cfg)
         playback["state"] = "play"
         _maybe_notify_track_transition(playback)

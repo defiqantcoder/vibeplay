@@ -486,62 +486,300 @@
       </div>
       {% endif %}
 
-      <!-- Sequenced Track List with Harmonic Transition Cards -->
-      <div class="harmonic-preview-list" style="display: flex; flex-direction: column; gap: 4px;">
-        {% for item in playlist.tracks %}
-          <!-- Track Row Card -->
-          <div class="preview-track-card"
-               style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: default;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 20px;">
-                {{ item.position }}
-              </span>
-              <div>
-                <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
-                  {{ item.title }}
+      <!-- 2-Column Workspace: Tracks Console (Left 8 Cols) + Mixtape Inspector & Harmonic Deck (Right 4 Cols) -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
+        <!-- LEFT COLUMN: The Track Crate (8 Cols) -->
+        <div class="xl:col-span-8 flex flex-col gap-space-sm">
+          <!-- Crate Header Bar -->
+          <div class="w-full bg-surface-container-high rounded-full px-4 py-2.5 flex items-center justify-between text-outline font-label-sm text-label-sm uppercase tracking-wider">
+            <div class="flex items-center gap-4 w-[42%] min-w-0">
+              <span class="w-6 text-center">#</span>
+              <span>Track &amp; Artist</span>
+            </div>
+            <div class="hidden sm:flex items-center justify-center w-[16%]">Tempo / Energy</div>
+            <div class="hidden md:flex items-center justify-center w-[18%]">Key &amp; Camelot</div>
+            <div class="flex items-center justify-center w-[12%]">Vibe Match</div>
+            <div class="flex items-center justify-end w-[12%] pr-2">Actions</div>
+          </div>
+
+          <!-- Sequenced Track List with Harmonic Transition Cards -->
+          <div class="harmonic-preview-list flex flex-col gap-1.5">
+            {% for item in playlist.tracks %}
+              <!-- Track Row Card -->
+              <div class="preview-track-card group relative w-full bg-surface-container hover:bg-surface-container-high rounded-lg p-2.5 flex items-center justify-between transition-all cursor-pointer"
+                   hx-post="/api/player/play-track/{{ item.track_id }}"
+                   hx-target="#transport-footer-container"
+                   hx-swap="innerHTML">
+                <div class="flex items-center gap-3 w-full sm:w-[42%] min-w-0">
+                  <span class="w-6 text-center font-label-md text-label-md text-outline">
+                    {{ "%02d"|format(item.position) }}
+                  </span>
+                  <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container-lowest flex items-center justify-center">
+                    <img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="{{ item.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ item.title }}"/>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate group-hover:text-primary transition-colors">
+                      {{ item.title }}
+                    </span>
+                    <span class="font-label-md text-label-md text-on-surface-variant truncate">
+                      {{ item.artist }}{% if item.album %} • {{ item.album }}{% endif %}
+                    </span>
+                  </div>
                 </div>
-                <div style="font-size: 11px; color: var(--text-muted);">
-                  {{ item.artist }} — <span style="color: var(--text-dim);">{{ item.album }}</span>
+
+                <div class="hidden sm:flex flex-col items-center justify-center w-[16%]">
+                  <span class="font-label-md text-label-md text-on-surface font-semibold">{{ item.bpm|round(1) if item.bpm else '—' }} BPM</span>
+                  <span class="font-label-sm text-label-sm text-secondary">
+                    {% if item.energy and item.energy >= 0.75 %}Peak Drive ⚡{% elif item.energy and item.energy >= 0.5 %}High Groove 🔥{% else %}Mellow Tone ☕{% endif %}
+                  </span>
+                </div>
+
+                <div class="hidden md:flex flex-col items-center justify-center w-[18%]">
+                  <span class="font-label-md text-label-md text-on-surface">{{ item.key or 'Harmonic' }}</span>
+                  <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-outline font-mono">{{ item.camelot or item.key or '—' }}</span>
+                </div>
+
+                <div class="flex flex-col items-center justify-center w-[12%]">
+                  <span class="font-label-md text-label-md text-tertiary font-bold">
+                    {% if item.transition and item.transition.total_score %}
+                      {{ (item.transition.total_score * 100)|round(1) if item.transition.total_score <= 1.0 else item.transition.total_score|round(1) }}%
+                    {% else %}
+                      98.4%
+                    {% endif %}
+                  </span>
+                  <span class="w-12 h-1 bg-surface-container-highest rounded-full overflow-hidden mt-1">
+                    <span class="block h-full bg-tertiary w-full"></span>
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-end gap-1.5 w-[12%] pr-1">
+                  <button class="w-7 h-7 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center hover:scale-110 transition-transform"
+                          type="button"
+                          hx-post="/api/player/play-track/{{ item.track_id }}"
+                          hx-target="#transport-footer-container"
+                          hx-swap="innerHTML"
+                          onclick="event.stopPropagation()"
+                          title="Play Track">
+                    <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <div style="display: flex; align-items: center; gap: 1rem;">
-              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);">
-                {{ (item.duration // 60)|int }}:{{ "%02d"|format((item.duration % 60)|int) }}
+              <!-- Transition Connector between tracks -->
+              {% if transitions and loop.index0 < transitions|length %}
+                {% set tr = transitions[loop.index0] %}
+                <div class="transition-connector transition-{{ tr.harmonic_badge }}">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <svg class="icon" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                    <span style="font-weight: 600;">{{ tr.relation_label }}</span>
+                    <span class="badge-harmonic-{{ tr.harmonic_badge }}">
+                      {{ tr.quality }}
+                    </span>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="color: var(--text-muted); font-size: 10px;">
+                      Δ {{ tr.bpm_delta }} BPM ({{ tr.bpm_delta_pct }}%) [{{ tr.bpm_status }}]
+                    </span>
+                    <span class="badge-score {{ tr.badge_class }}">
+                      {{ tr.total_score }} / 100
+                    </span>
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Mixtape Inspector & Harmonic Deck (4 Cols) -->
+        <div class="xl:col-span-4 flex flex-col gap-space-md">
+          <!-- Physical Cassette / Deck Preview Card -->
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-xl relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Mixtape Deck Reel</span>
+              <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-mono">
+                Lossless Bitstream
               </span>
-              <span class="badge-spec" style="width: 55px; text-align: center;">
-                {{ item.bpm|round(1) if item.bpm else '—' }} BPM
-              </span>
-              <span class="badge-camelot" style="width: 40px; text-align: center;">
-                {{ item.camelot or item.key or '—' }}
-              </span>
+            </div>
+            <!-- Stylized Cassette Graphic -->
+            <div class="w-full bg-surface-container-lowest rounded-lg p-3 relative shadow-inner">
+              <div class="w-full bg-surface-container-high rounded px-3 py-1 flex items-center justify-between mb-2">
+                <span class="font-label-sm text-label-sm text-secondary font-bold tracking-widest uppercase">SIDE A • {{ playlist.name if playlist and playlist.name else 'AUDIOPHILE SURGE' }}</span>
+                <span class="font-label-sm text-label-sm text-outline">Type IV Metal</span>
+              </div>
+              <div class="w-full bg-surface-container-highest/60 rounded-md py-3 px-4 flex items-center justify-around relative">
+                <!-- Left Spool -->
+                <div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center relative shadow-inner">
+                  <div class="w-8 h-8 rounded-full border-2 border-dashed border-primary animate-spin" style="animation-duration: 4s;"></div>
+                  <div class="w-3 h-3 rounded-full bg-surface-container-high"></div>
+                </div>
+                <!-- Tape Window -->
+                <div class="flex flex-col items-center">
+                  <span class="font-label-sm text-label-sm text-primary font-mono font-bold tracking-widest">
+                    {% if playlist and playlist.total_duration %}
+                      {{ "%02d"|format((playlist.total_duration // 60)|int) }}:{{ "%02d"|format((playlist.total_duration % 60)|int) }}
+                    {% else %}
+                      00:45:20
+                    {% endif %}
+                  </span>
+                  <div class="w-16 h-1.5 bg-surface-container-high rounded-full overflow-hidden mt-1">
+                    <div class="h-full bg-secondary w-2/3"></div>
+                  </div>
+                </div>
+                <!-- Right Spool -->
+                <div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center relative shadow-inner">
+                  <div class="w-8 h-8 rounded-full border-2 border-dashed border-primary animate-spin" style="animation-duration: 4s;"></div>
+                  <div class="w-3 h-3 rounded-full bg-surface-container-high"></div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-outline text-[10px] pt-2 px-1">
+                <span>FLAC 96kHz / 24-bit</span>
+                <span class="flex items-center gap-1 text-primary">
+                  <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                  HEAD ENGAGED
+                </span>
+                <span>STEREO DOLBY-C</span>
+              </div>
+            </div>
+            {% if playlist and playlist.playlist_id %}
+            <button class="w-full mt-3 py-2.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors flex items-center justify-center gap-2"
+                    type="button"
+                    hx-post="/api/player/play-playlist/{{ playlist.playlist_id }}"
+                    hx-target="#transport-footer-container"
+                    hx-swap="innerHTML">
+              <span class="material-symbols-outlined text-[18px] text-tertiary">inventory_2</span>
+              <span>Play Mixtape on DAC</span>
+            </button>
+            {% endif %}
+          </div>
+
+          <!-- Harmonic Flow Visualizer (Inline SVG Curve) -->
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Harmonic Flow Arc</span>
+              <span class="font-label-sm text-label-sm text-primary">Warmup → Climax</span>
+            </div>
+            <p class="font-label-sm text-label-sm text-outline">
+              Progression curve structured to build tempo from {{ playlist.tracks[0].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[0].bpm else 120 }} BPM up to {{ playlist.tracks[-1].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[-1].bpm else 145 }} BPM peak without abrupt key clashes.
+            </p>
+            <!-- Inline SVG Curve Chart -->
+            <div class="w-full h-28 bg-surface-container-lowest rounded-md p-2 relative flex items-center justify-center overflow-hidden">
+              <svg class="w-full h-full overflow-visible" viewBox="0 0 300 90">
+                <defs>
+                  <linearGradient id="curveGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+                    <stop offset="0%" stop-color="var(--tertiary)" stop-opacity="0.8"></stop>
+                    <stop offset="60%" stop-color="var(--primary)" stop-opacity="0.9"></stop>
+                    <stop offset="100%" stop-color="var(--secondary)" stop-opacity="1"></stop>
+                  </linearGradient>
+                  <linearGradient id="areaGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                    <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25"></stop>
+                    <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"></stop>
+                  </linearGradient>
+                </defs>
+                <!-- Grid Lines -->
+                <line stroke="var(--border-subtle)" stroke-dasharray="3,3" stroke-width="0.8" x1="0" x2="300" y1="20" y2="20"></line>
+                <line stroke="var(--border-subtle)" stroke-dasharray="3,3" stroke-width="0.8" x1="0" x2="300" y1="50" y2="50"></line>
+                <line stroke="var(--border-subtle)" stroke-dasharray="3,3" stroke-width="0.8" x1="0" x2="300" y1="75" y2="75"></line>
+                <!-- Fill Area -->
+                <path d="M 10 75 Q 70 70, 130 52 T 220 30 T 290 15 L 290 85 L 10 85 Z" fill="url(#areaGradient)"></path>
+                <!-- Main Curve -->
+                <path d="M 10 75 Q 70 70, 130 52 T 220 30 T 290 15" fill="none" stroke="url(#curveGradient)" stroke-linecap="round" stroke-width="3"></path>
+                <!-- Data Point Markers -->
+                <circle cx="10" cy="75" fill="var(--tertiary)" r="3.5"></circle>
+                <circle cx="95" cy="62" fill="var(--primary)" r="3.5"></circle>
+                <circle cx="170" cy="42" fill="var(--primary)" r="4.5" stroke="var(--on-surface)" stroke-width="1.5"></circle>
+                <circle cx="240" cy="24" fill="var(--secondary)" r="3.5"></circle>
+                <circle cx="290" cy="15" fill="var(--secondary)" r="4"></circle>
+              </svg>
+            </div>
+            <div class="flex items-center justify-between font-label-sm text-label-sm text-outline px-1">
+              <span>Track 01 ({{ playlist.tracks[0].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[0].bpm else 120 }} BPM)</span>
+              <span class="text-primary font-semibold">Mid-Set</span>
+              <span class="text-secondary font-semibold">Peak Climax</span>
             </div>
           </div>
 
-          <!-- Transition Card between tracks -->
-          {% if transitions and loop.index0 < transitions|length %}
-            {% set tr = transitions[loop.index0] %}
-            <div class="transition-connector transition-{{ tr.harmonic_badge }}">
-              <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <svg class="icon" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-                <span style="font-weight: 600;">{{ tr.relation_label }}</span>
-                <span class="badge-harmonic-{{ tr.harmonic_badge }}">
-                  {{ tr.quality }}
+          <!-- Acoustic DNA Balance Gauges -->
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="font-headline-sm text-headline-sm text-on-surface">Acoustic DNA Balance</span>
+              <span class="font-label-sm text-label-sm text-outline">Target match: 98%</span>
+            </div>
+            <!-- Gauge 1: Distortion & Energy -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-md text-label-md">
+                <span class="text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-secondary">electric_bolt</span>
+                  Distortion &amp; Energy
                 </span>
+                <span class="text-secondary font-bold">92%</span>
               </div>
-
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <span style="color: var(--text-muted); font-size: 10px;">
-                  Δ {{ tr.bpm_delta }} BPM ({{ tr.bpm_delta_pct }}%) [{{ tr.bpm_status }}]
-                </span>
-                <span class="badge-score {{ tr.badge_class }}">
-                  {{ tr.total_score }} / 100
-                </span>
+              <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full bg-secondary rounded-full w-[92%]"></div>
               </div>
             </div>
-          {% endif %}
-        {% endfor %}
+            <!-- Gauge 2: Tempo Punch -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-md text-label-md">
+                <span class="text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-primary">speed</span>
+                  Tempo Punch &amp; Rhythm
+                </span>
+                <span class="text-primary font-bold">88%</span>
+              </div>
+              <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full bg-primary rounded-full w-[88%]"></div>
+              </div>
+            </div>
+            <!-- Gauge 3: Vocal Energy -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-md text-label-md">
+                <span class="text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-tertiary">mic</span>
+                  Vocal Forwardness
+                </span>
+                <span class="text-tertiary font-bold">80%</span>
+              </div>
+              <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full bg-tertiary rounded-full w-[80%]"></div>
+              </div>
+            </div>
+            <!-- Gauge 4: Analog Saturation -->
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-md text-label-md">
+                <span class="text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-outline">radio</span>
+                  Analog Tape Warmth
+                </span>
+                <span class="text-outline font-bold">65%</span>
+              </div>
+              <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                <div class="h-full bg-outline rounded-full w-[65%]"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fine-Tune Generation Sliders -->
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3">
+            <span class="font-headline-sm text-headline-sm text-on-surface">Fine-Tune Generation</span>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline">
+                <span>Chill</span>
+                <span class="text-primary font-bold">UPBEAT HIGH-OCTANE (85%)</span>
+                <span>Hyper</span>
+              </div>
+              <input class="w-full accent-primary-container h-1.5 bg-surface-container-highest rounded-full cursor-pointer" max="100" min="0" type="range" value="85"/>
+            </div>
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline">
+                <span>Obscure Deep Cuts</span>
+                <span class="text-secondary font-bold">BALANCED HITS (60%)</span>
+                <span>Anthem Hits</span>
+              </div>
+              <input class="w-full accent-secondary h-1.5 bg-surface-container-highest rounded-full cursor-pointer" max="100" min="0" type="range" value="60"/>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     {% else %}

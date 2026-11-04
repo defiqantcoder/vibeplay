@@ -71,16 +71,28 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
             except Exception as e:
                 logger.debug("Could not release MPD outputs before aplay fallback: %s", e)
 
+        import re
+        hw_match = re.search(r'(hw:\d+,\d+|plughw:\d+,\d+)', ACTIVE_OUTPUT_PROFILE)
+        alsa_device = hw_match.group(1) if hw_match else None
+
         args = [player_bin, str(track_path)]
-        if "ffplay" in player_bin:
-            args = [player_bin, "-nodisp", "-autoexit", str(track_path)]
+        if "aplay" in Path(player_bin).name:
+            if alsa_device:
+                dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
+                args = [player_bin, "-D", dev_arg, str(track_path)]
+        elif "ffplay" in player_bin:
+            args = [player_bin, "-nodisp", "-autoexit"]
+            if alsa_device:
+                dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
+                args.extend(["-f", "alsa", "-device", dev_arg])
+            args.append(str(track_path))
         try:
             _FALLBACK_PROC = subprocess.Popen(
                 args,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            logger.info("Started direct fallback audio player: %s", player_bin)
+            logger.info("Started direct fallback audio player: %s (device: %s)", player_bin, alsa_device or 'default')
         except Exception as e:
             logger.warning("Failed to start direct audio player: %s", e)
 

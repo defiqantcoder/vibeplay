@@ -11,7 +11,15 @@
         <span class="badge-spec">STUDIO</span>
       </div>
       <nav class="sidebar-nav-list">
-        <button class="sidebar-nav-item active" id="side-nav-library" onclick="showTab('library')">
+        <button class="sidebar-nav-item active" id="side-nav-lounge" onclick="showTab('lounge')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-12.5c-2.48 0-4.5 2.02-4.5 4.5s2.02 4.5 4.5 4.5 4.5-2.02 4.5-4.5-2.02-4.5-4.5-4.5zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+          <span>Lo-Fi Lounge</span>
+        </button>
+        <button class="sidebar-nav-item" id="side-nav-crate" onclick="showTab('crate')">
+          <span class="icon-emoji">📦</span>
+          <span>Record Crate</span>
+        </button>
+        <button class="sidebar-nav-item" id="side-nav-library" onclick="showTab('library')">
           <svg class="icon" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 5h-3v5.5c0 1.38-1.12 2.5-2.5 2.5S10 13.88 10 12.5s1.12-2.5 2.5-2.5c.57 0 1.08.19 1.5.51V5h4v2zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/></svg>
           <span>Master Console</span>
         </button>
@@ -76,1263 +84,1114 @@
     <!-- Live Background Job Progress Bar -->
     {% include "components/job_progress.html" %}
 
-    <!-- ====================================================================
-         VIBEPLAY AUDIOPHILE LO-FI MUSIC LOUNGE (STITCH MASTER SPECIFICATION)
-         ==================================================================== -->
-    <div class="lofi-lounge-deck w-full max-w-[1856px] mx-auto flex flex-col gap-space-xl">
-      <!-- 1. Hero Turntable Deck & Tactile Potentiometers Grid -->
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-stretch">
-        <!-- Turntable Deck Unit (Left 8 Cols) -->
-        <div class="xl:col-span-8 hero-turntable-deck bg-surface-container rounded-lg p-space-lg shadow-xl relative overflow-hidden flex flex-col justify-between group">
-          <!-- Ambient Glow Blobs -->
-          <div class="turntable-ambient-cyan pointer-events-none"></div>
-          <div class="turntable-ambient-amber pointer-events-none"></div>
+    <!-- Tab 1: Lo-Fi Lounge -->
+    <section id="tab-lounge" style="display: block;">
+      <!-- ====================================================================
+           VIBEPLAY AUDIOPHILE LO-FI MUSIC LOUNGE (STITCH MASTER SPECIFICATION)
+           ==================================================================== -->
+      <div class="lofi-lounge-deck w-full max-w-[1856px] mx-auto flex flex-col gap-space-xl">
+        <!-- 1. Hero Turntable Deck & Tactile Potentiometers Grid -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-stretch">
+          <!-- Turntable Deck Unit (Left 8 Cols) -->
+          <div class="xl:col-span-8 hero-turntable-deck bg-surface-container rounded-lg p-space-lg shadow-xl relative overflow-hidden flex flex-col justify-between group">
+            <!-- Ambient Glow Blobs -->
+            <div class="turntable-ambient-cyan absolute -top-32 -left-20 w-96 h-96 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="turntable-ambient-amber absolute -bottom-24 -right-16 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <!-- Top Status Strip -->
-          <div class="flex flex-wrap items-center justify-between gap-space-md mb-space-md" style="z-index: 10;">
-            <div class="flex items-center gap-space-sm">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary shadow-inner">
-                <span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
-                DIRECT DSD 11.2MHz
-              </span>
-              <span class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant">
-                DECK A • CASSETTE HEAD 2
-              </span>
+            <!-- Top Status Strip -->
+            <div class="flex flex-wrap items-center justify-between gap-space-md mb-space-md z-10">
+              <div class="flex items-center gap-space-sm">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary shadow-inner">
+                  <span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+                  {{ playback.sample_rate if playback and playback.sample_rate else (selected_tech_info.codec if selected_tech_info and selected_tech_info.codec else 'DIRECT DSD 11.2MHz') }}
+                </span>
+                <span class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant">
+                  {{ playback.output_profile if playback and playback.output_profile else 'DECK A • CASSETTE HEAD 2' }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-label-sm text-label-sm text-secondary flex items-center gap-1 bg-secondary/10 px-3 py-1 rounded-full">
+                  <span class="material-symbols-outlined text-[14px]">local_fire_department</span>
+                  {{ selected_track.camelot if selected_track and selected_track.camelot else 'TUBE BIAS: +3.2dB' }}
+                </span>
+                <button class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" title="Eject Deck" type="button" onclick="handlePlayerClear()">
+                  <span class="material-symbols-outlined text-[16px]">eject</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Turntable & Now-Playing Bay -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center z-10 my-auto py-space-sm">
+              <!-- Rotating Vinyl Deck (5 Cols) -->
+              <div class="md:col-span-5 flex flex-col items-center justify-center relative">
+                <div class="turntable-vinyl-container relative w-56 h-56 lg:w-64 lg:h-64 flex items-center justify-center">
+                  <!-- Grooved Spinning Disc -->
+                  <div class="turntable-spinning-disc absolute inset-0 rounded-full bg-surface-container-lowest shadow-[0_0_30px_rgba(0,0,0,0.8)] animate-[spin_24s_linear_infinite]">
+                    <div class="absolute inset-2 rounded-full border border-surface-container-highest/40"></div>
+                    <div class="absolute inset-6 rounded-full border border-surface-container-highest/20"></div>
+                    <div class="absolute inset-10 rounded-full border border-surface-container-highest/40"></div>
+                    <div class="absolute inset-14 rounded-full border border-surface-container-highest/20"></div>
+                    <div class="absolute inset-20 rounded-full border border-surface-container-highest/40"></div>
+                    <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary-container/20 to-transparent"></div>
+                  </div>
+
+                  <!-- Center Album Artwork Label -->
+                  <div class="relative z-10 w-28 h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden shadow-2xl p-1 bg-surface-container-lowest">
+                    <img class="w-full h-full object-cover rounded-full" src="{{ current_track.cover_url if current_track and current_track.cover_url else '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="Vinyl Center Label"/>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div class="w-5 h-5 rounded-full bg-surface-container-lowest border-2 border-surface-container-highest flex items-center justify-center">
+                        <div class="w-2 h-2 rounded-full bg-surface-container"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tonearm Needle -->
+                  <div class="turntable-tonearm absolute -right-2 top-2 pointer-events-none transform origin-top-right rotate-12 transition-transform group-hover:rotate-6">
+                    <div class="w-20 h-2 bg-gradient-to-r from-surface-variant to-outline rounded-full shadow-md"></div>
+                    <div class="w-3 h-5 bg-secondary-container rounded-sm shadow-[0_0_10px_#ee9800]"></div>
+                  </div>
+                </div>
+
+                <!-- Latency Chip -->
+                <div class="flex items-center gap-2 mt-space-md">
+                  <span class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_#06b6d4]"></span>
+                  <span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Analog Latency {{ playback.latency_ms if playback and playback.latency_ms else '0.4' }}ms</span>
+                </div>
+              </div>
+
+              <!-- Track Info, VU Meters & Scrubber (7 Cols) -->
+              <div class="md:col-span-7 flex flex-col justify-center">
+                <div class="flex items-center gap-2 mb-space-xs">
+                  <span class="font-label-sm text-label-sm bg-secondary/15 text-secondary px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold">
+                    Track #{{ "%02d"|format(current_track.id or current_track.track_id) if current_track and (current_track.id or current_track.track_id) else (playback.track_id if playback and playback.track_id else (selected_track.track_id if selected_track and selected_track.track_id else 1)) }}
+                  </span>
+                  <span class="font-label-sm text-label-sm text-on-surface-variant font-body-sm">
+                    {{ current_track.album if current_track and current_track.album else (playback.album if playback and playback.album else (selected_track.album if selected_track and selected_track.album else 'Vinyl Cut • Mastering V2')) }}
+                  </span>
+                </div>
+                <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight mb-1" id="turntable-track-title">
+                  {{ current_track.title if current_track and current_track.title else (playback.title if playback and playback.title else (selected_track.title if selected_track and selected_track.title else 'Midnight Coffee & Rainy Beats')) }}
+                </h2>
+                <p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium mb-space-md" id="turntable-track-artist">
+                  {{ current_track.artist if current_track and current_track.artist else (playback.artist if playback and playback.artist else (selected_track.artist if selected_track and selected_track.artist else 'Aether & Lofi Dreamers')) }}
+                </p>
+
+                <!-- Live Stereo Dual VU Meters & Warmth Specs -->
+                <div class="bg-surface-container-lowest rounded p-space-md shadow-inner mb-space-md">
+                  <div class="grid grid-cols-2 gap-space-md mb-space-sm">
+                    <div>
+                      <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
+                        <span>VU L</span>
+                        <span class="text-secondary" id="vu-l-label">-3 VU</span>
+                      </div>
+                      <div class="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5">
+                        <div class="h-full w-2/3 bg-primary-container rounded-full"></div>
+                        <div class="h-full w-1/6 bg-secondary rounded-full"></div>
+                        <div class="h-full w-0 bg-error rounded-full"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
+                        <span>VU R</span>
+                        <span class="text-secondary" id="vu-r-label">-2 VU</span>
+                      </div>
+                      <div class="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5">
+                        <div class="h-full w-3/4 bg-primary-container rounded-full"></div>
+                        <div class="h-full w-1/8 bg-secondary rounded-full"></div>
+                        <div class="h-full w-0 bg-error rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-1">
+                    <span>WARMTH FLUID</span>
+                    <span class="text-primary-container font-mono tracking-wider font-semibold">96kHz / 24-bit Lossless • MQA Direct</span>
+                  </div>
+                </div>
+
+                <!-- Scrubber Bar & Controls -->
+                <div class="flex flex-col gap-2">
+                  <div class="w-full flex items-center gap-space-sm">
+                    <span class="font-label-sm text-label-sm text-outline" id="turntable-time-elapsed">{{ playback.elapsed_formatted if playback and playback.elapsed_formatted else '03:42' }}</span>
+                    <div class="flex-1 h-2 bg-surface-container-lowest rounded-full cursor-pointer relative group/scrub" onclick="handleScrubTimeline(event)">
+                      <div class="h-full w-3/5 bg-gradient-to-r from-primary-container to-secondary rounded-full relative">
+                        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-on-surface shadow-[0_0_10px_#06b6d4] scale-100 group-hover/scrub:scale-125 transition-transform"></div>
+                      </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm text-outline" id="turntable-time-total">{{ playback.duration_formatted if playback and playback.duration_formatted else '05:18' }}</span>
+                  </div>
+
+                  <!-- Deck Buttons Row -->
+                  <div class="flex items-center justify-between mt-space-sm">
+                    <div class="flex items-center gap-2">
+                      <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Shuffle" type="button" onclick="toggleShuffleMode(this)">
+                        <span class="material-symbols-outlined text-[20px]">shuffle</span>
+                      </button>
+                      <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Previous Track" type="button" hx-post="/api/player/prev" hx-trigger="click" hx-target="#transport-footer-container" hx-swap="innerHTML">
+                        <span class="material-symbols-outlined text-[22px]">skip_previous</span>
+                      </button>
+                    </div>
+
+                    <!-- Cyan Capsule Play/Pause -->
+                    <button class="px-space-xl py-3 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm text-headline-sm flex items-center gap-2 shadow-[0_0_24px_rgba(6,182,212,0.6)] hover:brightness-110 active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-trigger="click" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Toggle Playback">
+                      <span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1;">{% if playback.state == "play" %}pause{% else %}play_arrow{% endif %}</span>
+                      <span class="font-label-lg text-label-lg font-bold">{% if playback.state == "play" %}PLAYING{% else %}PAUSED{% endif %}</span>
+                    </button>
+
+                    <div class="flex items-center gap-2">
+                      <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Next Track" type="button" hx-post="/api/player/next" hx-trigger="click" hx-target="#transport-footer-container" hx-swap="innerHTML">
+                        <span class="material-symbols-outlined text-[22px]">skip_next</span>
+                      </button>
+                      <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Repeat" type="button" onclick="toggleRepeatMode(this)">
+                        <span class="material-symbols-outlined text-[20px]">repeat</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Current Vibes Footer Strip -->
+            <div class="flex flex-wrap items-center justify-between gap-space-md pt-space-md mt-space-md bg-surface-container-lowest/60 -mx-space-lg -mb-space-lg p-space-md rounded-b-lg z-10">
+              <div class="flex items-center gap-space-md">
+                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Current Vibes:</span>
+                <div class="flex flex-wrap gap-2">
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-primary">🌧️ Rainy Morning</span>
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-secondary">☕ Dark Roast</span>
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-tertiary">✨ Deep Focus</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
+                <span class="material-symbols-outlined text-[16px] text-tertiary">auto_awesome</span>
+                <span>AI Mood Matcher: 98% Acoustic Sync</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tactile Hi-Fi Potentiometers & DSP Deck (Right 4 Cols) -->
+          <div class="xl:col-span-4 flex flex-col gap-gutter">
+            <!-- Card 1: Tactile Hi-Fi Potentiometers -->
+            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-space-sm">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface">Tactile Hi-Fi Potentiometers</h3>
+                </div>
+                <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary/15 text-secondary">Class A FET</span>
+              </div>
+
+              <!-- Two Rotary Dials -->
+              <div class="grid grid-cols-2 gap-space-md py-space-sm text-center">
+                <!-- Dial 1: Tube Warmth -->
+                <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest">
+                  <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Tube Warmth</span>
+                  <div class="potentiometer-dial relative w-20 h-20 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center group cursor-pointer" onclick="toggleTubeWarmth()" title="Click to rotate tube bias">
+                    <div class="potentiometer-rotor w-14 h-14 rounded-full bg-surface-variant shadow-md flex items-center justify-center relative">
+                      <div class="potentiometer-indicator-amber absolute top-1.5 w-1.5 h-3 bg-secondary rounded-full shadow-[0_0_8px_#f59e0b]"></div>
+                      <span class="font-label-sm text-label-sm font-bold text-secondary" id="tube-warmth-val">68%</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-secondary mt-2">Amber 12AX7</span>
+                </div>
+
+                <!-- Dial 2: Master Gain -->
+                <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest">
+                  <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Master Gain</span>
+                  <div class="potentiometer-dial relative w-20 h-20 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center group cursor-pointer" onclick="toggleMasterGain()" title="Click to adjust stepped attenuator">
+                    <div class="potentiometer-rotor w-14 h-14 rounded-full bg-surface-variant shadow-md flex items-center justify-center relative">
+                      <div class="potentiometer-indicator-cyan absolute top-1.5 w-1.5 h-3 bg-primary-container rounded-full shadow-[0_0_8px_#06b6d4]"></div>
+                      <span class="font-label-sm text-label-sm font-bold text-primary-container" id="master-gain-val">-14dB</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-primary-container mt-2">Stepped Atten.</span>
+                </div>
+              </div>
+
+              <!-- TCXO Clock Indicator -->
+              <div class="pt-space-xs flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm">
+                <span>DAC Clock: 0.1ppm TCXO</span>
+                <span class="text-tertiary flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Locked
+                </span>
+              </div>
+            </div>
+
+            <!-- Card 2: Acoustic Room & DSP -->
+            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex-1 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-space-sm">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-tertiary text-[20px]">graphic_eq</span>
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface">Acoustic Room &amp; DSP</h3>
+                </div>
+                <span class="font-label-sm text-label-sm text-tertiary bg-tertiary/10 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+
+              <!-- 3 Toggle Rows -->
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary text-[18px]">radio_button_checked</span>
+                    <span class="font-body-md text-body-md text-on-surface">Analog Tape Hiss (30%)</span>
+                  </div>
+                  <button class="dsp-toggle-btn active-amber w-11 h-6 rounded-full bg-secondary p-1 flex items-center justify-end transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Tape Hiss">
+                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-surface-container-lowest shadow"></div>
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary-container text-[18px]">motion_photos_on</span>
+                    <span class="font-body-md text-body-md text-on-surface">Vinyl Crackle &amp; Needle Pop</span>
+                  </div>
+                  <button class="dsp-toggle-btn active-cyan w-11 h-6 rounded-full bg-primary-container p-1 flex items-center justify-end transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Vinyl Crackle">
+                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-surface-container-lowest shadow"></div>
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-on-surface-variant text-[18px]">surround_sound</span>
+                    <span class="font-body-md text-body-md text-on-surface">Coffee Shop Hum &amp; Rain</span>
+                  </div>
+                  <button class="dsp-toggle-btn inactive w-11 h-6 rounded-full bg-surface-container-high p-1 flex items-center justify-start transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Coffee Shop Hum">
+                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-outline shadow"></div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+                <span>Spatial Impulse Response</span>
+                <span class="text-on-surface font-semibold">Tokyo Studio Loft</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Crate Shelf 01: Warm Analog Tapes & Late Night Jazz -->
+        <section class="flex flex-col gap-space-md">
+          <div class="flex flex-wrap items-end justify-between gap-space-sm">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-label-sm text-label-sm bg-secondary/15 text-secondary px-2 py-0.5 rounded uppercase font-semibold">Crate Shelf 01</span>
+                <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Analog Master Tapes</span>
+              </div>
+              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+                Warm Analog Tapes &amp; Late Night Jazz
+              </h2>
             </div>
             <div class="flex items-center gap-2">
-              <span class="font-label-sm text-label-sm text-secondary flex items-center gap-1 bg-secondary-tint px-3 py-1 rounded-full" style="border: 1px solid var(--secondary-border);">
-                <span class="material-symbols-outlined" style="font-size: 14px;">local_fire_department</span>
-                TUBE BIAS: +3.2dB
-              </span>
-              <button class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" title="Eject Deck / Clear Active Queue" type="button" onclick="handlePlayerClear()">
-                <span class="material-symbols-outlined" style="font-size: 16px;">eject</span>
+              <button class="px-4 py-1.5 rounded-full bg-surface-container-high font-label-md text-label-md text-on-surface hover:bg-surface-bright transition-colors flex items-center gap-1" type="button" onclick="filterCrateCategory('vinyl', this)">
+                <span>Filter Crate</span>
+                <span class="material-symbols-outlined text-[16px]">expand_more</span>
+              </button>
+              <button class="w-9 h-9 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" type="button" onclick="openEQStudioModal()" title="Tune Sound">
+                <span class="material-symbols-outlined text-[18px]">tune</span>
               </button>
             </div>
           </div>
 
-          <!-- Turntable & Now-Playing Bay -->
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center my-auto py-space-sm" style="z-index: 10;">
-            <!-- Rotating Vinyl Deck (5 Cols) -->
-            <div class="md:col-span-5 flex flex-col items-center justify-center relative">
-              <div class="turntable-vinyl-container relative flex items-center justify-center">
-                <!-- Grooved Spinning Disc -->
-                <div class="turntable-spinning-disc absolute inset-0 rounded-full bg-surface-container-lowest animate-spin-slow">
-                  <div class="absolute inset-2 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
-                  <div class="absolute inset-6 rounded-full" style="border: 1px solid var(--border-divider); opacity: 0.3;"></div>
-                  <div class="absolute inset-10 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
-                  <div class="absolute inset-14 rounded-full" style="border: 1px solid var(--border-divider); opacity: 0.3;"></div>
-                  <div class="absolute inset-20 rounded-full" style="border: 1px solid var(--border-subtle); opacity: 0.4;"></div>
-                  <div class="absolute top-1/2 left-0 right-0" style="height: 2px; background: linear-gradient(90deg, transparent, var(--primary-border), transparent);"></div>
-                </div>
-
-                <!-- Center Album Artwork Label -->
-                <div class="relative w-28 h-28 rounded-full overflow-hidden shadow-2xl p-1 bg-surface-container-lowest" style="z-index: 10;">
-                  <img class="w-full h-full object-cover rounded-full" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Vinyl Center Label"/>
-                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div class="w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center" style="border: 2px solid var(--border-strong);">
-                      <div class="w-2 h-2 rounded-full bg-surface-container"></div>
+          <!-- Vinyl Album Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+            {% for track in tracks %}
+            <div class="vinyl-sleeve-card bg-surface-container rounded p-space-md shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col justify-between cursor-pointer"
+                 hx-post="/api/player/play-track/{{ track.track_id }}"
+                 hx-target="#transport-footer-container"
+                 hx-swap="innerHTML"
+                 hx-trigger="click">
+              <div>
+                <div class="relative w-full aspect-square rounded overflow-hidden mb-space-sm bg-surface-container-lowest">
+                  <div class="vinyl-disc-peeking">
+                    <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+                    <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+                    <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+                    <div class="vinyl-center-label-chip">
+                      <span>33⅓</span>
+                      <span style="font-size: 6px;">RPM</span>
                     </div>
                   </div>
-                </div>
-
-                <!-- Tonearm Needle -->
-                <div class="turntable-tonearm pointer-events-none">
-                  <div style="width: 80px; height: 8px; border-radius: var(--radius-full); background: linear-gradient(90deg, var(--bg-container-highest), var(--border-strong)); box-shadow: 0 2px 6px var(--shadow-modal);"></div>
-                  <div style="width: 12px; height: 20px; border-radius: 3px; background-color: var(--secondary); box-shadow: 0 0 10px var(--secondary-glow); margin-left: auto;"></div>
-                </div>
-              </div>
-
-              <!-- Latency Chip -->
-              <div class="flex items-center gap-2 mt-space-md">
-                <span class="w-2 h-2 rounded-full bg-primary shadow-sm" style="box-shadow: 0 0 8px var(--primary);"></span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Analog Latency 0.4ms</span>
-              </div>
-            </div>
-
-            <!-- Track Info, VU Meters & Scrubber (7 Cols) -->
-            <div class="md:col-span-7 flex flex-col justify-center">
-              <div class="flex items-center gap-2 mb-space-xs">
-                <span class="font-label-sm text-label-sm bg-secondary-tint text-secondary px-2.5 py-0.5 rounded-full uppercase tracking-wider font-semibold" style="border: 1px solid var(--secondary-border);">Track #04</span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant font-body-sm">Vinyl Cut • Mastering V2</span>
-              </div>
-              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight mb-1" id="turntable-track-title">
-                {{ current_track.title if current_track and current_track.title else 'Midnight Coffee & Rainy Beats' }}
-              </h2>
-              <p class="font-headline-sm text-headline-sm text-on-surface-variant font-medium mb-space-md" id="turntable-track-artist">
-                {{ current_track.artist if current_track and current_track.artist else 'Aether & Lofi Dreamers' }}
-              </p>
-
-              <!-- Live Stereo Dual VU Meters & Warmth Specs -->
-              <div class="bg-surface-container-lowest rounded p-space-md shadow-inner mb-space-md" style="border: 1px solid var(--border-subtle);">
-                <div class="grid grid-cols-2 gap-space-md mb-space-sm">
-                  <div>
-                    <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
-                      <span>VU L</span>
-                      <span class="text-secondary" id="vu-l-label">-3 VU</span>
-                    </div>
-                    <div class="w-full bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5" style="height: 10px;">
-                      <div class="h-full bg-primary rounded-full" style="width: 66%;"></div>
-                      <div class="h-full bg-secondary rounded-full" style="width: 18%;"></div>
-                      <div class="h-full rounded-full" style="width: 0%; background-color: var(--error);"></div>
-                    </div>
+                  <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="{{ track.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ track.title }}"/>
+                  <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md font-label-sm text-label-sm text-secondary font-mono">
+                    {{ track.camelot or track.key or ('REEL #' ~ "%03d"|format(loop.index)) }}
                   </div>
-                  <div>
-                    <div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
-                      <span>VU R</span>
-                      <span class="text-secondary" id="vu-r-label">-2 VU</span>
-                    </div>
-                    <div class="w-full bg-surface-container-high rounded-full overflow-hidden p-0.5 flex gap-0.5" style="height: 10px;">
-                      <div class="h-full bg-primary rounded-full" style="width: 74%;"></div>
-                      <div class="h-full bg-secondary rounded-full" style="width: 14%;"></div>
-                      <div class="h-full rounded-full" style="width: 0%; background-color: var(--error);"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-1">
-                  <span>WARMTH FLUID</span>
-                  <span class="text-primary font-mono tracking-wider font-semibold">96kHz / 24-bit Lossless • MQA Direct</span>
-                </div>
-              </div>
-
-              <!-- Scrubber Bar & Controls -->
-              <div class="flex flex-col gap-2">
-                <div class="w-full flex items-center gap-space-sm">
-                  <span class="font-label-sm text-label-sm text-outline" id="turntable-time-elapsed">{{ playback.elapsed_formatted if playback and playback.elapsed_formatted else '03:42' }}</span>
-                  <div class="flex-1 bg-surface-container-lowest rounded-full cursor-pointer relative" style="height: 8px;" onclick="handleScrubTimeline(event)">
-                    <div class="h-full rounded-full relative" style="width: 60%; background: linear-gradient(90deg, var(--primary), var(--secondary));">
-                      <div class="absolute right-0 top-1/2 -translate-y-1/2 rounded-full shadow-md" style="width: 14px; height: 14px; background-color: var(--contrast-light); border: 2px solid var(--primary); box-shadow: 0 0 10px var(--primary-glow);"></div>
-                    </div>
-                  </div>
-                  <span class="font-label-sm text-label-sm text-outline" id="turntable-time-total">{{ playback.duration_formatted if playback and playback.duration_formatted else '05:18' }}</span>
-                </div>
-
-                <!-- Deck Buttons Row -->
-                <div class="flex items-center justify-between mt-space-sm">
-                  <div class="flex items-center gap-2">
-                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Shuffle" type="button" onclick="toggleShuffleMode(this)">
-                      <span class="material-symbols-outlined" style="font-size: 20px;">shuffle</span>
-                    </button>
-                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Previous Track" type="button" hx-post="/api/player/prev" hx-target="#transport-footer-container" hx-swap="innerHTML">
-                      <span class="material-symbols-outlined" style="font-size: 22px;">skip_previous</span>
-                    </button>
-                  </div>
-
-                  <!-- Cyan Capsule Play/Pause -->
-                  <button class="px-space-xl py-3 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm flex items-center gap-2 shadow-xl hover:brightness-110 active:scale-95 transition-all" style="box-shadow: 0 0 24px var(--primary-glow); cursor: pointer;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Toggle Playback">
-                    <span class="material-symbols-outlined" style="font-size: 26px;">{% if playback.state == "play" %}pause{% else %}play_arrow{% endif %}</span>
-                    <span class="font-label-lg text-label-lg font-bold">{% if playback.state == "play" %}PLAYING{% else %}PAUSED{% endif %}</span>
+                  <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          type="button"
+                          hx-post="/api/player/play-track/{{ track.track_id }}"
+                          hx-target="#transport-footer-container"
+                          hx-swap="innerHTML"
+                          hx-trigger="click"
+                          onclick="event.stopPropagation()"
+                          title="Play Track">
+                    <span class="material-symbols-outlined text-[22px]">play_arrow</span>
                   </button>
-
-                  <div class="flex items-center gap-2">
-                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Next Track" type="button" hx-post="/api/player/next" hx-target="#transport-footer-container" hx-swap="innerHTML">
-                      <span class="material-symbols-outlined" style="font-size: 22px;">skip_next</span>
-                    </button>
-                    <button class="w-10 h-10 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" title="Repeat" type="button" onclick="toggleRepeatMode(this)">
-                      <span class="material-symbols-outlined" style="font-size: 20px;">repeat</span>
-                    </button>
-                  </div>
+                </div>
+                <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
+                  {{ track.title }}
+                </h4>
+                <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
+                  {{ track.artist }}
+                </p>
+              </div>
+              <div>
+                <div class="flex flex-wrap gap-1.5 mb-space-sm">
+                  {% if track.genre %}
+                  <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary">{{ track.genre }}</span>
+                  {% else %}
+                  <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary">☕ Coffeehouse</span>
+                  {% endif %}
+                  {% if track.bpm %}
+                  <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary">{{ track.bpm|round(0)|int }} BPM</span>
+                  {% endif %}
+                </div>
+                <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs">
+                  <span>
+                    {% if track.duration %}
+                      {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
+                    {% else %}
+                      03:45
+                    {% endif %}
+                  </span>
+                  <span class="text-tertiary font-mono">192kHz/24b</span>
                 </div>
               </div>
             </div>
+            {% else %}
+            <div class="col-span-full bg-surface-container rounded p-space-lg text-center text-on-surface-variant font-body-md">
+              No tracks found
+            </div>
+            {% endfor %}
           </div>
+        </section>
 
-          <!-- Bottom Current Vibes Footer Strip -->
-          <div class="flex flex-wrap items-center justify-between gap-space-md pt-space-md mt-space-md bg-surface-container-lowest -mx-space-lg -mb-space-lg p-space-md rounded-b-lg" style="border-top: 1px solid var(--border-subtle); z-index: 10;">
-            <div class="flex items-center gap-space-md">
-              <span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Current Vibes:</span>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy Morning</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Dark Roast</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-tertiary" style="border: 1px solid var(--border-subtle);">✨ Deep Focus</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
-              <span class="material-symbols-outlined text-tertiary" style="font-size: 16px;">auto_awesome</span>
-              <span>AI Mood Matcher: 98% Acoustic Sync</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tactile Hi-Fi Potentiometers & DSP Deck (Right 4 Cols) -->
-        <div class="xl:col-span-4 flex flex-col gap-gutter">
-          <!-- Card 1: Tactile Hi-Fi Potentiometers -->
-          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
-            <div class="flex items-center justify-between mb-space-sm">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-secondary" style="font-size: 20px;">tune</span>
-                <h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Tactile Hi-Fi Potentiometers</h3>
-              </div>
-              <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary-tint text-secondary font-mono" style="border: 1px solid var(--secondary-border);">Class A FET</span>
-            </div>
-
-            <!-- Two Rotary Dials -->
-            <div class="grid grid-cols-2 gap-space-md py-space-sm text-center">
-              <!-- Dial 1: Tube Warmth -->
-              <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Tube Warmth</span>
-                <div class="potentiometer-dial" onclick="toggleTubeWarmth()" title="Click to rotate tube bias">
-                  <div class="potentiometer-rotor">
-                    <div class="potentiometer-indicator-amber"></div>
-                    <span class="font-label-sm text-label-sm font-bold text-secondary" id="tube-warmth-val">68%</span>
-                  </div>
+        <!-- 3. Bottom Grid: Crate Shelf 02 (Stream Deck) + Social Crate Deck (Lounge Listeners) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+          <!-- Crate Shelf 02: Continuous Stream Deck (Left 8 Cols) -->
+          <section class="lg:col-span-8 flex flex-col gap-space-md">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-label-sm text-label-sm bg-primary/15 text-primary px-2 py-0.5 rounded uppercase font-semibold">Crate Shelf 02</span>
+                  <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Continuous Stream Deck</span>
                 </div>
-                <span class="font-label-sm text-label-sm text-secondary mt-2">Amber 12AX7</span>
+                <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+                  Lo-Fi Chillhop &amp; Synth Breezes
+                </h2>
               </div>
-
-              <!-- Dial 2: Master Gain -->
-              <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Master Gain</span>
-                <div class="potentiometer-dial" onclick="toggleMasterGain()" title="Click to adjust stepped attenuator">
-                  <div class="potentiometer-rotor">
-                    <div class="potentiometer-indicator-cyan"></div>
-                    <span class="font-label-sm text-label-sm font-bold text-primary" id="master-gain-val">-14dB</span>
-                  </div>
-                </div>
-                <span class="font-label-sm text-label-sm text-primary mt-2">Stepped Atten.</span>
-              </div>
-            </div>
-
-            <!-- TCXO Clock Indicator -->
-            <div class="pt-space-xs flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm">
-              <span>DAC Clock: 0.1ppm TCXO</span>
-              <span class="text-tertiary flex items-center gap-1 font-semibold">
-                <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span> Locked
+              <span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 bg-tertiary/10 px-3 py-1 rounded-full">
+                <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+                {{ active_listeners|length if active_listeners is defined else 0 }} Active Listeners
               </span>
             </div>
+
+            <!-- Continuous Stream Tracklist -->
+            {% set stream_tracks = stream_tracks if stream_tracks is defined and stream_tracks is not none else tracks %}
+            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2">
+              {% for track in stream_tracks %}
+              <div class="stream-track-row flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer"
+                   hx-post="/api/player/play-track/{{ track.track_id }}"
+                   hx-target="#transport-footer-container"
+                   hx-swap="innerHTML"
+                   hx-trigger="click">
+                <div class="flex items-center gap-space-md min-w-0">
+                  <span class="font-label-md text-label-md text-primary font-bold w-6 text-center">{{ "%02d"|format(loop.index) }}</span>
+                  <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img class="w-full h-full object-cover" src="{{ track.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ track.title }}"/>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
+                      {{ track.title }}
+                    </span>
+                    <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+                      {{ track.artist }}{% if track.album %} • {{ track.album }}{% endif %}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-space-md flex-shrink-0">
+                  <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline">
+                    {% if track.duration %}
+                      {{ "%02d"|format((track.duration // 60)|int) }}:{{ "%02d"|format((track.duration % 60)|int) }}
+                    {% else %}
+                      03:45
+                    {% endif %}
+                  </span>
+                  {% if track.bpm %}
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary">{{ track.bpm|round(0)|int }} BPM</span>
+                  {% elif track.camelot or track.key %}
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary">{{ track.camelot or track.key }}</span>
+                  {% else %}
+                  <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary">Tape Saturation</span>
+                  {% endif %}
+                  <button class="w-8 h-8 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                          type="button"
+                          hx-post="/api/player/play-track/{{ track.track_id }}"
+                          hx-target="#transport-footer-container"
+                          hx-swap="innerHTML"
+                          hx-trigger="click"
+                          onclick="event.stopPropagation()"
+                          title="Play Track">
+                    <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                  </button>
+                </div>
+              </div>
+              {% else %}
+              <div class="p-space-md text-center text-on-surface-variant font-body-md">
+                No tracks found
+              </div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <!-- Social Crate Deck: Lounge Listeners (Right 4 Cols) -->
+          <section class="lg:col-span-4 flex flex-col gap-space-md">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-label-sm text-label-sm bg-tertiary/15 text-tertiary px-2 py-0.5 rounded uppercase font-semibold">Social Crate Deck</span>
+              </div>
+              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
+                Lounge Listeners
+              </h2>
+            </div>
+            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-space-md">
+              <div class="flex items-center justify-between">
+                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Currently in the Lounge</span>
+                <span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-2 py-0.5 rounded-full font-mono">Synchronized</span>
+              </div>
+              <div class="flex flex-col gap-space-sm">
+                {% for listener in active_listeners %}
+                <div class="listener-row flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary font-mono">{{ listener.initials or (listener.name[:2]|upper if listener.name else 'VP') }}</div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md font-semibold text-on-surface">{{ listener.name }}</span>
+                      <span class="font-label-sm text-label-sm text-on-surface-variant">{{ listener.status or listener.activity }}</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-primary font-mono">{{ listener.device or listener.output_profile }}</span>
+                </div>
+                {% else %}
+                <div class="p-space-sm text-center text-on-surface-variant font-label-sm text-label-sm">
+                  Local Bit-Perfect Session Active
+                </div>
+                {% endfor %}
+              </div>
+              <div class="p-space-sm rounded bg-surface-container-lowest flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary text-[20px]">share_location</span>
+                  <span class="font-label-sm text-label-sm text-on-surface">Share Deck Sync URL</span>
+                </div>
+                <button class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface hover:bg-surface-bright transition-colors" type="button" onclick="copyDeckSyncUrl(this)">
+                  Copy Link
+                </button>
+              </div>
+            </div>
+          </section>
+      </div><!-- End .lofi-lounge-deck -->
+    </section>
+
+    <!-- Tab 2: Dedicated Record Crate View -->
+    <section id="tab-crate" style="display: none;">
+      {% include "components/record_crate.html" %}
+    </section>
+
+    <!-- Tab 3: Master Crate & Library View -->
+    <section id="tab-library" style="display: none;">
+      <!-- Collapsible Studio Telemetry Section (Preserves HUD Micro-Visualizers) -->
+      <section class="telemetry-grid" id="telemetry-hud-deck" style="display: none; margin-top: 1.5rem;">
+        <!-- Card 1: Master Clock // ALSA -->
+        <div class="telemetry-card">
+          <div class="telemetry-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="dot-indicator dot-green animate-pulse"></span>
+              <span style="font-weight: 600;">Master Clock // ALSA</span>
+            </div>
+            <span class="badge-spec">{{ playback.clock_spec if playback and playback.clock_spec else '0.02 PPM TCXO' }}</span>
           </div>
-
-          <!-- Card 2: Acoustic Room & DSP -->
-          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex-1 flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
-            <div class="flex items-center justify-between mb-space-sm">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-tertiary" style="font-size: 20px;">graphic_eq</span>
-                <h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Acoustic Room &amp; DSP</h3>
-              </div>
-              <span class="font-label-sm text-label-sm text-tertiary bg-tertiary-tint px-2 py-0.5 rounded-full font-mono" style="border: 1px solid var(--tertiary-border);">ACTIVE</span>
+          <div class="telemetry-metric-row">
+            <div>
+              <div id="telemetry-sample-rate" class="telemetry-metric">{{ playback.sample_rate if playback and playback.sample_rate else (selected_tech_info.sample_rate if selected_tech_info and selected_tech_info.sample_rate else '96.000') }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span></div>
+              <div id="telemetry-jitter" class="telemetry-sub">Phase Jitter: {{ playback.jitter_ppm ~ ' ppm' if playback and playback.jitter_ppm is defined else '&lt; 0.18 ps RMS' }}</div>
             </div>
+            <span class="telemetry-pill-primary">{{ playback.sync_mode if playback and playback.sync_mode else 'I²S SYNC' }}</span>
+          </div>
+          <!-- Oscilloscope Waveform SVG Widget -->
+          <div class="telemetry-oscilloscope">
+            <svg viewBox="0 0 200 40" fill="none" style="width: 100%; height: 32px; color: var(--primary);">
+              <path id="telemetry-oscilloscope-path" d="M0 20 Q 10 5, 20 20 T 40 20 T 60 4 T 80 34 T 100 20 T 120 8 T 140 32 T 160 20 T 180 12 T 200 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+              <path id="telemetry-oscilloscope-ghost" d="M0 20 Q 15 28, 30 20 T 60 20 T 90 26 T 120 14 T 150 20 T 180 22 T 200 20" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.4" vector-effect="non-scaling-stroke"></path>
+            </svg>
+          </div>
+        </div>
 
-            <!-- 3 Toggle Rows -->
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-secondary" style="font-size: 18px;">radio_button_checked</span>
-                  <span class="font-body-md text-body-md text-on-surface">Analog Tape Hiss (30%)</span>
-                </div>
-                <button class="dsp-toggle-btn active-amber" type="button" onclick="toggleDspToggle(this)" title="Toggle Tape Hiss">
-                  <div class="dsp-toggle-thumb"></div>
-                </button>
-              </div>
-
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-primary" style="font-size: 18px;">motion_photos_on</span>
-                  <span class="font-body-md text-body-md text-on-surface">Vinyl Crackle &amp; Pop</span>
-                </div>
-                <button class="dsp-toggle-btn active-cyan" type="button" onclick="toggleDspToggle(this)" title="Toggle Vinyl Crackle">
-                  <div class="dsp-toggle-thumb"></div>
-                </button>
-              </div>
-
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">surround_sound</span>
-                  <span class="font-body-md text-body-md text-on-surface">Coffee Shop Hum &amp; Rain</span>
-                </div>
-                <button class="dsp-toggle-btn inactive" type="button" onclick="toggleDspToggle(this)" title="Toggle Coffee Shop Hum">
-                  <div class="dsp-toggle-thumb"></div>
-                </button>
-              </div>
+        <!-- Card 2: Dynamic Range & dBFS Meter -->
+        <div class="telemetry-card">
+          <div class="telemetry-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+              <span style="font-weight: 600;">Dynamic Range</span>
             </div>
-
-            <div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
-              <span>Spatial Impulse Response</span>
-              <span class="text-on-surface font-semibold">Tokyo Studio Loft</span>
+            <span class="badge-spec" style="color: var(--primary); border-color: var(--primary-border);">{{ selected_tech_info.dynamic_range if selected_tech_info and selected_tech_info.dynamic_range else 'DR14+ MASTER' }}</span>
+          </div>
+          <div class="telemetry-metric-row">
+            <div>
+              <div id="telemetry-dbfs" class="telemetry-metric">{{ selected_track.loudness|round(1) if selected_track and selected_track.loudness is not none else (playback.dbfs if playback and playback.dbfs is defined else '0.0') }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span></div>
+              <div id="telemetry-true-peak" class="telemetry-sub">True Peak: {{ selected_tech_info.true_peak if selected_tech_info and selected_tech_info.true_peak else (selected_track.loudness|round(2) ~ ' dBTP' if selected_track and selected_track.loudness is not none else '0.00 dBTP') }}</div>
+            </div>
+            <span class="telemetry-pill-secondary">{{ playback.xruns if playback and playback.xruns is defined else 0 }} CLIPS</span>
+          </div>
+          <!-- Segmented Headroom Meter -->
+          <div class="segmented-meter-well">
+            <div class="meter-labels">
+              <span>-60</span><span>-24</span><span>-12</span><span>-6</span><span>-0.1</span><span style="color: var(--secondary);">CLIP</span>
+            </div>
+            <div class="meter-track" id="telemetry-meter-track">
+              <div class="meter-seg bg-pri"></div>
+              <div class="meter-seg bg-pri"></div>
+              <div class="meter-seg bg-pri"></div>
+              <div class="meter-seg bg-pri"></div>
+              <div class="meter-seg bg-pri"></div>
+              <div class="meter-seg bg-green"></div>
+              <div class="meter-seg bg-green"></div>
+              <div class="meter-seg bg-sec"></div>
+              <div class="meter-seg bg-empty"></div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 2. Crate Shelf 01: Warm Analog Tapes & Late Night Jazz -->
-      <section class="flex flex-col gap-space-md">
-        <div class="flex flex-wrap items-end justify-between gap-space-sm">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-label-sm text-label-sm bg-secondary-tint text-secondary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--secondary-border);">Crate Shelf 01</span>
-              <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Analog Master Tapes</span>
+        <!-- Card 3: Harmonic Key Alignment (Camelot) -->
+        {% set active_camelot = (selected_track.camelot if selected_track and selected_track.camelot else (playback.camelot if playback and playback.camelot else '—')) %}
+        <div class="telemetry-card">
+          <div class="telemetry-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--tertiary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <span style="font-weight: 600;">Harmonic Deck</span>
             </div>
-            <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
-              Warm Analog Tapes &amp; Late Night Jazz
-            </h2>
+            <span class="badge-camelot">CAMELOT SYNC</span>
           </div>
-          <div class="flex items-center gap-2">
-            <button class="px-4 py-1.5 rounded-full bg-surface-container-high font-label-md text-label-md text-on-surface hover:bg-surface-bright transition-colors flex items-center gap-1" type="button" onclick="filterCrateCategory('vinyl', this)">
-              <span>Filter Crate</span>
-              <span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span>
-            </button>
-            <button class="w-9 h-9 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors" type="button" onclick="openEQStudioModal()" title="Tune Sound">
-              <span class="material-symbols-outlined" style="font-size: 18px;">tune</span>
-            </button>
+          <div class="telemetry-metric-row" style="align-items: center;">
+            <div>
+              <div id="telemetry-camelot-metric" class="telemetry-metric">{{ active_camelot }} <span id="telemetry-camelot-rel" style="font-size: 13px; color: var(--tertiary); font-weight: normal;">{% if selected_track and selected_track.key %}→ {{ selected_track.key }} {{ selected_track.scale or '' }}{% endif %}</span></div>
+              <div id="telemetry-camelot-sub" class="telemetry-sub">{{ (selected_track.key ~ ' ' ~ (selected_track.scale|title if selected_track.scale else '')) if selected_track and selected_track.key else 'Camelot Harmonic Wheel' }}</div>
+            </div>
+            <!-- Mini Camelot Ring SVG graphic -->
+            <div style="width: 36px; height: 36px; position: relative; flex-shrink: 0;">
+              <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-45deg);">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-container-high)" stroke-width="3.5"></path>
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--tertiary)" stroke-width="4" stroke-dasharray="25, 100" stroke-linecap="round"></path>
+              </svg>
+              <div id="telemetry-camelot-center" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">{{ active_camelot }}</div>
+            </div>
+          </div>
+          <!-- Adjacent Harmonic Chips -->
+          <div class="harmonic-chips-row" id="telemetry-harmonic-chips">
+            {% if selected_track and (selected_track.camelot or selected_track.key) %}
+            <span class="chip-active">{{ selected_track.camelot or selected_track.key }} (Active)</span>
+            {% if selected_track.key %}
+            <span class="chip-alt">{{ selected_track.key }} {{ selected_track.scale or '' }}</span>
+            {% endif %}
+            {% if selected_track.bpm %}
+            <span class="chip-alt">{{ selected_track.bpm|round(0)|int }} BPM</span>
+            {% endif %}
+            {% else %}
+            <span class="chip-alt">No Active Key</span>
+            {% endif %}
           </div>
         </div>
 
-        <!-- 4 Vinyl Album Cards Grid with Peeking Grooved Discs -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
-          <!-- Card 1 -->
-          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
-            <div>
-              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
-                <div class="vinyl-disc-peeking">
-                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
-                  <div class="vinyl-center-label-chip">
-                    <span>33⅓</span>
-                    <span style="font-size: 6px;">RPM</span>
-                  </div>
-                </div>
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Tokyo Kissa Sessions"/>
-                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
-                  REEL #104
-                </div>
-                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
-                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
-                </button>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
-                Tokyo Kissa Midnight Sessions
-              </h4>
-              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
-                Ryo Takahashi Trio
-              </p>
+        <!-- Card 4: Audio Features / Cluster Histogram -->
+        {% set bpm_tracks = tracks|selectattr('bpm')|map(attribute='bpm')|list if tracks else [] %}
+        {% set energy_tracks = tracks|selectattr('energy')|map(attribute='energy')|list if tracks else [] %}
+        <div class="telemetry-card">
+          <div class="telemetry-header">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+              <span style="font-weight: 600;">Vector Distribution</span>
             </div>
-            <div>
-              <div class="flex flex-wrap gap-1.5 mb-space-sm">
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Coffeehouse</span>
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy</span>
-              </div>
-              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
-                <span>8 Tapes • 48 min</span>
-                <span class="text-tertiary font-mono">192kHz/24b</span>
-              </div>
-            </div>
+            <span class="badge-spec" style="color: var(--secondary); border-color: var(--secondary-border);">{{ total_clusters }} CLUSTERS</span>
           </div>
-
-          <!-- Card 2 -->
-          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
+          <div class="telemetry-metric-row">
             <div>
-              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
-                <div class="vinyl-disc-peeking">
-                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
-                  <div class="vinyl-center-label-chip">
-                    <span>33⅓</span>
-                    <span style="font-size: 6px;">RPM</span>
-                  </div>
-                </div>
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Smoky Rhodes & Velvet Brushes"/>
-                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-primary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
-                  OTARI 2-TRACK
-                </div>
-                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
-                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
-                </button>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
-                Smoky Rhodes &amp; Velvet Brushes
-              </h4>
-              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
-                Blue Lantern Ensemble
-              </p>
+              <div class="telemetry-metric">{{ total_tracks }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">FLAC/DSD</span></div>
+              <div class="telemetry-sub">Mean Tempo: {{ (summary.avg_bpm|round(1) if summary and summary.avg_bpm else ((bpm_tracks|sum / (bpm_tracks|length))|round(1) if bpm_tracks else 0.0)) }} BPM</div>
             </div>
-            <div>
-              <div class="flex flex-wrap gap-1.5 mb-space-sm">
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">✨ 432Hz Chill</span>
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-outline" style="border: 1px solid var(--border-subtle);">🥃 Velvet</span>
-              </div>
-              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
-                <span>12 Tapes • 62 min</span>
-                <span class="text-secondary font-mono">Analog Tape</span>
-              </div>
-            </div>
+            <span class="telemetry-pill-dim">{{ (summary.avg_energy|round(2) if summary and summary.avg_energy else ((energy_tracks|sum / (energy_tracks|length))|round(2) if energy_tracks else 0.0)) }} ENERGY</span>
           </div>
-
-          <!-- Card 3 -->
-          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
-            <div>
-              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
-                <div class="vinyl-disc-peeking">
-                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
-                  <div class="vinyl-center-label-chip">
-                    <span>33⅓</span>
-                    <span style="font-size: 6px;">RPM</span>
-                  </div>
-                </div>
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Rainy Attic Tape Loops"/>
-                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-tertiary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
-                  STUDER A800
-                </div>
-                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
-                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
-                </button>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
-                Rainy Attic Tape Loops
-              </h4>
-              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
-                Céleste &amp; Modular Rain
-              </p>
-            </div>
-            <div>
-              <div class="flex flex-wrap gap-1.5 mb-space-sm">
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🌧️ Rainy Attic</span>
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary" style="border: 1px solid var(--border-subtle);">☕ Pour-over</span>
-              </div>
-              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
-                <span>6 Tapes • 37 min</span>
-                <span class="text-tertiary font-mono">DSD 5.6M</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 4 -->
-          <div class="vinyl-sleeve-card bg-surface-container rounded-lg p-space-md shadow-lg hover:shadow-2xl transition-all group flex flex-col justify-between" style="border: 1px solid var(--border-subtle);">
-            <div>
-              <div class="relative w-full rounded-md overflow-hidden mb-space-sm bg-surface-container-lowest" style="aspect-ratio: 1/1;">
-                <div class="vinyl-disc-peeking">
-                  <div class="vinyl-groove-circle" style="inset: 6px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 18px;"></div>
-                  <div class="vinyl-groove-circle" style="inset: 30px;"></div>
-                  <div class="vinyl-center-label-chip">
-                    <span>33⅓</span>
-                    <span style="font-size: 6px;">RPM</span>
-                  </div>
-                </div>
-                <img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Warm Wurlitzer Solitudes"/>
-                <div class="absolute top-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle); z-index: 2;">
-                  NAGRA IV-S
-                </div>
-                <button class="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" style="z-index: 2;" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Reel">
-                  <span class="material-symbols-outlined" style="font-size: 22px;">play_arrow</span>
-                </button>
-              </div>
-              <h4 class="font-headline-sm text-headline-sm font-bold text-on-surface line-clamp-1 mb-1">
-                Warm Wurlitzer Solitudes
-              </h4>
-              <p class="font-body-md text-body-md text-on-surface-variant mb-space-sm">
-                Hanna Vane
-              </p>
-            </div>
-            <div>
-              <div class="flex flex-wrap gap-1.5 mb-space-sm">
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary" style="border: 1px solid var(--border-subtle);">🕯️ Candlelight</span>
-                <span class="px-2 py-0.5 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary" style="border: 1px solid var(--border-subtle);">🎹 Electric Piano</span>
-              </div>
-              <div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs" style="border-top: 1px solid var(--border-divider);">
-                <span>10 Tapes • 54 min</span>
-                <span class="text-primary font-mono">96k FLAC</span>
-              </div>
-            </div>
+          <!-- BPM / Energy Mini Histogram Bars -->
+          <div class="histogram-bars-row">
+            {% for t in (tracks[:10] if tracks else []) %}
+            {% set pct = ((t.energy * 100)|round(0)|int) if t.energy is not none else 20 %}
+            <div class="hist-bar {% if pct >= 80 %}hist-bright{% elif pct >= 60 %}hist-pri{% elif pct >= 40 %}hist-green{% endif %}" style="height: {{ pct }}%;"></div>
+            {% endfor %}
           </div>
         </div>
       </section>
 
-      <!-- 3. Bottom Grid: Crate Shelf 02 (Stream Deck) + Social Crate Deck (Lounge Listeners) -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-        <!-- Crate Shelf 02: Continuous Stream Deck (Left 8 Cols) -->
-        <section class="lg:col-span-8 flex flex-col gap-space-md">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-label-sm text-label-sm bg-primary-tint text-primary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--primary-border);">Crate Shelf 02</span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">Continuous Stream Deck</span>
-              </div>
-              <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
-                Lo-Fi Chillhop &amp; Synth Breezes
-              </h2>
-            </div>
-            <span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 bg-tertiary-tint px-3 py-1 rounded-full" style="border: 1px solid var(--tertiary-border);">
-              <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-              842 Active Listeners
+      <!-- Master Crate Top Controls Bar (Stitch Master Crate Specification) -->
+      <header class="master-crate-header flex flex-col xl:flex-row xl:items-center justify-between gap-space-md bg-surface-container/80 backdrop-blur-md p-space-md rounded-lg shadow-md mt-space-lg">
+        <!-- Left Meta & Quick Category Filters -->
+        <div class="crate-header-left flex flex-wrap items-center gap-space-sm">
+          <div class="crate-header-title-group flex items-center gap-2 mr-2">
+            <h1 class="crate-title font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Library &amp; Master Crate</h1>
+            <span class="sr-only">Music Library</span>
+            <span class="crate-count-chip inline-flex items-center gap-1 font-label-sm text-label-sm bg-surface-container-highest text-secondary px-2.5 py-1 rounded-full shadow-inner font-medium">
+              {{ total_tracks }} Tracks Loaded 📦
             </span>
           </div>
-
-          <!-- Continuous Stream Tracklist -->
-          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2" style="border: 1px solid var(--border-subtle);">
-            <!-- Stream Track 01 -->
-            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
-              <div class="flex items-center gap-space-md min-w-0">
-                <span class="font-label-md text-label-md text-primary font-bold w-6 text-center font-mono">01</span>
-                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Shibuya Crossing"/>
-                </div>
-                <div class="flex flex-col min-w-0">
-                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
-                    Shibuya Crossing at 2 AM
-                  </span>
-                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
-                    Komorebi Sounds • SP-404 Beats
-                  </span>
-                </div>
-              </div>
-              <div class="flex items-center gap-space-md flex-shrink-0">
-                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">03:14</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle);">Tape Saturation</span>
-                <button class="w-8 h-8 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center hover:scale-105 active:scale-95 transition-transform" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
-                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Stream Track 02 -->
-            <div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
-              <div class="flex items-center gap-space-md min-w-0">
-                <span class="font-label-md text-label-md text-secondary font-bold w-6 text-center font-mono">02</span>
-                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Breeze Through the Bonsai Tree"/>
-                </div>
-                <div class="flex flex-col min-w-0">
-                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-secondary transition-colors">
-                    Breeze Through the Bonsai Tree
-                  </span>
-                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
-                    Kenji &amp; The Sleepy Cat • Chillhop Music
-                  </span>
-                </div>
-              </div>
-              <div class="flex items-center gap-space-md flex-shrink-0">
-                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">02:49</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-primary font-mono" style="border: 1px solid var(--border-subtle);">90 BPM</span>
-                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
-                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Stream Track 03 -->
-            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
-              <div class="flex items-center gap-space-md min-w-0">
-                <span class="font-label-md text-label-md text-on-surface-variant font-bold w-6 text-center font-mono">03</span>
-                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Steaming Oolong"/>
-                </div>
-                <div class="flex flex-col min-w-0">
-                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
-                    Steaming Oolong &amp; Rhodes Chords
-                  </span>
-                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
-                    Lo-Fi Tea Society • Herbal Echoes
-                  </span>
-                </div>
-              </div>
-              <div class="flex items-center gap-space-md flex-shrink-0">
-                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">04:02</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-tertiary font-mono" style="border: 1px solid var(--border-subtle);">Vinyl Warble</span>
-                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
-                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Stream Track 04 -->
-            <div class="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer" style="border: 1px solid var(--border-subtle);">
-              <div class="flex items-center gap-space-md min-w-0">
-                <span class="font-label-md text-label-md text-on-surface-variant font-bold w-6 text-center font-mono">04</span>
-                <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                  <img class="w-full h-full object-cover" src="/static/album_art/default.png" onerror="this.src='/static/icons/vibeplay.svg'" alt="Analog Dreamstate"/>
-                </div>
-                <div class="flex flex-col min-w-0">
-                  <span class="font-headline-sm text-headline-sm text-on-surface truncate group-hover:text-primary transition-colors">
-                    Analog Dreamstate (Nod Your Head)
-                  </span>
-                  <span class="font-body-sm text-body-sm text-on-surface-variant truncate">
-                    Dusty Fingers Collective
-                  </span>
-                </div>
-              </div>
-              <div class="flex items-center gap-space-md flex-shrink-0">
-                <span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline font-mono">03:31</span>
-                <span class="px-2.5 py-1 rounded-full bg-surface-container-lowest font-label-sm text-label-sm text-secondary font-mono" style="border: 1px solid var(--border-subtle);">Warm Bias</span>
-                <button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-bright active:scale-95 transition-all" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container" hx-swap="innerHTML" title="Play Track">
-                  <span class="material-symbols-outlined" style="font-size: 18px;">play_arrow</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Social Crate Deck: Lounge Listeners (Right 4 Cols) -->
-        <section class="lg:col-span-4 flex flex-col gap-space-md">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-label-sm text-label-sm bg-tertiary-tint text-tertiary px-2 py-0.5 rounded uppercase font-semibold font-mono" style="border: 1px solid var(--tertiary-border);">Social Crate Deck</span>
-            </div>
-            <h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">
-              Lounge Listeners
-            </h2>
-          </div>
-          <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-space-md" style="border: 1px solid var(--border-subtle);">
-            <div class="flex items-center justify-between">
-              <span class="font-label-sm text-label-sm text-on-surface-variant uppercase font-mono">Currently in the Lounge</span>
-              <span class="font-label-sm text-label-sm text-secondary bg-secondary-tint px-2 py-0.5 rounded-full font-mono" style="border: 1px solid var(--secondary-border);">Synchronized</span>
-            </div>
-            <div class="flex flex-col gap-space-sm">
-              <!-- Listener 1 -->
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3">
-                  <div class="relative">
-                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary font-mono">YM</div>
-                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary" style="border: 2px solid var(--bg-container-lowest);"></span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-label-md text-label-md font-semibold text-on-surface">Yuki M.</span>
-                    <span class="font-label-sm text-label-sm text-on-surface-variant">brewing pour-over in Tokyo</span>
-                  </div>
-                </div>
-                <span class="font-label-sm text-label-sm text-primary font-mono">Sennheiser HD600</span>
-              </div>
-              <!-- Listener 2 -->
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3">
-                  <div class="relative">
-                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-secondary font-mono">ML</div>
-                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-secondary" style="border: 2px solid var(--bg-container-lowest);"></span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-label-md text-label-md font-semibold text-on-surface">Marcus L.</span>
-                    <span class="font-label-sm text-label-sm text-on-surface-variant">reading sci-fi in Seattle</span>
-                  </div>
-                </div>
-                <span class="font-label-sm text-label-sm text-secondary font-mono">Audeze LCD-2</span>
-              </div>
-              <!-- Listener 3 -->
-              <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest" style="border: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3">
-                  <div class="relative">
-                    <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-tertiary font-mono">ES</div>
-                    <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary" style="border: 2px solid var(--bg-container-lowest);"></span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-label-md text-label-md font-semibold text-on-surface">Elena S.</span>
-                    <span class="font-label-sm text-label-sm text-on-surface-variant">watching rain in Berlin</span>
-                  </div>
-                </div>
-                <span class="font-label-sm text-label-sm text-tertiary font-mono">Focal Clear</span>
-              </div>
-            </div>
-            <div class="p-space-sm rounded bg-surface-container-lowest flex items-center justify-between" style="border: 1px solid var(--border-subtle);">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary" style="font-size: 20px;">share_location</span>
-                <span class="font-label-sm text-label-sm text-on-surface font-mono">Share Deck Sync URL</span>
-              </div>
-              <button class="px-3 py-1 rounded-full bg-surface-container-high font-label-sm text-label-sm text-on-surface hover:bg-surface-bright transition-colors" type="button" onclick="copyDeckSyncUrl(this)">
-                Copy Link
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div><!-- End .lofi-lounge-deck -->
-
-    <!-- Collapsible Studio Telemetry Section (Preserves HUD Micro-Visualizers) -->
-    <section class="telemetry-grid" id="telemetry-hud-deck" style="display: none; margin-top: 1.5rem;">
-      <!-- Card 1: Master Clock // ALSA -->
-      <div class="telemetry-card">
-        <div class="telemetry-header">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span class="dot-indicator dot-green animate-pulse"></span>
-            <span style="font-weight: 600;">Master Clock // ALSA</span>
-          </div>
-          <span class="badge-spec">0.02 PPM TCXO</span>
+          <nav aria-label="Library View Filters" class="crate-filter-nav flex flex-wrap items-center gap-1.5 p-1 bg-surface-container-lowest rounded-full shadow-inner">
+            <button class="view-filter-btn active font-label-sm text-label-sm px-3.5 py-1.5 rounded-full font-semibold transition-all bg-primary-container text-on-primary-container shadow-[0_0_12px_rgba(6,182,212,0.35)]" data-filter="all" type="button" onclick="filterCrateCategory('all', this)">
+              All Tracks
+            </button>
+            <button class="view-filter-btn font-label-sm text-label-sm px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" data-filter="high-res" type="button" onclick="filterCrateCategory('high-res', this)">
+              High-Res Lossless ✨
+            </button>
+            <button class="view-filter-btn font-label-sm text-label-sm px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" data-filter="vinyl" type="button" onclick="filterCrateCategory('vinyl', this)">
+              Analog Vinyl Rips 📼
+            </button>
+            <button class="view-filter-btn font-label-sm text-label-sm px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" data-filter="mixtape" type="button" onclick="filterCrateCategory('mixtape', this)">
+              Mixtapes 🎛️
+            </button>
+            <button class="view-filter-btn font-label-sm text-label-sm px-3.5 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" data-filter="recent" type="button" onclick="filterCrateCategory('recent', this)">
+              Recently Added 🕒
+            </button>
+          </nav>
         </div>
-        <div class="telemetry-metric-row">
-          <div>
-            <div id="telemetry-sample-rate" class="telemetry-metric">96.000 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">kHz</span></div>
-            <div id="telemetry-jitter" class="telemetry-sub">Phase Jitter: &lt; 0.18 ps RMS</div>
+
+        <!-- Right Controls, Sorters, and Density Switcher -->
+        <div class="crate-header-right flex flex-wrap items-center gap-space-sm justify-between xl:justify-end">
+          <div class="library-action-toolbar flex items-center gap-1.5">
+            <button type="button" class="btn-action-primary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-primary-container text-on-primary-container font-semibold transition-all shadow-sm flex items-center gap-1" onclick="triggerAddFolder()" title="Choose Folder from File System (Ctrl+O)">
+              <span class="material-symbols-outlined text-[16px]">create_new_folder</span>
+              <span>Add Folder...</span>
+            </button>
+            <button type="button" class="btn-action-secondary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright transition-all shadow-sm flex items-center gap-1" onclick="triggerLibraryScan()" title="Scan for New Music Files (Ctrl+R)">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              <span>Scan</span>
+            </button>
+            <button type="button" class="btn-action-secondary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright transition-all shadow-sm flex items-center gap-1" onclick="triggerMetadataEnrich()" title="Enrich Metadata from MusicBrainz">
+              <span class="material-symbols-outlined text-[16px]">sell</span>
+              <span>Enrich</span>
+            </button>
+            <button type="button" class="btn-action-secondary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright transition-all shadow-sm flex items-center gap-1" onclick="triggerFeatureAnalyze()" title="Analyze Audio Features (BPM, Key, Energy)">
+              <span class="material-symbols-outlined text-[16px]">graphic_eq</span>
+              <span>Analyze</span>
+            </button>
+            <button type="button" class="btn-action-secondary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright transition-all shadow-sm flex items-center gap-1" id="btn-toggle-inspector" onclick="toggleInspectorDrawer()" title="Toggle Inspector Drawer">
+              <span class="material-symbols-outlined text-[16px]">dock_to_left</span>
+              <span>Inspector</span>
+            </button>
+            <button type="button" class="btn-action-secondary font-label-sm text-label-sm px-3 py-1.5 rounded-full bg-surface-container-high text-secondary hover:bg-surface-bright transition-all shadow-sm flex items-center gap-1" onclick="toggleSmartSorter()" title="Smart Acoustic Sorter">
+              <span>Smart Sorter 🪄</span>
+            </button>
           </div>
-          <span class="telemetry-pill-primary">I²S SYNC</span>
+
+          <!-- Density Switcher (Cozy vs Compact) -->
+          <div class="density-switcher flex items-center p-0.5 bg-surface-container-lowest rounded-full">
+            <button class="density-btn active px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-surface-container-high text-primary shadow-sm font-semibold flex items-center gap-1" id="density-cozy-btn" onclick="setTableDensity('cozy')" title="Cozy Density" type="button">
+              <span>⊞</span> Cozy
+            </button>
+            <button class="density-btn px-2.5 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface flex items-center gap-1" id="density-compact-btn" onclick="setTableDensity('compact')" title="Compact Density" type="button">
+              <span>☰</span> Compact
+            </button>
+          </div>
         </div>
-        <!-- Oscilloscope Waveform SVG Widget -->
-        <div class="telemetry-oscilloscope">
-          <svg viewBox="0 0 200 40" fill="none" style="width: 100%; height: 32px; color: var(--primary);">
-            <path id="telemetry-oscilloscope-path" d="M0 20 Q 10 5, 20 20 T 40 20 T 60 4 T 80 34 T 100 20 T 120 8 T 140 32 T 160 20 T 180 12 T 200 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
-            <path id="telemetry-oscilloscope-ghost" d="M0 20 Q 15 28, 30 20 T 60 20 T 90 26 T 120 14 T 150 20 T 180 22 T 200 20" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" opacity="0.4" vector-effect="non-scaling-stroke"></path>
-          </svg>
+      </header>
+
+      <!-- Mood-First Browsing Chips Bar -->
+      <div class="mood-chips-container" style="margin-bottom: 1rem;">
+        <div class="mood-chips-header">
+          <span class="mood-chips-title">Acoustic Vibe Matrix</span>
+          <span class="badge-spec">NEURAL CLASSIFIER</span>
+        </div>
+        <div class="mood-chips-bar">
+          <button type="button" class="mood-chip active" data-mood="" onclick="selectMoodChip('')">
+            <span>All Vibes</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="chill" onclick="selectMoodChip('chill')">
+            <span class="dot-indicator dot-cyan"></span>
+            <span>Chill</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="melodic" onclick="selectMoodChip('relaxed')">
+            <span class="dot-indicator dot-purple"></span>
+            <span>Melodic</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="hypnotic" onclick="selectMoodChip('electronic')">
+            <span class="dot-indicator dot-cyan"></span>
+            <span>Hypnotic</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="euphoric" onclick="selectMoodChip('party')">
+            <span class="dot-indicator dot-orange"></span>
+            <span>Euphoric</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="dark" onclick="selectMoodChip('aggressive')">
+            <span class="dot-indicator dot-red"></span>
+            <span>Dark</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="acoustic" onclick="selectMoodChip('acoustic')">
+            <span class="dot-indicator dot-green"></span>
+            <span>Acoustic</span>
+          </button>
+          <button type="button" class="mood-chip" data-mood="electronic" onclick="selectMoodChip('electronic')">
+            <span class="dot-indicator dot-cyan"></span>
+            <span>Electronic</span>
+          </button>
         </div>
       </div>
 
-      <!-- Card 2: Dynamic Range & dBFS Meter -->
-      <div class="telemetry-card">
-        <div class="telemetry-header">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
-            <span style="font-weight: 600;">Dynamic Range</span>
+      <!-- Filter Controls Form -->
+      <form class="filter-bar"
+            hx-get="/api/library/table"
+            hx-trigger="input changed delay:300ms, change, submit"
+            hx-target="#library-table-container">
+        
+        <div class="filter-group">
+          <!-- Search text -->
+          <div style="position: relative; display: flex; align-items: center;">
+            <svg class="icon" style="position: absolute; left: 10px; width: 15px; height: 15px; fill: var(--text-dim); pointer-events: none;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text"
+                   id="library-search-input"
+                   name="q"
+                   class="input-text search-input"
+                   placeholder="Search title, album, artist..."
+                   style="padding-left: 32px;"/>
           </div>
-          <span class="badge-spec" style="color: var(--primary); border-color: var(--primary-border);">DR14+ MASTER</span>
+
+          <!-- Artist Filter -->
+          <select name="artist" class="select-input">
+            <option value="">All Artists ({{ artists|length }})</option>
+            {% for a in artists %}
+              <option value="{{ a }}">{{ a }}</option>
+            {% endfor %}
+          </select>
+
+          <!-- Key Selector -->
+          <select name="key" class="select-input">
+            <option value="">All Keys</option>
+            <option value="1A">1A (G# Minor)</option>
+            <option value="2A">2A (D# Minor)</option>
+            <option value="3A">3A (A# Minor)</option>
+            <option value="4A">4A (F Minor)</option>
+            <option value="5A">5A (C Minor)</option>
+            <option value="6A">6A (G Minor)</option>
+            <option value="7A">7A (D Minor)</option>
+            <option value="8A">8A (A Minor)</option>
+            <option value="9A">9A (E Minor)</option>
+            <option value="10A">10A (B Minor)</option>
+            <option value="11A">11A (F# Minor)</option>
+            <option value="12A">12A (C# Minor)</option>
+            <option value="1B">1B (B Major)</option>
+            <option value="2B">2B (F# Major)</option>
+            <option value="3B">3B (Db Major)</option>
+            <option value="4B">4B (Ab Major)</option>
+            <option value="5B">5B (Eb Major)</option>
+            <option value="6B">6B (Bb Major)</option>
+            <option value="7B">7B (F Major)</option>
+            <option value="8B">8B (C Major)</option>
+            <option value="9B">9B (G Major)</option>
+            <option value="10B">10B (D Major)</option>
+            <option value="11B">11B (A Major)</option>
+            <option value="12B">12B (E Major)</option>
+          </select>
+
+          <!-- Mood Filter -->
+          <select name="mood" class="select-input">
+            <option value="">All Moods</option>
+            <option value="chill">Chill (Low Energy, High Relaxed)</option>
+            <option value="energetic">Energetic / Workout (High Energy, Fast BPM)</option>
+            <option value="melancholic">Melancholic / Sad (Deep Mood, Reflective)</option>
+            <option value="euphoric">Euphoric / Peak Joy (Happy + Party)</option>
+            <option value="deep_focus">Deep Focus / Study (Subtle Energy)</option>
+            <option value="dark_intense">Dark &amp; Intense (Aggressive Drives)</option>
+            <option value="ambient">Ambient / Atmospheric (Acoustic Low Energy)</option>
+            <option value="lofi">Lo-Fi Chillhop (70-95 BPM)</option>
+            <option value="driving">Driving / Roadtrip (110-135 BPM)</option>
+            <option value="happy">Happy (≥ 50%)</option>
+            <option value="relaxed">Relaxed (≥ 50%)</option>
+            <option value="party">Party (≥ 50%)</option>
+            <option value="aggressive">Aggressive (≥ 50%)</option>
+            <option value="acoustic">Acoustic (≥ 50%)</option>
+            <option value="electronic">Electronic (≥ 50%)</option>
+          </select>
         </div>
-        <div class="telemetry-metric-row">
-          <div>
-            <div id="telemetry-dbfs" class="telemetry-metric">118.4 <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">dBFS</span></div>
-            <div id="telemetry-true-peak" class="telemetry-sub">True Peak: -0.32 dBTP</div>
-          </div>
-          <span class="telemetry-pill-secondary">0 CLIPS</span>
+
+        <!-- Tempo BPM Range -->
+        <div class="filter-group">
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase;">
+            BPM:
+          </span>
+          <input type="number"
+                 name="bpm_min"
+                 placeholder="Min"
+                 class="input-text"
+                 style="width: 65px; text-align: center;"
+                 min="40"
+                 max="220"/>
+          <span style="color: var(--text-dim);">—</span>
+          <input type="number"
+                 name="bpm_max"
+                 placeholder="Max"
+                 class="input-text"
+                 style="width: 65px; text-align: center;"
+                 min="40"
+                 max="220"/>
+          <input type="range"
+                 min="60"
+                 max="180"
+                 step="5"
+                 value="120"
+                 title="Quick BPM center slider"
+                 oninput="syncBpmSlider(this.value)"
+                 style="width: 80px; cursor: pointer; accent-color: var(--primary);"/>
+          <span id="filter-bpm-slider-val" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); min-width: 45px;">ALL</span>
+          
+          <!-- Sort selection -->
+          <select name="sort" class="select-input">
+            <option value="id_asc">Sort: Track ID (Asc)</option>
+            <option value="id_desc">Sort: Track ID (Desc)</option>
+            <option value="title_asc">Sort: Title (A-Z)</option>
+            <option value="title_desc">Sort: Title (Z-A)</option>
+            <option value="artist_asc">Sort: Artist (A-Z)</option>
+            <option value="artist_desc">Sort: Artist (Z-A)</option>
+            <option value="album_asc">Sort: Album (A-Z)</option>
+            <option value="album_desc">Sort: Album (Z-A)</option>
+            <option value="bpm_asc">Sort: BPM (Low to High)</option>
+            <option value="bpm_desc">Sort: BPM (High to Low)</option>
+            <option value="harmonic_asc">Sort: Harmonic Key (Asc)</option>
+            <option value="harmonic_desc">Sort: Harmonic Key (Desc)</option>
+            <option value="energy_desc">Sort: Energy (Highest)</option>
+            <option value="energy_asc">Sort: Energy (Lowest)</option>
+            <option value="danceability_desc">Sort: Danceability (Highest)</option>
+            <option value="danceability_asc">Sort: Danceability (Lowest)</option>
+            <option value="duration_desc">Sort: Duration (Longest)</option>
+            <option value="duration_asc">Sort: Duration (Shortest)</option>
+          </select>
         </div>
-        <!-- Segmented Headroom Meter -->
-        <div class="segmented-meter-well">
-          <div class="meter-labels">
-            <span>-60</span><span>-24</span><span>-12</span><span>-6</span><span>-0.1</span><span style="color: var(--secondary);">CLIP</span>
-          </div>
-          <div class="meter-track" id="telemetry-meter-track">
-            <div class="meter-seg bg-pri"></div>
-            <div class="meter-seg bg-pri"></div>
-            <div class="meter-seg bg-pri"></div>
-            <div class="meter-seg bg-pri"></div>
-            <div class="meter-seg bg-pri"></div>
-            <div class="meter-seg bg-green"></div>
-            <div class="meter-seg bg-green"></div>
-            <div class="meter-seg bg-sec"></div>
-            <div class="meter-seg bg-empty"></div>
-          </div>
+      </form>
+
+      <!-- View Switcher (Master Table vs Record Crate) -->
+      <div class="view-switcher-bar flex items-center justify-between mt-3 mb-2 pt-2 border-t border-outline-variant/40">
+        <div class="flex items-center gap-1.5 text-xs font-mono">
+          <button type="button" id="view-btn-table" class="px-3 py-1.5 rounded-lg bg-surface-container text-primary font-bold border border-primary/40 transition-all flex items-center gap-1.5" onclick="switchLibraryView('table')">
+            <span>📋</span>
+            <span>Master Table</span>
+          </button>
+          <button type="button" id="view-btn-crate" class="px-3 py-1.5 rounded-lg bg-surface text-on-surface-variant hover:text-on-surface border border-outline-variant/40 transition-all flex items-center gap-1.5" onclick="switchLibraryView('crate')">
+            <span>📦</span>
+            <span>Record Crate</span>
+          </button>
+        </div>
+        <div class="text-[11px] font-mono text-on-surface-variant">
+          <span>Right-click any track for context actions</span>
         </div>
       </div>
 
-      <!-- Card 3: Harmonic Key Alignment (Camelot) -->
-      <div class="telemetry-card">
-        <div class="telemetry-header">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--tertiary);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-            <span style="font-weight: 600;">Harmonic Deck</span>
-          </div>
-          <span class="badge-camelot">CAMELOT SYNC</span>
-        </div>
-        <div class="telemetry-metric-row" style="align-items: center;">
-          <div>
-            <div id="telemetry-camelot-metric" class="telemetry-metric">10A <span id="telemetry-camelot-rel" style="font-size: 13px; color: var(--tertiary); font-weight: normal;">→ 11A / 9A</span></div>
-            <div id="telemetry-camelot-sub" class="telemetry-sub">B Minor / D Major Wheel</div>
-          </div>
-          <!-- Mini Camelot Ring SVG graphic -->
-          <div style="width: 36px; height: 36px; position: relative; flex-shrink: 0;">
-            <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-45deg);">
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--bg-container-high)" stroke-width="3.5"></path>
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--tertiary)" stroke-width="4" stroke-dasharray="25, 100" stroke-linecap="round"></path>
-            </svg>
-            <div id="telemetry-camelot-center" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); color: var(--text-primary);">10A</div>
-          </div>
-        </div>
-        <!-- Adjacent Harmonic Chips -->
-        <div class="harmonic-chips-row" id="telemetry-harmonic-chips">
-          <span class="chip-alt">9A (74%)</span>
-          <span class="chip-active">10A (Active)</span>
-          <span class="chip-alt">11A (88%)</span>
-          <span class="chip-alt">10B (Match)</span>
-        </div>
-      </div>
-
-      <!-- Card 4: Audio Features / Cluster Histogram -->
-      <div class="telemetry-card">
-        <div class="telemetry-header">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <svg class="icon-inline" style="width: 13px; height: 13px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-            <span style="font-weight: 600;">Vector Distribution</span>
-          </div>
-          <span class="badge-spec" style="color: var(--secondary); border-color: var(--secondary-border);">{{ total_clusters }} CLUSTERS</span>
-        </div>
-        <div class="telemetry-metric-row">
-          <div>
-            <div class="telemetry-metric">{{ total_tracks }} <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">FLAC/DSD</span></div>
-            <div class="telemetry-sub">Mean Tempo: 114.2 BPM</div>
-          </div>
-          <span class="telemetry-pill-dim">0.78 ENERGY</span>
-        </div>
-        <!-- BPM / Energy Mini Histogram Bars -->
-        <div class="histogram-bars-row">
-          <div class="hist-bar" style="height: 30%;"></div>
-          <div class="hist-bar hist-pri" style="height: 55%;"></div>
-          <div class="hist-bar hist-pri" style="height: 40%;"></div>
-          <div class="hist-bar hist-bright" style="height: 85%;"></div>
-          <div class="hist-bar hist-bright" style="height: 100%;"></div>
-          <div class="hist-bar hist-pri" style="height: 70%;"></div>
-          <div class="hist-bar hist-green" style="height: 60%;"></div>
-          <div class="hist-bar hist-green" style="height: 45%;"></div>
-          <div class="hist-bar" style="height: 20%;"></div>
-          <div class="hist-bar" style="height: 15%;"></div>
-        </div>
+      <!-- Table Container (HTMX swapped) -->
+      <div id="library-table-container">
+        {% include "components/library_table.html" %}
       </div>
     </section>
 
-<!-- Tab 1: Library View -->
-<section id="tab-library" style="display: block;">
-  <!-- Master Crate Top Controls Bar (Stitch Specification) -->
-  <header class="master-crate-header">
-    <!-- Left Meta & Quick Category Filters -->
-    <div class="crate-header-left">
-      <div class="crate-header-title-group">
-        <h1 class="crate-title font-bold">Library &amp; Master Crate</h1>
-        <span class="sr-only">Music Library</span>
-        <span class="crate-count-chip font-mono">
-          {{ total_tracks }} Tracks Loaded 📦
-        </span>
-      </div>
-      <nav aria-label="Library View Filters" class="crate-filter-nav">
-        <button class="view-filter-btn active" data-filter="all" type="button" onclick="filterCrateCategory('all', this)">
-          All Tracks
-        </button>
-        <button class="view-filter-btn" data-filter="high-res" type="button" onclick="filterCrateCategory('high-res', this)">
-          High-Res Lossless ✨
-        </button>
-        <button class="view-filter-btn" data-filter="vinyl" type="button" onclick="filterCrateCategory('vinyl', this)">
-          Analog Vinyl Rips 📼
-        </button>
-        <button class="view-filter-btn" data-filter="mixtape" type="button" onclick="filterCrateCategory('mixtape', this)">
-          Mixtapes 🎛️
-        </button>
-        <button class="view-filter-btn" data-filter="recent" type="button" onclick="filterCrateCategory('recent', this)">
-          Recently Added 🕒
-        </button>
-      </nav>
-    </div>
-
-    <!-- Right Controls, Sorters, and Density Switcher -->
-    <div class="crate-header-right">
-      <div class="library-action-toolbar">
-        <button type="button" class="btn-action-primary" onclick="triggerAddFolder()" title="Choose Folder from File System (Ctrl+O)">
-          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          <span>Add Folder...</span>
-        </button>
-        <button type="button" class="btn-action-secondary" onclick="triggerLibraryScan()" title="Scan for New Music Files (Ctrl+R)">
-          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-          <span>Scan</span>
-        </button>
-        <button type="button" class="btn-action-secondary" onclick="triggerMetadataEnrich()" title="Enrich Metadata from MusicBrainz">
-          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/></svg>
-          <span>Enrich</span>
-        </button>
-        <button type="button" class="btn-action-secondary" onclick="triggerFeatureAnalyze()" title="Analyze Audio Features (BPM, Key, Energy)">
-          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-          <span>Analyze</span>
-        </button>
-        <button type="button" class="btn-action-secondary" id="btn-toggle-inspector" onclick="toggleInspectorDrawer()" title="Toggle Inspector Drawer">
-          <svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H5V5h9v12zm5 0h-3V5h3v12z"/></svg>
-          <span>Inspector</span>
-        </button>
-        <button type="button" class="btn-action-secondary" onclick="toggleSmartSorter()" title="Smart Acoustic Sorter">
-          <span>Smart Sorter 🪄</span>
-        </button>
+    <!-- Tab 3: Playlist Builder View -->
+    <section id="tab-builder" style="display: none;">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+          Interactive Smart Playlist Builder
+        </h2>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Design custom acoustic journeys with dynamic DSP sliders, energy trajectory arcs, and drag-and-drop sequencing.
+        </p>
       </div>
 
-      <!-- Density Switcher (Cozy vs Compact) -->
-      <div class="density-switcher">
-        <button class="density-btn active" id="density-cozy-btn" onclick="setTableDensity('cozy')" title="Cozy Density" type="button">
-          <span>⊞</span> Cozy
-        </button>
-        <button class="density-btn" id="density-compact-btn" onclick="setTableDensity('compact')" title="Compact Density" type="button">
-          <span>☰</span> Compact
-        </button>
+      <div class="builder-layout">
+        <!-- Builder Left Controls Form -->
+        <div class="builder-controls">
+          <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--primary);">
+            Generation Parameters
+          </div>
+
+          <form hx-post="/api/playlist/generate"
+                hx-target="#playlist-builder-container"
+                hx-swap="innerHTML"
+                style="display: flex; flex-direction: column; gap: 1.25rem;">
+            
+            <!-- AI Natural Language Prompt -->
+            <div style="background: var(--surface-tint-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 4px;">
+                  <svg class="icon" style="width: 14px; height: 14px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+                  AI Prompt / Vibe Description
+                </label>
+                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Optional LLM</span>
+              </div>
+
+              <div style="margin-bottom: 8px; font-size: 11px;">
+                {% if desktop_settings and desktop_settings.gemini_api_key %}
+                  <span style="color: var(--tertiary); font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg class="icon" style="width: 12px; height: 12px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                    ✓ Gemini AI Active
+                  </span>
+                {% else %}
+                  <a href="javascript:void(0)" onclick="openSettingsDialog('ai')" style="color: var(--secondary); text-decoration: underline; font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Click to open AI Settings (Ctrl+,)">
+                    <svg class="icon" style="width: 12px; height: 12px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                    ⚠️ Gemini API Key Unconfigured — Click to Configure (Ctrl+,)
+                  </a>
+                {% endif %}
+              </div>
+
+              <input type="text"
+                     name="prompt"
+                     class="input-text"
+                     placeholder="e.g. rainy night focus, no vocals"
+                     style="width: 100%; font-size: 12px;"/>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+                Translates natural language into filters &amp; acoustic targets.
+              </div>
+            </div>
+
+            <!-- Playlist Name -->
+            <div>
+              <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                Playlist Name
+              </label>
+              <input type="text"
+                     name="name"
+                     class="input-text"
+                     value="Audiophile Vibe Session"
+                     style="width: 100%;"/>
+            </div>
+
+            <!-- Seed Track Selection -->
+            <div>
+              <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                Reference Seed Track
+              </label>
+              <select name="seed_track_id" class="select-input" style="width: 100%;">
+                <option value="">— Automatic Centroid Seed —</option>
+                {% for t in tracks %}
+                  <option value="{{ t.track_id }}">{{ t.artist }} — {{ t.title }} ({{ t.bpm|round(0)|int if t.bpm else '?' }} BPM, {{ t.camelot or t.key or 'Key' }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Vibe Preset Selection -->
+            <div>
+              <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                Vibe Preset
+              </label>
+              <select name="vibe" class="select-input" style="width: 100%;">
+                <option value="">— None (Natural Similarity) —</option>
+                <option value="chill">Chill (Low Energy, High Relaxed)</option>
+                <option value="party">Party (High Danceability, High Energy)</option>
+                <option value="acoustic">Acoustic (Unplugged, Natural Timbre)</option>
+                <option value="electronic">Electronic (Synthesizers, Beat Driven)</option>
+                <option value="workout">Workout (High Energy, ≥115 BPM)</option>
+                <option value="melancholy">Melancholy (Moody, Contemplative)</option>
+                <option value="cyberpunk_neon">Cyberpunk Neon (Dark Synth, High BPM)</option>
+                <option value="jazz_club">Jazz Club (Acoustic, Moderate BPM, Contemplative)</option>
+                <option value="heavy_bass">Heavy Bass (Deep Sub-Bass, High Danceability)</option>
+                <option value="meditation">Meditation (Subtle Ambient, Slow Tempo)</option>
+                <option value="sunshine_groove">Sunshine Groove (Upbeat Dance, Bright)</option>
+                <option value="hypnotic_trance">Hypnotic Trance (Driving Locked Groove)</option>
+                <option value="coffee_shop">Coffee Shop (Mellow Warmth, Low Energy)</option>
+              </select>
+            </div>
+
+            <!-- Energy Arc Trajectory Selection -->
+            <div>
+              <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                Energy Curve Arc
+              </label>
+              <select name="arc" class="select-input" style="width: 100%;">
+                <option value="">— Standard Cohesive (Steady) —</option>
+                <option value="ramp_up">Ramp Up (Gentle Start → High Intensity Peak)</option>
+                <option value="cooldown">Cool Down (High Intensity → Relaxed Finish)</option>
+                <option value="peak">Peak / Wave (Warmup → Peak → Cool Down)</option>
+                <option value="steady">Steady Plateau (Consistent Energy Level)</option>
+                <option value="double_peak">Double Peak (Two Energy Climaxes)</option>
+                <option value="sunrise_roller">Sunrise Roller (Warm Uplift to Euphoria)</option>
+                <option value="deep_dive">Deep Dive (Sub-Bass Descent &amp; Return)</option>
+                <option value="heartbeat_wave">Heartbeat Wave (Dynamic Cyclic Pulses)</option>
+                <option value="slow_burn">Slow Burn (Subtle Build to Late Peak)</option>
+              </select>
+            </div>
+
+            <!-- Energy Slider -->
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>Target Energy</span>
+                <span id="energy-val" class="slider-val">0.70</span>
+              </div>
+              <input type="range"
+                     name="energy"
+                     id="energy-slider"
+                     min="0.0"
+                     max="1.0"
+                     step="0.05"
+                     value="0.70"
+                     oninput="updateSliderLabel('energy-slider', 'energy-val')"/>
+            </div>
+
+            <!-- Danceability Slider -->
+            <div class="slider-group">
+              <div class="slider-label">
+                <span>Target Danceability</span>
+                <span id="dance-val" class="slider-val">0.60</span>
+              </div>
+              <input type="range"
+                     name="danceability"
+                     id="dance-slider"
+                     min="0.0"
+                     max="1.0"
+                     step="0.05"
+                     value="0.60"
+                     oninput="updateSliderLabel('dance-slider', 'dance-val')"/>
+            </div>
+
+            <!-- Track Limit -->
+            <div style="display: flex; gap: 0.75rem;">
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                  Track Count
+                </label>
+                <input type="number"
+                       name="limit"
+                       class="input-text"
+                       value="10"
+                       min="3"
+                       max="100"
+                       style="width: 100%; text-align: center;"/>
+              </div>
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+                  Max Per Artist
+                </label>
+                <input type="number"
+                       name="max_artist_tracks"
+                       class="input-text"
+                       value="2"
+                       min="1"
+                       max="10"
+                       style="width: 100%; text-align: center;"/>
+              </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 0.5rem;">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+              <span>Generate Smart Playlist</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Builder Right: Playlist Items List (HTMX Swapped) -->
+        <div id="playlist-builder-container">
+          {% include "components/playlist_builder.html" %}
+        </div>
       </div>
-    </div>
-  </header>
-
-  <!-- Mood-First Browsing Chips Bar -->
-  <div class="mood-chips-container" style="margin-bottom: 1rem;">
-    <div class="mood-chips-header">
-      <span class="mood-chips-title">Acoustic Vibe Matrix</span>
-      <span class="badge-spec">NEURAL CLASSIFIER</span>
-    </div>
-    <div class="mood-chips-bar">
-      <button type="button" class="mood-chip active" data-mood="" onclick="selectMoodChip('')">
-        <span>All Vibes</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="chill" onclick="selectMoodChip('chill')">
-        <span class="dot-indicator dot-cyan"></span>
-        <span>Chill</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="melodic" onclick="selectMoodChip('relaxed')">
-        <span class="dot-indicator dot-purple"></span>
-        <span>Melodic</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="hypnotic" onclick="selectMoodChip('electronic')">
-        <span class="dot-indicator dot-cyan"></span>
-        <span>Hypnotic</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="euphoric" onclick="selectMoodChip('party')">
-        <span class="dot-indicator dot-orange"></span>
-        <span>Euphoric</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="dark" onclick="selectMoodChip('aggressive')">
-        <span class="dot-indicator dot-red"></span>
-        <span>Dark</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="acoustic" onclick="selectMoodChip('acoustic')">
-        <span class="dot-indicator dot-green"></span>
-        <span>Acoustic</span>
-      </button>
-      <button type="button" class="mood-chip" data-mood="electronic" onclick="selectMoodChip('electronic')">
-        <span class="dot-indicator dot-cyan"></span>
-        <span>Electronic</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Filter Controls Form -->
-  <form class="filter-bar"
-        hx-get="/api/library/table"
-        hx-trigger="input changed delay:300ms, change, submit"
-        hx-target="#library-table-container">
-    
-    <div class="filter-group">
-      <!-- Search text -->
-      <div style="position: relative; display: flex; align-items: center;">
-        <svg class="icon" style="position: absolute; left: 10px; width: 15px; height: 15px; fill: var(--text-dim); pointer-events: none;" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <input type="text"
-               name="q"
-               class="input-text search-input"
-               placeholder="Search title, album, artist..."
-               style="padding-left: 32px;"/>
-      </div>
-
-      <!-- Artist Filter -->
-      <select name="artist" class="select-input">
-        <option value="">All Artists ({{ artists|length }})</option>
-        {% for a in artists %}
-          <option value="{{ a }}">{{ a }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- Key Selector -->
-      <select name="key" class="select-input">
-        <option value="">All Keys</option>
-        <option value="1A">1A (G# Minor)</option>
-        <option value="2A">2A (D# Minor)</option>
-        <option value="3A">3A (A# Minor)</option>
-        <option value="4A">4A (F Minor)</option>
-        <option value="5A">5A (C Minor)</option>
-        <option value="6A">6A (G Minor)</option>
-        <option value="7A">7A (D Minor)</option>
-        <option value="8A">8A (A Minor)</option>
-        <option value="9A">9A (E Minor)</option>
-        <option value="10A">10A (B Minor)</option>
-        <option value="11A">11A (F# Minor)</option>
-        <option value="12A">12A (C# Minor)</option>
-        <option value="1B">1B (B Major)</option>
-        <option value="2B">2B (F# Major)</option>
-        <option value="3B">3B (Db Major)</option>
-        <option value="4B">4B (Ab Major)</option>
-        <option value="5B">5B (Eb Major)</option>
-        <option value="6B">6B (Bb Major)</option>
-        <option value="7B">7B (F Major)</option>
-        <option value="8B">8B (C Major)</option>
-        <option value="9B">9B (G Major)</option>
-        <option value="10B">10B (D Major)</option>
-        <option value="11B">11B (A Major)</option>
-        <option value="12B">12B (E Major)</option>
-      </select>
-
-      <!-- Mood Filter -->
-      <select name="mood" class="select-input">
-        <option value="">All Moods</option>
-        <option value="chill">Chill (Low Energy, High Relaxed)</option>
-        <option value="energetic">Energetic / Workout (High Energy, Fast BPM)</option>
-        <option value="melancholic">Melancholic / Sad (Deep Mood, Reflective)</option>
-        <option value="euphoric">Euphoric / Peak Joy (Happy + Party)</option>
-        <option value="deep_focus">Deep Focus / Study (Subtle Energy)</option>
-        <option value="dark_intense">Dark &amp; Intense (Aggressive Drives)</option>
-        <option value="ambient">Ambient / Atmospheric (Acoustic Low Energy)</option>
-        <option value="lofi">Lo-Fi Chillhop (70-95 BPM)</option>
-        <option value="driving">Driving / Roadtrip (110-135 BPM)</option>
-        <option value="happy">Happy (≥ 50%)</option>
-        <option value="relaxed">Relaxed (≥ 50%)</option>
-        <option value="party">Party (≥ 50%)</option>
-        <option value="aggressive">Aggressive (≥ 50%)</option>
-        <option value="acoustic">Acoustic (≥ 50%)</option>
-        <option value="electronic">Electronic (≥ 50%)</option>
-      </select>
-    </div>
-
-    <!-- Tempo BPM Range -->
-    <div class="filter-group">
-      <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-transform: uppercase;">
-        BPM:
-      </span>
-      <input type="number"
-             name="bpm_min"
-             placeholder="Min"
-             class="input-text"
-             style="width: 65px; text-align: center;"
-             min="40"
-             max="220"/>
-      <span style="color: var(--text-dim);">—</span>
-      <input type="number"
-             name="bpm_max"
-             placeholder="Max"
-             class="input-text"
-             style="width: 65px; text-align: center;"
-             min="40"
-             max="220"/>
-      <input type="range"
-             min="60"
-             max="180"
-             step="5"
-             value="120"
-             title="Quick BPM center slider"
-             oninput="syncBpmSlider(this.value)"
-             style="width: 80px; cursor: pointer; accent-color: var(--primary);"/>
-      <span id="filter-bpm-slider-val" style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); min-width: 45px;">ALL</span>
-      
-      <!-- Sort selection -->
-      <select name="sort" class="select-input">
-        <option value="id_asc">Sort: Track ID (Asc)</option>
-        <option value="id_desc">Sort: Track ID (Desc)</option>
-        <option value="title_asc">Sort: Title (A-Z)</option>
-        <option value="title_desc">Sort: Title (Z-A)</option>
-        <option value="artist_asc">Sort: Artist (A-Z)</option>
-        <option value="artist_desc">Sort: Artist (Z-A)</option>
-        <option value="album_asc">Sort: Album (A-Z)</option>
-        <option value="album_desc">Sort: Album (Z-A)</option>
-        <option value="bpm_asc">Sort: BPM (Low to High)</option>
-        <option value="bpm_desc">Sort: BPM (High to Low)</option>
-        <option value="harmonic_asc">Sort: Harmonic Key (Asc)</option>
-        <option value="harmonic_desc">Sort: Harmonic Key (Desc)</option>
-        <option value="energy_desc">Sort: Energy (Highest)</option>
-        <option value="energy_asc">Sort: Energy (Lowest)</option>
-        <option value="danceability_desc">Sort: Danceability (Highest)</option>
-        <option value="danceability_asc">Sort: Danceability (Lowest)</option>
-        <option value="duration_desc">Sort: Duration (Longest)</option>
-        <option value="duration_asc">Sort: Duration (Shortest)</option>
-      </select>
-    </div>
-  </form>
-
-  <!-- View Switcher (Master Table vs Record Crate) -->
-  <div class="view-switcher-bar flex items-center justify-between mt-3 mb-2 pt-2 border-t border-[var(--border)]">
-    <div class="flex items-center gap-1.5 text-xs font-mono">
-      <button type="button" id="view-btn-table" class="px-3 py-1.5 rounded-lg bg-[var(--surface-container)] text-[var(--accent)] font-bold border border-[var(--accent)]/40 transition-all flex items-center gap-1.5" onclick="switchLibraryView('table')">
-        <span>📋</span>
-        <span>Master Table</span>
-      </button>
-      <button type="button" id="view-btn-crate" class="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-all flex items-center gap-1.5" onclick="switchLibraryView('crate')">
-        <span>📦</span>
-        <span>Record Crate</span>
-      </button>
-    </div>
-    <div class="text-[11px] font-mono text-[var(--text-muted)]">
-      <span>Right-click any track for context actions</span>
-    </div>
-  </div>
-
-  <!-- Table Container (HTMX swapped) -->
-  <div id="library-table-container">
-    {% include "components/library_table.html" %}
-  </div>
-
-  <!-- Record Crate Vinyl Sleeves View -->
-  {% include "components/record_crate.html" %}
-</section>
-
-
-<!-- Tab 3: Playlist Builder View -->
-<section id="tab-builder" style="display: none;">
-  <div style="margin-bottom: 1.25rem;">
-    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
-      Interactive Smart Playlist Builder
-    </h2>
-    <p style="font-size: 13px; color: var(--text-muted);">
-      Design custom acoustic journeys with dynamic DSP sliders, energy trajectory arcs, and drag-and-drop sequencing.
-    </p>
-  </div>
-
-  <div class="builder-layout">
-    <!-- Builder Left Controls Form -->
-    <div class="builder-controls">
-      <div style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--primary);">
-        Generation Parameters
-      </div>
-
-      <form hx-post="/api/playlist/generate"
-            hx-target="#playlist-builder-container"
-            hx-swap="innerHTML"
-            style="display: flex; flex-direction: column; gap: 1.25rem;">
-        
-        <!-- AI Natural Language Prompt -->
-        <div style="background: var(--surface-tint-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.85rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <label style="font-size: 12px; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 4px;">
-              <svg class="icon" style="width: 14px; height: 14px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-              AI Prompt / Vibe Description
-            </label>
-            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Optional LLM</span>
-          </div>
-
-          <div style="margin-bottom: 8px; font-size: 11px;">
-            {% if desktop_settings and desktop_settings.gemini_api_key %}
-              <span style="color: var(--tertiary); font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px;">
-                <svg class="icon" style="width: 12px; height: 12px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-                ✓ Gemini AI Active
-              </span>
-            {% else %}
-              <a href="javascript:void(0)" onclick="openSettingsTab('ai')" style="color: var(--secondary); text-decoration: underline; font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Click to open AI Settings (Ctrl+,)">
-                <svg class="icon" style="width: 12px; height: 12px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-                ⚠️ Gemini API Key Unconfigured — Click to Configure (Ctrl+,)
-              </a>
-            {% endif %}
-          </div>
-
-          <input type="text"
-                 name="prompt"
-                 class="input-text"
-                 placeholder="e.g. rainy night focus, no vocals"
-                 style="width: 100%; font-size: 12px;"/>
-          <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-            Translates natural language into filters & acoustic targets.
-          </div>
-        </div>
-
-        <!-- Playlist Name -->
-        <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-            Playlist Name
-          </label>
-          <input type="text"
-                 name="name"
-                 class="input-text"
-                 value="Audiophile Vibe Session"
-                 style="width: 100%;"/>
-        </div>
-
-        <!-- Seed Track Selection -->
-        <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-            Reference Seed Track
-          </label>
-          <select name="seed_track_id" class="select-input" style="width: 100%;">
-            <option value="">— Automatic Centroid Seed —</option>
-            {% for t in tracks %}
-              <option value="{{ t.track_id }}">{{ t.artist }} — {{ t.title }} ({{ t.bpm|round(0)|int if t.bpm else '?' }} BPM, {{ t.camelot or t.key or 'Key' }})</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- Vibe Preset Selection -->
-        <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-            Vibe Preset
-          </label>
-          <select name="vibe" class="select-input" style="width: 100%;">
-            <option value="">— None (Natural Similarity) —</option>
-            <option value="chill">Chill (Low Energy, High Relaxed)</option>
-            <option value="party">Party (High Danceability, High Energy)</option>
-            <option value="acoustic">Acoustic (Unplugged, Natural Timbre)</option>
-            <option value="electronic">Electronic (Synthesizers, Beat Driven)</option>
-            <option value="workout">Workout (High Energy, ≥115 BPM)</option>
-            <option value="melancholy">Melancholy (Moody, Contemplative)</option>
-            <option value="cyberpunk_neon">Cyberpunk Neon (Dark Synth, High BPM)</option>
-            <option value="jazz_club">Jazz Club (Acoustic, Moderate BPM, Contemplative)</option>
-            <option value="heavy_bass">Heavy Bass (Deep Sub-Bass, High Danceability)</option>
-            <option value="meditation">Meditation (Subtle Ambient, Slow Tempo)</option>
-            <option value="sunshine_groove">Sunshine Groove (Upbeat Dance, Bright)</option>
-            <option value="hypnotic_trance">Hypnotic Trance (Driving Locked Groove)</option>
-            <option value="coffee_shop">Coffee Shop (Mellow Warmth, Low Energy)</option>
-          </select>
-        </div>
-
-        <!-- Energy Arc Trajectory Selection -->
-        <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-            Energy Curve Arc
-          </label>
-          <select name="arc" class="select-input" style="width: 100%;">
-            <option value="">— Standard Cohesive (Steady) —</option>
-            <option value="ramp_up">Ramp Up (Gentle Start → High Intensity Peak)</option>
-            <option value="cooldown">Cool Down (High Intensity → Relaxed Finish)</option>
-            <option value="peak">Peak / Wave (Warmup → Peak → Cool Down)</option>
-            <option value="steady">Steady Plateau (Consistent Energy Level)</option>
-            <option value="double_peak">Double Peak (Two Energy Climaxes)</option>
-            <option value="sunrise_roller">Sunrise Roller (Warm Uplift to Euphoria)</option>
-            <option value="deep_dive">Deep Dive (Sub-Bass Descent & Return)</option>
-            <option value="heartbeat_wave">Heartbeat Wave (Dynamic Cyclic Pulses)</option>
-            <option value="slow_burn">Slow Burn (Subtle Build to Late Peak)</option>
-          </select>
-        </div>
-
-        <!-- Energy Slider -->
-        <div class="slider-group">
-          <div class="slider-label">
-            <span>Target Energy</span>
-            <span id="energy-val" class="slider-val">0.70</span>
-          </div>
-          <input type="range"
-                 name="energy"
-                 id="energy-slider"
-                 min="0.0"
-                 max="1.0"
-                 step="0.05"
-                 value="0.70"
-                 oninput="updateSliderLabel('energy-slider', 'energy-val')"/>
-        </div>
-
-        <!-- Danceability Slider -->
-        <div class="slider-group">
-          <div class="slider-label">
-            <span>Target Danceability</span>
-            <span id="dance-val" class="slider-val">0.60</span>
-          </div>
-          <input type="range"
-                 name="danceability"
-                 id="dance-slider"
-                 min="0.0"
-                 max="1.0"
-                 step="0.05"
-                 value="0.60"
-                 oninput="updateSliderLabel('dance-slider', 'dance-val')"/>
-        </div>
-
-        <!-- Track Limit -->
-        <div style="display: flex; gap: 0.75rem;">
-          <div style="flex: 1;">
-            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-              Track Count
-            </label>
-            <input type="number"
-                   name="limit"
-                   class="input-text"
-                   value="10"
-                   min="3"
-                   max="100"
-                   style="width: 100%; text-align: center;"/>
-          </div>
-          <div style="flex: 1;">
-            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
-              Max Per Artist
-            </label>
-            <input type="number"
-                   name="max_artist_tracks"
-                   class="input-text"
-                   value="2"
-                   min="1"
-                   max="10"
-                   style="width: 100%; text-align: center;"/>
-          </div>
-        </div>
-
-        <!-- Generate Button -->
-        <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 0.5rem;">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-          <span>Generate Smart Playlist</span>
-        </button>
-      </form>
-    </div>
-
-    <!-- Builder Right: Playlist Items List (HTMX Swapped) -->
-    <div id="playlist-builder-container">
-      {% include "components/playlist_builder.html" %}
-    </div>
-  </div>
-</section>
+    </section>
   </div><!-- end .workspace-center -->
 
   <!-- Right Docked Telemetry Drawer: Hardware Inspect -->
-  <aside class="workspace-inspector" id="workspace-inspector-drawer">
+  <aside class="workspace-inspector" id="workspace-inspector-drawer" style="display: none;">
     <div class="inspector-drawer-header">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span class="dot-indicator dot-cyan animate-pulse"></span>
@@ -1358,4 +1217,318 @@
     </div>
   </aside>
 </div><!-- end .workspace-layout -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function() {
+    // 1. Ensure openSettingsDialog(initialTab) is always defined (used by Theme Palette & Output Switcher)
+    window.openSettingsDialog = function(initialTab) {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      var dialog = document.getElementById('settings-dialog');
+      if (!dialog) return;
+      dialog.classList.remove('hidden');
+      dialog.style.display = '';
+      if (!dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          try {
+            dialog.showModal();
+          } catch (e) {
+            dialog.setAttribute('open', '');
+          }
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+      if (typeof loadDesktopSettingsIntoModal === 'function') {
+        loadDesktopSettingsIntoModal();
+      }
+      if (initialTab && typeof openSettingsTab === 'function') {
+        openSettingsTab(initialTab);
+      }
+    };
+
+    // 2. Resilient toggleSettingsDialog & closeSettingsDialog (handles forced open/inline styles)
+    window.toggleSettingsDialog = function(initialTab) {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      var dialog = document.getElementById('settings-dialog');
+      if (!dialog) return;
+      var isOpen = dialog.open || dialog.hasAttribute('open');
+      if (isOpen && !initialTab) {
+        window.closeSettingsDialog();
+      } else {
+        window.openSettingsDialog(initialTab || null);
+      }
+    };
+
+    window.closeSettingsDialog = function() {
+      var dialog = document.getElementById('settings-dialog');
+      if (!dialog) return;
+      if (typeof dialog.close === 'function' && dialog.open) {
+        try { dialog.close(); } catch (e) {}
+      }
+      dialog.removeAttribute('open');
+      dialog.style.display = '';
+    };
+
+    // 3. Resilient modal & popover open/close helpers
+    function hideModalElement(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('hidden');
+      el.removeAttribute('open');
+      el.style.display = 'none';
+    }
+
+    function showModalElement(id, displayMode) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('hidden');
+      el.style.display = displayMode || '';
+    }
+
+    window.closeOutputSwitcher = function() {
+      hideModalElement('output-switcher-popover');
+    };
+
+    window.openOutputSwitcher = function(e) {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      showModalElement('output-switcher-popover', '');
+    };
+
+    window.toggleOutputSwitcher = function(e) {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      var pop = document.getElementById('output-switcher-popover');
+      if (!pop) return;
+      var isHidden = pop.classList.contains('hidden') || pop.style.display === 'none';
+      if (isHidden) {
+        showModalElement('output-switcher-popover', '');
+      } else {
+        hideModalElement('output-switcher-popover');
+      }
+    };
+
+    window.openToyboxModal = function() {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      showModalElement('addon-toybox-backdrop', '');
+    };
+
+    window.closeToyboxModal = function() {
+      hideModalElement('addon-toybox-backdrop');
+    };
+
+    window.openEQStudioModal = function() {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      showModalElement('eq-studio-backdrop', '');
+    };
+
+    window.closeEQStudioModal = function() {
+      hideModalElement('eq-studio-backdrop');
+    };
+
+    window.openShortcutsModal = function() {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      showModalElement('shortcuts-modal-backdrop', '');
+    };
+
+    window.closeShortcutsModal = function() {
+      hideModalElement('shortcuts-modal-backdrop');
+    };
+
+    window.openOnboardingModal = function() {
+      if (typeof closeAllMenus === 'function') closeAllMenus();
+      showModalElement('onboarding-modal-backdrop', '');
+      if (typeof goToOnboardingStep === 'function') {
+        goToOnboardingStep(1);
+      }
+    };
+
+    window.closeOnboardingModal = function() {
+      hideModalElement('onboarding-modal-backdrop');
+      try { localStorage.setItem('vibeplay_onboarded', '1'); } catch (e) {}
+    };
+
+    window.openDACAlertModal = function(deviceName, capabilities) {
+      showModalElement('dac-alert-backdrop', '');
+      if (deviceName) {
+        var nameEl = document.getElementById('dac-alert-device-name');
+        if (nameEl) nameEl.textContent = deviceName;
+      }
+      if (capabilities) {
+        var capsEl = document.getElementById('dac-alert-capabilities');
+        if (capsEl) capsEl.textContent = capabilities;
+      }
+    };
+
+    window.closeDACAlertModal = function() {
+      hideModalElement('dac-alert-backdrop');
+    };
+
+    window.dismissBanner = function(bannerId) {
+      hideModalElement(bannerId);
+    };
+
+    // 4. Missing inline handlers referenced in templates
+    if (typeof window.handlePlayerClear !== 'function') {
+      window.handlePlayerClear = function() {
+        if (typeof closeAllMenus === 'function') closeAllMenus();
+        if (window.htmx) {
+          window.htmx.ajax('POST', '/api/player/clear', {
+            target: '#transport-footer-container',
+            swap: 'innerHTML'
+          });
+        } else {
+          fetch('/api/player/clear', { method: 'POST' });
+        }
+      };
+    }
+
+    if (typeof window.playTrack !== 'function') {
+      window.playTrack = function(trackId) {
+        if (!trackId) return;
+        if (window.htmx) {
+          window.htmx.ajax('POST', '/api/player/play-track/' + encodeURIComponent(trackId), {
+            target: '#transport-footer-container',
+            swap: 'innerHTML'
+          });
+        } else {
+          fetch('/api/player/play-track/' + encodeURIComponent(trackId), { method: 'POST' });
+        }
+      };
+    }
+
+    if (typeof window.focusLibrarySearch !== 'function') {
+      window.focusLibrarySearch = function() {
+        if (typeof closeAllMenus === 'function') closeAllMenus();
+        if (typeof showTab === 'function') showTab('library');
+        var searchInput = document.getElementById('library-search-input') || document.getElementById('global-header-search');
+        if (searchInput) {
+          searchInput.focus();
+          if (typeof searchInput.select === 'function') searchInput.select();
+        }
+      };
+    }
+
+    if (typeof window.syncToLibrarySearch !== 'function') {
+      window.syncToLibrarySearch = function(val) {
+        var libSearch = document.getElementById('library-search-input');
+        if (libSearch && libSearch.value !== val) {
+          libSearch.value = val;
+          libSearch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      };
+    }
+
+    if (typeof window.toggleShuffleMode !== 'function') {
+      window.toggleShuffleMode = function(btn) {
+        if (!btn) return;
+        btn.classList.toggle('text-primary');
+        var active = btn.classList.contains('text-primary');
+        if (typeof showToast === 'function') {
+          showToast(active ? 'Shuffle enabled' : 'Shuffle disabled');
+        }
+      };
+    }
+
+    if (typeof window.toggleRepeatMode !== 'function') {
+      window.toggleRepeatMode = function(btn) {
+        if (!btn) return;
+        btn.classList.toggle('text-primary');
+        var active = btn.classList.contains('text-primary');
+        if (typeof showToast === 'function') {
+          showToast(active ? 'Repeat enabled' : 'Repeat disabled');
+        }
+      };
+    }
+
+    if (typeof window.handleScrubTimeline !== 'function') {
+      window.handleScrubTimeline = function(event) {
+        var bar = event.currentTarget;
+        if (!bar) return;
+        var rect = bar.getBoundingClientRect();
+        if (!rect.width) return;
+        var pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+        var fill = bar.firstElementChild;
+        if (fill) {
+          fill.style.width = Math.round(pct * 100) + '%';
+        }
+      };
+    }
+
+    if (typeof window.toggleSmartSorter !== 'function') {
+      window.toggleSmartSorter = function() {
+        if (typeof showTab === 'function') {
+          showTab('builder');
+        }
+      };
+    }
+
+    if (typeof window.toggleEQPresetMenu !== 'function') {
+      window.toggleEQPresetMenu = function(e) {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        var selectEl = document.getElementById('peq-preset-select');
+        if (selectEl) selectEl.focus();
+      };
+    }
+
+    if (typeof window.resetEQFlat !== 'function') {
+      window.resetEQFlat = function() {
+        document.querySelectorAll('.eq-band-slider').forEach(function(slider) {
+          slider.value = 0;
+        });
+        document.querySelectorAll('.eq-band-val').forEach(function(label) {
+          label.textContent = '0.0dB';
+        });
+        if (typeof updateEQCurveFromSliders === 'function') {
+          updateEQCurveFromSliders();
+        }
+      };
+    }
+
+    // 5. Enhance filterCrateCategory and setTableDensity to support #crate-table
+    var origFilterCrateCategory = window.filterCrateCategory;
+    window.filterCrateCategory = function(category, btnEl) {
+      if (btnEl && btnEl.parentElement) {
+        btnEl.parentElement.querySelectorAll('.view-filter-btn, .crate-pill').forEach(function(b) {
+          b.classList.remove('active', 'bg-primary-container', 'text-on-primary-container', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+          b.classList.add('text-on-surface-variant');
+        });
+        btnEl.classList.remove('text-on-surface-variant');
+        btnEl.classList.add('active', 'bg-primary-container', 'text-on-primary-container', 'shadow-[0_0_12px_rgba(6,182,212,0.35)]');
+      }
+      var rows = document.querySelectorAll('#crate-table tbody tr.track-row, .library-table tbody tr');
+      rows.forEach(function(row) {
+        var text = (row.textContent || '').toUpperCase();
+        if (category === 'all') {
+          row.style.display = '';
+        } else if (category === 'dsd' || category === 'high-res') {
+          row.style.display = (text.includes('DSD') || text.includes('96K') || text.includes('192K') || text.includes('24B') || text.includes('FLAC')) ? '' : 'none';
+        } else if (category === 'pcm') {
+          row.style.display = (text.includes('FLAC') || text.includes('WAV') || text.includes('PCM') || text.includes('ALAC')) ? '' : 'none';
+        } else if (category === 'vinyl') {
+          row.style.display = (text.includes('VINYL') || text.includes('24/') || text.includes('96') || text.includes('192') || text.includes('FLAC')) ? '' : 'none';
+        } else {
+          row.style.display = '';
+        }
+      });
+      if (typeof origFilterCrateCategory === 'function' && rows.length === 0) {
+        origFilterCrateCategory(category, btnEl);
+      }
+    };
+
+    var origSetTableDensity = window.setTableDensity;
+    window.setTableDensity = function(mode) {
+      if (typeof origSetTableDensity === 'function') {
+        origSetTableDensity(mode);
+      }
+      var crateTable = document.getElementById('crate-table');
+      if (crateTable) {
+        crateTable.classList.remove('density-compact', 'density-comfortable', 'density-cozy');
+        crateTable.classList.add('density-' + mode);
+      }
+    };
+  })();
+</script>
 {% endblock %}

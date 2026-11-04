@@ -1,196 +1,405 @@
-{# Parametric Equalizer Studio (Stitch Hi-Fi Lounge Specification) #}
-<div id="eq-studio-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-200 hidden" onclick="if(event.target === this) closeEQStudioModal();">
-  <div class="relative w-full max-w-[920px] bg-[var(--surface-container)] border border-[var(--border)] rounded-[22px] p-6 sm:p-7 shadow-[0_24px_64px_-8px_rgba(0,0,0,0.85),0_0_32px_rgba(6,182,212,0.18)] flex flex-col gap-5 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
-    <!-- Ambient Tube Glow Backgrounds -->
-    <div class="absolute -top-24 -left-24 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-28 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
-    <!-- Top Subtle Cyan Glow Accent Line -->
-    <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80 pointer-events-none"></div>
-
-    <!-- Header Section -->
-    <div class="relative z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-3.5">
-      <div>
-        <div class="flex items-center gap-2.5">
-          <span class="text-2xl select-none">🎛️</span>
-          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">Parametric Equalizer Studio</h2>
-          <span class="text-xs px-2.5 py-0.5 rounded-full bg-primary/15 text-primary font-mono font-semibold">Biquad Filter Engine</span>
-        </div>
-        <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1 max-w-xl">
-          High-precision 64-bit biquad parametric filtering with dynamic headroom auto-attenuation and KEMAR 3D spatial HRTF.
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <!-- Preset Selector Dropdown -->
-        <div class="relative">
-          <button type="button" class="btn-preset-dropdown px-3 py-1.5 rounded-full bg-[var(--surface-container-high)] hover:bg-[var(--surface-container-highest)] border border-[var(--border)] text-xs font-mono font-semibold text-[var(--text-primary)] flex items-center gap-1.5 shadow-sm transition-all" onclick="toggleEQPresetMenu(event)">
-            <span>Presets ▾</span>
-          </button>
-          <div id="eq-preset-dropdown-menu" class="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-[var(--surface-container-high)] border border-[var(--border)] shadow-xl p-1 z-50 text-xs font-mono hidden">
-            <button type="button" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-primary/15 hover:text-primary transition-colors" onclick="applyEQPreset('vocal-sparkle')">
-              <span>✨ Vocal Sparkle</span>
-            </button>
-            <button type="button" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-primary/15 hover:text-primary transition-colors" onclick="applyEQPreset('flat-studio')">
-              <span>📏 Flat Studio</span>
-            </button>
-            <button type="button" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-primary/15 hover:text-primary transition-colors" onclick="applyEQPreset('analog-tape')">
-              <span>📼 Analog Tape Reel</span>
-            </button>
-            <button type="button" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-primary/15 hover:text-primary transition-colors" onclick="applyEQPreset('warm-tube')">
-              <span>🔥 Warm Tube Saturation</span>
-            </button>
+<!-- Parametric Equalizer Studio (Stitch "The Soundbar (DSP)" 10-Band Specification) -->
+<div id="eq-studio-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-container-lowest/80 backdrop-blur-md transition-all hidden" onclick="if(event.target === this) closeEQStudioModal();">
+  <!-- Modal Window (900px, 20px rounded) -->
+  <div class="w-full max-w-[900px] h-[640px] bg-surface-container rounded-[20px] shadow-[0_24px_50px_-10px_rgba(0,0,0,0.85),0_0_30px_rgba(6,182,212,0.15)] flex flex-col overflow-hidden relative selection:bg-primary-container selection:text-on-primary-container" onclick="event.stopPropagation();">
+    <!-- Top Subtle Glow Line -->
+    <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-container/40 to-transparent"></div>
+    
+    <!-- 1. Header Section -->
+    <div class="px-space-lg pt-space-md pb-space-xs flex-shrink-0">
+      <div class="flex items-center justify-between gap-space-md mb-2">
+        <!-- Left: Title & Firmware Tag -->
+        <div class="flex items-center gap-space-sm min-w-0">
+          <span class="text-xl">🎛️</span>
+          <div class="flex items-baseline gap-space-xs truncate">
+            <h2 class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">
+              The Soundbar
+            </h2>
+            <span class="font-body-md text-body-md text-on-surface-variant hidden sm:inline">(EQ Studio)</span>
           </div>
+          <span class="font-label-sm text-label-sm bg-surface-container-lowest text-primary-container px-2 py-0.5 rounded-full shadow-inner flex-shrink-0">
+            DSP v2.4
+          </span>
         </div>
-
-        <button type="button" class="w-8 h-8 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors border border-[var(--border)]" onclick="closeEQStudioModal();" aria-label="Close EQ Studio">
-          ✕
-        </button>
+        
+        <!-- Right: Presets & Close -->
+        <div class="flex items-center gap-space-sm flex-shrink-0">
+          <!-- Preset Selector Dropdown -->
+          <div class="relative group">
+            <button class="flex items-center gap-2 bg-surface-container-lowest hover:bg-surface-container-high text-on-surface px-3 py-1.5 rounded-full font-label-md text-label-md transition-colors shadow-sm focus:outline-none" id="presetTrigger" type="button" onclick="toggleEQPresetDropdown(event)">
+              <span class="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_8px_var(--primary,#06b6d4)]"></span>
+              <span class="truncate max-w-[150px]" id="currentPresetLabel">My Custom Warm Vibe</span>
+              <span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+            </button>
+            <!-- Dropdown Menu -->
+            <div class="absolute right-0 mt-1 w-56 bg-surface-container-high rounded-xl shadow-[0_12px_28px_rgba(0,0,0,0.8)] py-1.5 hidden z-30 font-label-md text-label-md border border-outline-variant" id="presetMenu">
+              <div class="px-3 py-1 text-on-surface-variant font-label-sm text-label-sm tracking-wider uppercase">Presets</div>
+              <button class="w-full text-left px-3 py-1.5 text-on-surface hover:bg-primary-container/15 hover:text-primary transition-colors flex items-center justify-between" onclick="selectPreset('My Custom Warm Vibe', [4.5, 3.8, 2.0, 1.2, 0.4, -0.5, 1.0, 2.2, 3.4, 4.2])" type="button">
+                <span>☕ My Custom Warm Vibe</span>
+                <span class="material-symbols-outlined text-primary-container text-[14px]">check</span>
+              </button>
+              <button class="w-full text-left px-3 py-1.5 text-on-surface hover:bg-primary-container/15 hover:text-primary transition-colors" onclick="selectPreset('Bass Bump 🔊', [6.0, 5.2, 3.5, 1.0, -0.5, -1.0, 0.0, 0.5, 1.0, 1.5])" type="button">
+                <span>🔊 Bass Bump</span>
+              </button>
+              <button class="w-full text-left px-3 py-1.5 text-on-surface hover:bg-primary-container/15 hover:text-primary transition-colors" onclick="selectPreset('Vocal Sparkle ✨', [-1.0, -0.5, 0.5, 1.5, 2.0, 3.5, 4.0, 3.2, 2.8, 2.0])" type="button">
+                <span>✨ Vocal Sparkle</span>
+              </button>
+              <button class="w-full text-left px-3 py-1.5 text-on-surface hover:bg-primary-container/15 hover:text-primary transition-colors" onclick="selectPreset('Flat Studio 📏', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])" type="button">
+                <span>📏 Flat Studio</span>
+              </button>
+              <button class="w-full text-left px-3 py-1.5 text-on-surface hover:bg-primary-container/15 hover:text-primary transition-colors" onclick="selectPreset('Analog Tape Reel 📼', [2.5, 3.0, 2.0, 1.5, 0.8, -0.2, -0.8, -1.5, -2.5, -4.0])" type="button">
+                <span>📼 Analog Tape Reel</span>
+              </button>
+            </div>
+          </div>
+          <!-- Close Button -->
+          <button class="w-8 h-8 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface flex items-center justify-center transition-colors" title="Close Studio (Esc)" type="button" onclick="closeEQStudioModal()">
+            <span class="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
       </div>
-    </div>
-
-    <!-- Amber Warning Banner (Audiophile Invariant) -->
-    <div id="eq-bitperfect-notice" class="relative z-10 px-3.5 py-2 rounded-full bg-secondary/15 border border-secondary/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs font-mono text-secondary shadow-[0_0_12px_rgba(245,158,11,0.08)]">
-      <div class="flex items-center gap-2 truncate">
-        <span class="text-sm select-none">💡</span>
-        <span class="truncate">
-          Heads up: The equalizer disengages automatically when <span class="font-bold underline">Bit-Perfect mode</span> is active to preserve bitstream purity.
+      
+      <!-- Amber Warning Banner -->
+      <div class="w-full bg-secondary/10 px-3 py-1.5 rounded-full flex items-center justify-between text-secondary shadow-[0_0_12px_rgba(245,158,11,0.08)] border border-secondary/20">
+        <div class="flex items-center gap-2 truncate">
+          <span class="text-xs">💡</span>
+          <span class="font-label-sm text-label-sm truncate">
+            Heads up: The equalizer disengages automatically when <span class="font-bold underline decoration-secondary">Bit-Perfect mode</span> is active to preserve bitstream purity.
+          </span>
+        </div>
+        <span class="font-label-sm text-label-sm bg-secondary/20 px-2 py-0.5 rounded-full whitespace-nowrap hidden sm:inline">
+          Status: Standby OK
         </span>
       </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <span class="text-[10px] bg-secondary/20 px-2.5 py-0.5 rounded-full font-semibold">Status: Standby OK</span>
-        <button type="button" class="px-2.5 py-0.5 rounded-full bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] text-secondary border border-secondary/30 text-[10px] font-bold transition-colors" onclick="selectOutputRoute('spatial-headphones');">
-          Switch to DSP Profile →
-        </button>
-      </div>
     </div>
-
-    <!-- 2. Interactive SVG EQ Curve (Top Half ~190px) -->
-    <div class="relative z-10 w-full h-48 rounded-[16px] bg-[#121214] border border-[#2a2a35] p-3 flex flex-col justify-between overflow-hidden shadow-inner">
-      <div class="flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)] border-b border-[#2a2a35]/60 pb-1.5">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-[var(--text-primary)]">RESPONSE CURVE</span>
-          <span>(20 Hz – 20 kHz)</span>
-        </div>
-        <span id="eq-preamp-indicator" class="text-primary font-semibold">Headroom Preamp: -0.3 dB</span>
-      </div>
-
-      <!-- dB Scale Legend (Y-Axis) -->
-      <div class="relative w-full h-32 flex items-center justify-center" id="eqSvgContainer">
-        <div class="absolute left-1 top-0 bottom-0 flex flex-col justify-between py-1 text-[9px] font-mono text-[var(--text-muted)]/60 pointer-events-none z-10 select-none">
+    
+    <!-- 2. Interactive SVG EQ Curve (Top Half ~210px) -->
+    <div class="px-space-lg py-space-xs flex-shrink-0">
+      <div class="w-full h-[180px] bg-surface-container-lowest rounded-[14px] relative overflow-hidden shadow-inner flex flex-col justify-between p-2 border border-outline-variant/30">
+        <!-- Background Audio Grid Lines -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" preserveAspectRatio="none" viewBox="0 0 860 180">
+          <!-- Horizontal Gain Lines -->
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="860" y1="20" y2="20"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="860" y1="55" y2="55"></line>
+          <line opacity="0.6" stroke="var(--primary, #06b6d4)" stroke-width="1.2" x1="0" x2="860" y1="90" y2="90"></line> <!-- 0 dB Center Baseline -->
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="860" y1="125" y2="125"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="860" y1="160" y2="160"></line>
+          <!-- Vertical Frequency Lines -->
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="50" x2="50" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="130" x2="130" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="210" x2="210" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="295" x2="295" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="385" x2="385" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="475" x2="475" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="565" x2="565" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="655" x2="655" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="745" x2="745" y1="0" y2="180"></line>
+          <line stroke="var(--text-muted, #9ca3af)" stroke-dasharray="2,4" stroke-width="0.8" x1="825" x2="825" y1="0" y2="180"></line>
+        </svg>
+        
+        <!-- dB Scale Legend (Y-Axis) -->
+        <div class="absolute left-2.5 top-0 bottom-0 flex flex-col justify-between py-2 text-[9px] font-label-sm text-on-surface-variant/50 pointer-events-none z-10">
           <span>+12 dB</span>
           <span>+6 dB</span>
-          <span class="text-primary font-semibold">0 dB</span>
+          <span class="text-primary-container font-semibold">0 dB</span>
           <span>-6 dB</span>
           <span>-12 dB</span>
         </div>
-
-        <svg class="w-full h-full" viewBox="0 0 860 140" preserveAspectRatio="none">
+        
+        <!-- Dynamic SVG Spline & Area Gradient Fill -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none" id="eqSvgContainer" preserveAspectRatio="none" viewBox="0 0 860 180">
           <defs>
-            <linearGradient id="eqGlowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.38"></stop>
-              <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.10"></stop>
-              <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"></stop>
+            <linearGradient id="eqGlowGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+              <stop offset="0%" stop-color="var(--primary, #06b6d4)" stop-opacity="0.38"></stop>
+              <stop offset="60%" stop-color="var(--primary, #06b6d4)" stop-opacity="0.10"></stop>
+              <stop offset="100%" stop-color="var(--primary, #06b6d4)" stop-opacity="0.0"></stop>
             </linearGradient>
-            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="blur"></feGaussianBlur>
+            <filter height="140%" id="neonGlow" width="140%" x="-20%" y="-20%">
+              <feGaussianBlur result="blur" stdDeviation="3.5"></feGaussianBlur>
               <feComposite in="SourceGraphic" in2="blur" operator="over"></feComposite>
             </filter>
           </defs>
-          <!-- Horizontal Gain Baseline Lines -->
-          <line x1="0" y1="16" x2="860" y2="16" stroke="#2a2a35" stroke-dasharray="3,3" stroke-width="1"></line>
-          <line x1="0" y1="43" x2="860" y2="43" stroke="#2a2a35" stroke-dasharray="3,3" stroke-width="1"></line>
-          <line x1="0" y1="70" x2="860" y2="70" stroke="#06b6d4" stroke-width="1.2" opacity="0.6"></line> <!-- 0 dB Baseline -->
-          <line x1="0" y1="97" x2="860" y2="97" stroke="#2a2a35" stroke-dasharray="3,3" stroke-width="1"></line>
-          <line x1="0" y1="124" x2="860" y2="124" stroke="#2a2a35" stroke-dasharray="3,3" stroke-width="1"></line>
-          
-          <!-- Vertical Frequency Lines -->
-          <line x1="70" y1="0" x2="70" y2="140" stroke="#2a2a35" stroke-dasharray="2,4" stroke-width="0.8"></line>
-          <line x1="230" y1="0" x2="230" y2="140" stroke="#2a2a35" stroke-dasharray="2,4" stroke-width="0.8"></line>
-          <line x1="430" y1="0" x2="430" y2="140" stroke="#2a2a35" stroke-dasharray="2,4" stroke-width="0.8"></line>
-          <line x1="630" y1="0" x2="630" y2="140" stroke="#2a2a35" stroke-dasharray="2,4" stroke-width="0.8"></line>
-          <line x1="790" y1="0" x2="790" y2="140" stroke="#2a2a35" stroke-dasharray="2,4" stroke-width="0.8"></line>
-
-          <!-- Gradient Area under curve down to baseline (y=70) -->
-          <path id="eqAreaPath" d="M 50 70 L 50 50 C 130 50, 180 54, 230 58 C 330 64, 380 72, 430 76 C 530 78, 580 68, 630 62 C 710 56, 760 52, 810 52 L 810 70 Z" fill="url(#eqGlowGradient)"></path>
-          <!-- Radiant Cyan Spline Curve -->
-          <path id="eqCurvePath" d="M 50 50 C 130 50, 180 54, 230 58 C 330 64, 380 72, 430 76 C 530 78, 580 68, 630 62 C 710 56, 760 52, 810 52" fill="none" stroke="#06b6d4" stroke-width="2.5" filter="url(#neonGlow)"></path>
+          <!-- Gradient Area under curve down to baseline (y=90) -->
+          <path d="M 50 90 L 50 64 C 90 64, 110 68, 130 68 C 170 68, 190 78, 210 78 C 250 78, 275 83, 295 83 C 340 83, 365 87, 385 87 C 430 87, 455 93, 475 93 C 520 93, 545 84, 565 84 C 610 84, 635 77, 655 77 C 700 77, 725 70, 745 70 C 785 70, 810 65, 825 65 L 825 90 Z" fill="url(#eqGlowGradient)" id="eqAreaPath"></path>
+          <!-- The Radiant Cyan Response Curve -->
+          <path d="M 50 64 C 90 64, 110 68, 130 68 C 170 68, 190 78, 210 78 C 250 78, 275 83, 295 83 C 340 83, 365 87, 385 87 C 430 87, 455 93, 475 93 C 520 93, 545 84, 565 84 C 610 84, 635 77, 655 77 C 700 77, 725 70, 745 70 C 785 70, 810 65, 825 65" fill="none" filter="url(#neonGlow)" id="eqCurvePath" stroke="var(--primary, #06b6d4)" stroke-width="2.5"></path>
         </svg>
-
-        <!-- Interactive Floating Draggable Candy Nodes Layer -->
+        
+        <!-- 10 Floating Draggable Candy Nodes (Visual Overlays) -->
         <div class="absolute inset-0 pointer-events-none" id="nodesLayer">
-          <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 border-primary shadow-[0_0_8px_#06b6d4] -translate-x-1/2 -translate-y-1/2" style="left: 10%; top: 35%;"></div>
-          <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 border-primary shadow-[0_0_8px_#06b6d4] -translate-x-1/2 -translate-y-1/2" style="left: 30%; top: 41%;"></div>
-          <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 border-primary shadow-[0_0_8px_#06b6d4] -translate-x-1/2 -translate-y-1/2" style="left: 50%; top: 54%;"></div>
-          <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 border-primary shadow-[0_0_8px_#06b6d4] -translate-x-1/2 -translate-y-1/2" style="left: 70%; top: 44%;"></div>
-          <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 border-primary shadow-[0_0_8px_#06b6d4] -translate-x-1/2 -translate-y-1/2" style="left: 90%; top: 37%;"></div>
+          <!-- Node 1: 32Hz (+4.5) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2 group" style="left: 5.8%; top: 35%;">
+            <div class="w-3.5 h-3.5 rounded-full bg-surface text-primary border-2 border-primary-container shadow-[0_0_12px_var(--primary,#06b6d4)] flex items-center justify-center transition-transform hover:scale-125"></div>
+            <span class="absolute -top-5 left-1/2 -translate-x-1/2 font-label-sm text-[9px] bg-surface-container text-primary-container px-1 py-0.5 rounded shadow-sm opacity-90 whitespace-nowrap">+4.5</span>
+          </div>
+          <!-- Node 2: 64Hz (+3.8) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 15.1%; top: 38%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 3: 125Hz (+2.0) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 24.4%; top: 43%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 4: 250Hz (+1.2) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 34.3%; top: 46%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 5: 500Hz (+0.4) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 44.7%; top: 48%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 6: 1kHz (-0.5) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 55.2%; top: 52%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+            <span class="absolute top-4 left-1/2 -translate-x-1/2 font-label-sm text-[9px] bg-surface-container text-on-surface-variant px-1 py-0.5 rounded shadow-sm opacity-90 whitespace-nowrap">-0.5</span>
+          </div>
+          <!-- Node 7: 2kHz (+1.0) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 65.6%; top: 47%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 8: 4kHz (+2.2) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 76.1%; top: 43%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 9: 8kHz (+3.4) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 86.6%; top: 39%;">
+            <div class="w-3 h-3 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_10px_var(--primary,#06b6d4)]"></div>
+          </div>
+          <!-- Node 10: 16kHz (+4.2 Air) -->
+          <div class="absolute -translate-x-1/2 -translate-y-1/2" style="left: 95.9%; top: 36%;">
+            <div class="w-3.5 h-3.5 rounded-full bg-surface border-2 border-primary-container shadow-[0_0_12px_var(--primary,#06b6d4)] flex items-center justify-center transition-transform hover:scale-125"></div>
+            <span class="absolute -top-5 left-1/2 -translate-x-1/2 font-label-sm text-[9px] bg-surface-container text-primary-container px-1 py-0.5 rounded shadow-sm opacity-90 whitespace-nowrap">+4.2</span>
+          </div>
+        </div>
+        
+        <!-- Bottom Curve Metadata Readouts -->
+        <div class="w-full flex items-center justify-between z-10 px-2 font-label-sm text-label-sm text-on-surface-variant/70">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>Active Spline: <span class="text-on-surface">Cubic Hermite</span></span>
+            <span>•</span>
+            <span>Phase: <span class="text-on-surface">Minimum Linear</span></span>
+          </div>
+          <div class="hidden sm:flex items-center gap-2">
+            <span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-tertiary">Realtime FFT 64-bit</span>
+            <span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-secondary">Q Factor: 1.41</span>
+          </div>
         </div>
       </div>
-
-      <div class="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] border-t border-[#2a2a35]/60 pt-1">
-        <span>32 Hz</span>
-        <span>100 Hz</span>
-        <span>1 kHz</span>
-        <span>8 kHz</span>
-        <span>16 kHz</span>
-      </div>
     </div>
-
-    <!-- 5 Parametric Sliders Grid (Tactile Console Sliders) -->
-    <div class="relative z-10 grid grid-cols-5 gap-3">
-      <!-- Band 1: 80 Hz Low Shelf -->
-      <div class="p-3.5 rounded-2xl bg-[#121214] border border-[#2a2a35] flex flex-col items-center gap-2 shadow-sm">
-        <span class="text-[12px] font-mono font-bold text-[var(--text-primary)]">80 Hz</span>
-        <span class="text-[10px] font-mono text-[var(--text-muted)]">Low Shelf</span>
-        <input type="range" min="-12" max="12" step="0.5" value="1.5" class="h-24 -rotate-90 w-24 my-6 cursor-pointer custom-tactile-slider" id="eq-band-1" oninput="updateEQBand(0, this.value)">
-        <span id="eq-val-0" class="text-xs font-mono font-semibold text-primary">+1.5 dB</span>
-      </div>
-
-      <!-- Band 2: 250 Hz Peak -->
-      <div class="p-3.5 rounded-2xl bg-[#121214] border border-[#2a2a35] flex flex-col items-center gap-2 shadow-sm">
-        <span class="text-[12px] font-mono font-bold text-[var(--text-primary)]">250 Hz</span>
-        <span class="text-[10px] font-mono text-[var(--text-muted)]">Peaking</span>
-        <input type="range" min="-12" max="12" step="0.5" value="0.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer custom-tactile-slider" id="eq-band-2" oninput="updateEQBand(1, this.value)">
-        <span id="eq-val-1" class="text-xs font-mono font-semibold text-[var(--text-muted)]">0.0 dB</span>
-      </div>
-
-      <!-- Band 3: 1 kHz Peak -->
-      <div class="p-3.5 rounded-2xl bg-[#121214] border border-[#2a2a35] flex flex-col items-center gap-2 shadow-sm">
-        <span class="text-[12px] font-mono font-bold text-[var(--text-primary)]">1.0 kHz</span>
-        <span class="text-[10px] font-mono text-[var(--text-muted)]">Peaking</span>
-        <input type="range" min="-12" max="12" step="0.5" value="-1.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer custom-tactile-slider" id="eq-band-3" oninput="updateEQBand(2, this.value)">
-        <span id="eq-val-2" class="text-xs font-mono font-semibold text-primary">-1.0 dB</span>
-      </div>
-
-      <!-- Band 4: 4 kHz Peak -->
-      <div class="p-3.5 rounded-2xl bg-[#121214] border border-[#2a2a35] flex flex-col items-center gap-2 shadow-sm">
-        <span class="text-[12px] font-mono font-bold text-[var(--text-primary)]">4.0 kHz</span>
-        <span class="text-[10px] font-mono text-[var(--text-muted)]">Presence</span>
-        <input type="range" min="-12" max="12" step="0.5" value="2.0" class="h-24 -rotate-90 w-24 my-6 cursor-pointer custom-tactile-slider" id="eq-band-4" oninput="updateEQBand(3, this.value)">
-        <span id="eq-val-3" class="text-xs font-mono font-semibold text-primary">+2.0 dB</span>
-      </div>
-
-      <!-- Band 5: 12 kHz High Shelf -->
-      <div class="p-3.5 rounded-2xl bg-[#121214] border border-[#2a2a35] flex flex-col items-center gap-2 shadow-sm">
-        <span class="text-[12px] font-mono font-bold text-[var(--text-primary)]">12 kHz</span>
-        <span class="text-[10px] font-mono text-[var(--text-muted)]">Air Shelf</span>
-        <input type="range" min="-12" max="12" step="0.5" value="3.5" class="h-24 -rotate-90 w-24 my-6 cursor-pointer custom-tactile-slider" id="eq-band-5" oninput="updateEQBand(4, this.value)">
-        <span id="eq-val-4" class="text-xs font-mono font-semibold text-primary">+3.5 dB</span>
-      </div>
-    </div>
-
-    <!-- Footer Actions -->
-    <div class="relative z-10 pt-2 flex items-center justify-between border-t border-[var(--border)]">
-      <div class="flex items-center gap-3 text-xs font-mono text-[var(--text-muted)]">
-        <span>Dynamic Headroom: Auto-Protected</span>
-        <span>•</span>
-        <span class="text-primary">64-bit Floating Precision</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button type="button" class="px-4 py-2 rounded-xl bg-[#121214] hover:bg-[#2a2a35] border border-[#2a2a35] font-mono text-xs text-[var(--text-primary)] transition-all" onclick="resetEQFlat()">
-          Reset Flat
+    
+    <!-- 3. Band Sliders Section (Bottom Half) -->
+    <div class="px-space-lg py-space-xs flex-1 flex gap-space-md min-h-0">
+      <!-- Left: Pre-Amp Gain Slider Bay -->
+      <div class="w-[96px] bg-surface-container-lowest/60 rounded-xl p-2.5 flex flex-col items-center justify-between flex-shrink-0 shadow-inner border border-outline-variant/20">
+        <div class="text-center w-full">
+          <span class="font-label-sm text-[10px] text-on-surface-variant block leading-tight">PRE-AMP</span>
+          <span class="font-label-sm text-label-sm text-secondary font-bold" id="preAmpValueText">-1.5 dB</span>
+        </div>
+        <!-- Vertical Preamp Fader -->
+        <div class="relative flex items-center justify-center h-28 my-1 w-full">
+          <!-- Center Track Indicator Line -->
+          <div class="absolute w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+            <div class="w-full bg-secondary rounded-full" id="preAmpFill" style="height: 44%;"></div>
+          </div>
+          <!-- Range Input overlay -->
+          <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20" id="preAmpSlider" max="12" min="-12" oninput="updatePreAmp(this.value)" step="0.5" type="range" value="-1.5"/>
+          <!-- Visual Thumb -->
+          <div class="w-5 h-5 rounded-full bg-surface shadow-[0_0_8px_var(--secondary,#f59e0b)] border-2 border-secondary pointer-events-none z-10 transition-transform absolute" id="preAmpThumb" style="bottom: calc(44% - 10px);"></div>
+        </div>
+        <!-- Anti-Clipping Badge Toggle -->
+        <button class="w-full bg-tertiary/15 hover:bg-tertiary/25 text-tertiary px-1 py-1 rounded text-center font-label-sm text-[9px] flex flex-col items-center gap-0.5 transition-colors border border-tertiary/20" title="Safety Limiter Engaged" type="button">
+          <div class="flex items-center gap-0.5 font-bold">
+            <span>🛡️ SAFE</span>
+          </div>
+          <span class="text-[8px] opacity-75">No-Clip Active</span>
         </button>
-        <button type="button" class="px-5 py-2 rounded-xl bg-primary text-[#121214] font-bold font-mono text-xs hover:brightness-110 shadow-[0_0_16px_rgba(6,182,212,0.4)] transition-all" onclick="closeEQStudioModal();">
-          Apply &amp; Done
+      </div>
+      
+      <!-- Right: 10-Band Sliders Console -->
+      <div class="flex-1 bg-surface-container-lowest/40 rounded-xl p-2 flex items-center justify-between gap-1 min-w-0 shadow-inner overflow-x-auto border border-outline-variant/20">
+        <!-- Band 1: 32Hz (Sub) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="0">+4.5</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 68%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="0" max="12" min="-12" oninput="handleBandChange(0, this.value)" step="0.5" type="range" value="4.5"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(68% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">32Hz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Sub</span>
+          </div>
+        </div>
+        
+        <!-- Band 2: 64Hz (Bass) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="1">+3.8</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 65%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="1" max="12" min="-12" oninput="handleBandChange(1, this.value)" step="0.5" type="range" value="3.8"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(65% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">64Hz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Bass</span>
+          </div>
+        </div>
+        
+        <!-- Band 3: 125Hz (Punch) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="2">+2.0</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 58%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="2" max="12" min="-12" oninput="handleBandChange(2, this.value)" step="0.5" type="range" value="2.0"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(58% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">125Hz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Punch</span>
+          </div>
+        </div>
+        
+        <!-- Band 4: 250Hz (Low Mid) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="3">+1.2</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 55%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="3" max="12" min="-12" oninput="handleBandChange(3, this.value)" step="0.5" type="range" value="1.2"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(55% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">250Hz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">LowMid</span>
+          </div>
+        </div>
+        
+        <!-- Band 5: 500Hz (Warmth) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-on-surface-variant font-semibold band-db" data-band="4">+0.4</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 51%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="4" max="12" min="-12" oninput="handleBandChange(4, this.value)" step="0.5" type="range" value="0.4"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(51% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">500Hz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Warmth</span>
+          </div>
+        </div>
+        
+        <!-- Band 6: 1kHz (Midrange) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-on-surface-variant font-semibold band-db" data-band="5">-0.5</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 48%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="5" max="12" min="-12" oninput="handleBandChange(5, this.value)" step="0.5" type="range" value="-0.5"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(48% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">1kHz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Mid</span>
+          </div>
+        </div>
+        
+        <!-- Band 7: 2kHz (Presence) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="6">+1.0</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 54%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="6" max="12" min="-12" oninput="handleBandChange(6, this.value)" step="0.5" type="range" value="1.0"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(54% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">2kHz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Presence</span>
+          </div>
+        </div>
+        
+        <!-- Band 8: 4kHz (High Mids) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="7">+2.2</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 59%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="7" max="12" min="-12" oninput="handleBandChange(7, this.value)" step="0.5" type="range" value="2.2"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(59% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">4kHz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">HighMid</span>
+          </div>
+        </div>
+        
+        <!-- Band 9: 8kHz (Treble) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="8">+3.4</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 64%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="8" max="12" min="-12" oninput="handleBandChange(8, this.value)" step="0.5" type="range" value="3.4"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(64% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-on-surface block font-medium">8kHz</span>
+            <span class="font-label-sm text-[9px] text-on-surface-variant block">Treble</span>
+          </div>
+        </div>
+        
+        <!-- Band 10: 16kHz (Air & Shimmer) -->
+        <div class="flex-1 flex flex-col items-center justify-between h-full min-w-[56px] py-1 px-0.5 group">
+          <span class="font-label-sm text-[10px] text-primary-container font-semibold band-db" data-band="9">+4.2</span>
+          <div class="relative flex items-center justify-center h-28 my-1 w-full">
+            <div class="w-1.5 h-full bg-surface-container-high rounded-full overflow-hidden flex flex-col justify-end">
+              <div class="w-full bg-primary-container rounded-full band-fill" style="height: 67%;"></div>
+            </div>
+            <input class="w-28 h-6 absolute opacity-0 cursor-pointer -rotate-90 z-20 band-slider" data-band-index="9" max="12" min="-12" oninput="handleBandChange(9, this.value)" step="0.5" type="range" value="4.2"/>
+            <div class="w-4 h-4 rounded-full bg-surface shadow-[0_0_8px_var(--primary,#06b6d4)] border-2 border-primary-container pointer-events-none z-10 absolute band-thumb" style="bottom: calc(67% - 8px);"></div>
+          </div>
+          <div class="text-center">
+            <span class="font-label-sm text-[10px] text-primary-container block font-medium">16kHz</span>
+            <span class="font-label-sm text-[9px] text-primary-container/80 block">Air ✨</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 4. Modal Footer -->
+    <div class="px-space-lg py-space-md bg-surface-container-low/80 flex-shrink-0 flex items-center justify-between border-t border-outline-variant/30">
+      <!-- Left: Quick Utilities -->
+      <div class="flex items-center gap-space-sm">
+        <button class="flex items-center gap-1.5 bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded-full font-label-md text-label-md transition-colors shadow-sm" onclick="selectPreset('Flat Studio 📏', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])" type="button">
+          <span>📏</span>
+          <span>Reset Flat</span>
+        </button>
+        <button class="flex items-center gap-1.5 bg-surface-container-high hover:bg-surface-bright text-on-surface-variant px-3 py-1.5 rounded-full font-label-md text-label-md transition-colors shadow-sm" id="bypassBtn" onclick="toggleBypass()" type="button">
+          <span class="w-2 h-2 rounded-full bg-outline" id="bypassIndicator"></span>
+          <span id="bypassText">Bypass DSP</span>
+        </button>
+      </div>
+      <!-- Right: Actions -->
+      <div class="flex items-center gap-space-sm">
+        <button class="bg-surface-container-high hover:bg-surface-bright text-on-surface px-4 py-2 rounded-full font-label-md text-label-md flex items-center gap-1.5 transition-colors shadow-sm" type="button" onclick="closeEQStudioModal()">
+          <span>Done</span>
+        </button>
+        <button class="bg-primary-container hover:bg-primary-fixed-dim text-surface-container-lowest px-5 py-2 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-transform active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.35)]" id="applyBtn" onclick="applyCurve()" type="button">
+          <span>Apply Sound Curve</span>
+          <span class="material-symbols-outlined text-[16px]">check</span>
         </button>
       </div>
     </div>
