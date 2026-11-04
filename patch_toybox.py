@@ -1,5 +1,8 @@
+import sys
+import re
+
 def patch_file(filepath):
-    with open(filepath, "r") as f:
+    with open(filepath, 'r') as f:
         content = f.read()
 
     # The goal is to make the toybox dynamic based on /api/plugins/list
@@ -46,9 +49,8 @@ def patch_file(filepath):
     content = content.replace("togglePlugin('dsp'", "togglePluginDynamic('dsp'")
     content = content.replace("togglePlugin('maintenance'", "togglePluginDynamic('maintenance'")
 
-    with open(filepath, "w") as f:
+    with open(filepath, 'w') as f:
         f.write(content)
 
-
-if __name__ == "__main__":
-    patch_file("src/vibeplay/templates/components/addon_toybox.html")
+if __name__ == '__main__':
+    patch_file('src/vibeplay/templates/components/addon_toybox.html')

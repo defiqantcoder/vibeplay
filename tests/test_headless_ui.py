@@ -1,9 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch, MagicMock
 
-from vibeplay.db import init_db
 from vibeplay.web import create_app
-
+from vibeplay.db import init_db
+import contextlib
 
 @pytest.fixture
 def test_client(tmp_path):
@@ -11,7 +12,6 @@ def test_client(tmp_path):
     init_db(db_file)
     app = create_app(db_path=db_file)
     return TestClient(app)
-
 
 def test_headless_ui_controls(test_client, mocker):
     mocker.patch("vibeplay.player.toggle_pause")

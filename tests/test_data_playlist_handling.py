@@ -1,5 +1,6 @@
-from vibeplay.playlist import PlaylistRuleConfig
+import pytest
 
+from vibeplay.playlist import PlaylistRuleConfig
 
 def test_playlist_rule_config():
     config = PlaylistRuleConfig(
@@ -10,7 +11,7 @@ def test_playlist_rule_config():
         bpm_max=110.0,
         key="8A",
         genre_include=["Lo-Fi", "Ambient"],
-        genre_exclude=["Metal"],
+        genre_exclude=["Metal"]
     )
     assert config.vibe == "chill"
     assert config.energy_min == 0.1

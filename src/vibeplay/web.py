@@ -961,6 +961,7 @@ def create_app(
             },
         )
 
+
     from vibeplay.db import delete_saved_playlist, save_playlist
 
     @app.post("/api/playlist/save")
@@ -973,7 +974,6 @@ def create_app(
         """Save a playlist to the saved_playlists table."""
         try:
             import json
-
             track_ids = json.loads(track_ids_json)
             with get_connection(resolved_db_path) as conn:
                 playlist_id = save_playlist(conn, name, vibe_arc, track_ids)
