@@ -111,15 +111,15 @@ def find_duplicates(db_path: str) -> list[DuplicateGroup]:
         for (artist, title), tracks in at_groups.items():
             if len(tracks) > 1:
                 # Sub-group by duration (+- 2 seconds)
+                # Optimize by sorting to make it O(N log N) instead of O(N^2)
+                tracks.sort(key=lambda x: x["duration"])
                 dur_groups = []
                 for t in tracks:
-                    placed = False
-                    for dg in dur_groups:
-                        if abs(dg[0]["duration"] - t["duration"]) <= 2.0:
-                            dg.append(t)
-                            placed = True
-                            break
-                    if not placed:
+                    # In O(N log N) approach, since tracks are sorted by duration,
+                    # we can check if it belongs to the previous group
+                    if dur_groups and abs(t["duration"] - dur_groups[-1][0]["duration"]) <= 2.0:
+                        dur_groups[-1].append(t)
+                    else:
                         dur_groups.append([t])
 
                 for dg in dur_groups:
