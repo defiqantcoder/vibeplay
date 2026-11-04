@@ -1249,49 +1249,19 @@ def load_vibe_tracks_and_vectors(
     )
 
 
-def generate_playlist(
-    db_path: Path,
-    name: str = "Vibe Playlist",
-    seed_track_id: int | None = None,
-    seed_track_ids: list[int] | None = None,
-    cluster_id: int | None = None,
-    vibe: str | None = None,
-    arc: str | None = None,
-    limit: int = 25,
-    minutes: float | None = None,
-    max_artist_tracks: int = 2,
-    rules: PlaylistRuleConfig | None = None,
-    description: str | None = None,
-    settings: Settings | None = None,
-) -> GeneratedPlaylist:
-    """Generate a cohesive playlist matching target vibe parameters and constraints.
 
-    Supports seed similarity, cluster extraction, rule-based filtering, and energy arcs.
-    Enforces maximum artist count, recording deduplication, and transition optimization.
 
-    Args:
-        db_path: Path to SQLite database.
-        name: Name for the playlist.
-        seed_track_id: Single starting/seed track ID.
-        seed_track_ids: Multiple seed track IDs.
-        cluster_id: Target cluster ID to turn into a playlist.
-        vibe: Optional textual or preset descriptor of the vibe.
-        arc: Optional trajectory name (e.g. 'ramp_up', 'cooldown', 'peak', 'steady').
-        limit: Maximum number of tracks in the playlist.
-        minutes: Target total duration in minutes.
-        max_artist_tracks: Maximum tracks allowed by any single artist.
-        rules: Optional structured rule configuration.
-        settings: Application settings.
-
-    Returns:
-        GeneratedPlaylist: Sequenced playlist saved to the database.
-
-    Raises:
-        ValueError: If no analyzed tracks exist or required seed/cluster is missing.
-    """
-    cfg = settings or get_settings()
-
-    # Consolidate configuration
+def _prepare_playlist_config(
+    seed_track_id: int | None,
+    seed_track_ids: list[int] | None,
+    cluster_id: int | None,
+    vibe: str | None,
+    arc: str | None,
+    limit: int,
+    minutes: float | None,
+    max_artist_tracks: int,
+    rules: PlaylistRuleConfig | None,
+) -> tuple[PlaylistRuleConfig, list[int], str]:
     active_seeds: list[int] = []
     if seed_track_ids:
         active_seeds.extend(seed_track_ids)
@@ -1345,11 +1315,6 @@ def generate_playlist(
         config_rules.genre_exclude = rules.genre_exclude
         config_rules.allow_half_double_time = rules.allow_half_double_time
 
-    # Load vectors and metadata directly from SQLite
-    track_ids, vectors, meta_map = load_vibe_tracks_and_vectors(db_path=db_path, settings=cfg)
-    if len(track_ids) == 0:
-        raise ValueError("Cannot generate playlist: no audio tracks found in library. Please scan your music folder first.")
-
     # Apply vibe preset filters if vibe is specified
     if config_rules.vibe:
         vibe_key = config_rules.vibe.lower().strip()
@@ -1370,6 +1335,10 @@ def generate_playlist(
                     if mk not in config_rules.mood_min:
                         config_rules.mood_min[mk] = mv
 
+    return config_rules, active_seeds, mode
+
+
+def _fetch_rich_tracks(db_path) -> dict[int, dict[str, Any]]:
     # Fetch rich track data from DB
     with get_connection(db_path) as conn:
         all_tracks_rows = get_tracks_with_features(conn)
@@ -1398,47 +1367,61 @@ def generate_playlist(
             "loudness": float(r["loudness"]) if r["loudness"] is not None else -10.0,
             "mood_scores": json.loads(r["mood_scores"]) if r["mood_scores"] else {},
         }
+    return rich_tracks_by_id
 
-    id_to_vec_idx = {int(tid): idx for idx, tid in enumerate(track_ids)}
 
-    # Candidate Filtering based on mode
+
+def _filter_candidates(
+    track_ids: np.ndarray,
+    meta_map: dict[int, dict[str, Any]],
+    rich_tracks_by_id: dict[int, dict[str, Any]],
+    config_rules: PlaylistRuleConfig,
+    active_seeds: list[int]
+) -> set[int]:
     candidate_ids: set[int] = set()
 
-    if mode == "cluster":
-        candidate_ids = set(rich_tracks_by_id.keys())
-    else:
-        # Filter candidate pool with rule criteria
-        for tid, meta in rich_tracks_by_id.items():
-            if tid not in id_to_vec_idx:
+    for tid in track_ids:
+        tid = int(tid)
+        if tid not in rich_tracks_by_id:
+            continue
+        if config_rules.cluster_id is not None:
+            if meta_map[tid].get("cluster") != config_rules.cluster_id:
                 continue
 
-            # Tempo bounds
+        is_rule_mode = config_rules.mode != "cluster" and not active_seeds and not config_rules.arc
+        if is_rule_mode:
+            meta = rich_tracks_by_id[tid]
+            # BPM
             bpm = meta.get("bpm")
-            if config_rules.bpm_min is not None and bpm is not None and bpm < config_rules.bpm_min:
-                continue
-            if config_rules.bpm_max is not None and bpm is not None and bpm > config_rules.bpm_max:
-                continue
+            if bpm:
+                if config_rules.bpm_min and bpm < config_rules.bpm_min:
+                    continue
+                if config_rules.bpm_max and bpm > config_rules.bpm_max:
+                    continue
 
-            # Energy bounds
+            # Energy
             energy = meta.get("energy")
-            if config_rules.energy_min is not None and energy is not None and energy < config_rules.energy_min:
-                continue
-            if config_rules.energy_max is not None and energy is not None and energy > config_rules.energy_max:
-                continue
+            if energy is not None:
+                if config_rules.energy_min is not None and energy < config_rules.energy_min:
+                    continue
+                if config_rules.energy_max is not None and energy > config_rules.energy_max:
+                    continue
 
-            # Danceability bounds
+            # Danceability
             dance = meta.get("danceability")
-            if config_rules.danceability_min is not None and dance is not None and dance < config_rules.danceability_min:
-                continue
-            if config_rules.danceability_max is not None and dance is not None and dance > config_rules.danceability_max:
-                continue
+            if dance is not None:
+                if config_rules.danceability_min is not None and dance < config_rules.danceability_min:
+                    continue
+                if config_rules.danceability_max is not None and dance > config_rules.danceability_max:
+                    continue
 
-            # Year bounds
+            # Year
             year = meta.get("year")
-            if config_rules.year_min is not None and year is not None and year < config_rules.year_min:
-                continue
-            if config_rules.year_max is not None and year is not None and year > config_rules.year_max:
-                continue
+            if year:
+                if config_rules.year_min and year < config_rules.year_min:
+                    continue
+                if config_rules.year_max and year > config_rules.year_max:
+                    continue
 
             # Genre include / exclude
             combined_genre_text = (f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}").lower()
@@ -1461,19 +1444,30 @@ def generate_playlist(
 
             # Key / Scale
             if config_rules.key is not None:
+                # key_to_camelot will be used, assuming it's available in module scope
                 req_camelot = key_to_camelot(config_rules.key, config_rules.scale)
                 trk_camelot = key_to_camelot(meta.get("key"), meta.get("scale"))
                 if req_camelot and trk_camelot and req_camelot != trk_camelot:
                     continue
 
-            candidate_ids.add(tid)
+        candidate_ids.add(tid)
 
     # Fallback if filters were too restrictive
     if len(candidate_ids) == 0:
+        import logging
+        logger = logging.getLogger(__name__)
         logger.warning("Rules yielded 0 candidates; falling back to full library tracks.")
         candidate_ids = set(rich_tracks_by_id.keys())
 
-    # Build reference vibe vector
+    return candidate_ids
+
+def _calculate_reference_vector(
+    active_seeds: list[int],
+    vectors: np.ndarray,
+    id_to_vec_idx: dict[int, int],
+    candidate_ids: set[int]
+) -> np.ndarray:
+    ref_vector = vectors[0]
     if active_seeds:
         seed_vectors = [vectors[id_to_vec_idx[s]] for s in active_seeds if s in id_to_vec_idx]
         if seed_vectors:
@@ -1492,8 +1486,20 @@ def generate_playlist(
             ref_vector = (ref_vector / norm) if norm > 0 else vectors[0]
         else:
             ref_vector = vectors[0]
+    return ref_vector
 
-    # Select Starting Track
+
+
+def _select_start_track(
+    active_seeds: list[int],
+    rich_tracks_by_id: dict[int, dict[str, Any]],
+    config_rules: PlaylistRuleConfig,
+    limit: int,
+    candidate_ids: set[int],
+    id_to_vec_idx: dict[int, int],
+    vectors: np.ndarray,
+    ref_vector: np.ndarray
+) -> int:
     start_track_id: int | None = None
     if active_seeds and active_seeds[0] in rich_tracks_by_id:
         start_track_id = active_seeds[0]
@@ -1519,8 +1525,21 @@ def generate_playlist(
 
     if start_track_id is None:
         start_track_id = next(iter(candidate_ids))
+    return start_track_id
 
-    # Sequencing Loop
+
+def _sequence_playlist(
+    start_track_id: int,
+    rich_tracks_by_id: dict[int, dict[str, Any]],
+    vectors: np.ndarray,
+    id_to_vec_idx: dict[int, int],
+    candidate_ids: set[int],
+    config_rules: PlaylistRuleConfig,
+    limit: int,
+    minutes: float | None,
+    max_artist_tracks: int,
+    ref_vector: np.ndarray
+) -> tuple[list[PlaylistTrackItem], float, float]:
     playlist_items: list[PlaylistTrackItem] = []
     used_track_ids: set[int] = set()
     used_dedup_keys: set[str] = set()
@@ -1654,6 +1673,50 @@ def generate_playlist(
     # Calculate average transition score
     transitions = [item.transition.total_score for item in playlist_items if item.transition]
     avg_trans_score = float(np.mean(transitions)) if transitions else 1.0
+
+    return playlist_items, current_duration, avg_trans_score
+
+
+def generate_playlist(
+    db_path: Path,
+    name: str = "Vibe Playlist",
+    seed_track_id: int | None = None,
+    seed_track_ids: list[int] | None = None,
+    cluster_id: int | None = None,
+    vibe: str | None = None,
+    arc: str | None = None,
+    limit: int = 25,
+    minutes: float | None = None,
+    max_artist_tracks: int = 2,
+    rules: PlaylistRuleConfig | None = None,
+    description: str | None = None,
+    settings: Settings | None = None,
+) -> GeneratedPlaylist:
+    cfg = settings or get_settings()
+
+    config_rules, active_seeds, mode = _prepare_playlist_config(
+        seed_track_id, seed_track_ids, cluster_id, vibe, arc, limit, minutes, max_artist_tracks, rules
+    )
+
+    # Load vectors and metadata directly from SQLite
+    track_ids, vectors, meta_map = load_vibe_tracks_and_vectors(db_path=db_path, settings=cfg)
+    if len(track_ids) == 0:
+        raise ValueError("Cannot generate playlist: no audio tracks found in library. Please scan your music folder first.")
+
+    rich_tracks_by_id = _fetch_rich_tracks(db_path)
+
+    id_to_vec_idx = {int(tid): i for i, tid in enumerate(track_ids)}
+
+    candidate_ids = _filter_candidates(track_ids, meta_map, rich_tracks_by_id, config_rules, active_seeds)
+    ref_vector = _calculate_reference_vector(active_seeds, vectors, id_to_vec_idx, candidate_ids)
+
+    start_track_id = _select_start_track(
+        active_seeds, rich_tracks_by_id, config_rules, limit, candidate_ids, id_to_vec_idx, vectors, ref_vector
+    )
+
+    playlist_items, current_duration, avg_trans_score = _sequence_playlist(
+        start_track_id, rich_tracks_by_id, vectors, id_to_vec_idx, candidate_ids, config_rules, limit, minutes, max_artist_tracks, ref_vector
+    )
 
     # Persist to database
     desc = description or f"Generated by vibeplay ({mode} mode, {len(playlist_items)} tracks)"
