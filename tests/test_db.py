@@ -312,3 +312,74 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM tracks")
         count = cursor.fetchone()[0]
         assert count == num_threads * tracks_per_thread
+
+
+def test_bulk_update_track_vibe_tags(tmp_path: Path):
+    db_file = tmp_path / "test_bulk.db"
+    init_db(db_file)
+    with get_connection(db_file) as conn:
+        import sqlite3
+
+        conn.row_factory = sqlite3.Row
+        # Setup some dummy tracks
+        cursor = conn.cursor()
+        tracks = []
+        for i in range(1, 6):
+            tracks.append((i, f"path_{i}.mp3", f"hash_{i}", 0, 1000, 100.0, "title", "artist", "active"))
+
+        cursor.executemany(
+            """
+            INSERT INTO tracks (id, path, hash, mtime, size, duration, title, artist, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            tracks,
+        )
+
+        # Pre-populate enrichment for a couple of tracks
+        cursor.execute(
+            """
+            INSERT INTO enrichment (track_id, source, tags, genres, status, confidence)
+            VALUES (?, 'source', '[]', '[]', 'matched', 1.0)
+            """,
+            (1,),
+        )
+        cursor.execute(
+            """
+            INSERT INTO enrichment (track_id, source, tags, genres, status, confidence)
+            VALUES (?, 'source', '[]', '[]', 'matched', 1.0)
+            """,
+            (2,),
+        )
+
+        from vibeplay.db import bulk_update_track_vibe_tags
+
+        updates = [(1, ["mood1"], ["genre1"]), (2, ["mood2"], ["genre2"]), (3, ["mood3"], ["genre3"]), (4, ["mood4"], ["genre4"])]
+
+        bulk_update_track_vibe_tags(conn, updates)
+
+        # Assertions
+        # Enrichment table
+        cursor.execute("SELECT track_id, tags, genres FROM enrichment ORDER BY track_id")
+        enrichment_rows = cursor.fetchall()
+
+        assert len(enrichment_rows) == 4
+        for i, row in enumerate(enrichment_rows):
+            track_id = row[0]
+            tags = row[1]
+            genres = row[2]
+
+            assert track_id == i + 1
+            assert f"mood{i + 1}" in tags
+            assert f"genre{i + 1}" in genres
+
+        # Tracks table
+        cursor.execute("SELECT id, tags FROM tracks ORDER BY id")
+        track_rows = cursor.fetchall()
+
+        for row in track_rows:
+            track_id = row[0]
+            tags = row[1]
+            if track_id <= 4:
+                assert f"mood{track_id}" in tags
+            else:
+                assert tags is None

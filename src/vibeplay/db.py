@@ -251,7 +251,7 @@ MIGRATIONS: list[tuple[int, str, str]] = [
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-        """
+        """,
     ),
 ]
 
@@ -1206,7 +1206,6 @@ def get_playlist_tracks(
     return cursor.fetchall()
 
 
-
 @retry_db_locked()
 def save_playlist(
     conn: sqlite3.Connection,
@@ -1242,7 +1241,7 @@ def save_playlist(
             INSERT INTO playlists (id, name, created_at, updated_at)
             VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
-            (playlist_id, name)
+            (playlist_id, name),
         )
         items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
         cursor.executemany(
@@ -1254,6 +1253,7 @@ def save_playlist(
         )
 
     return playlist_id
+
 
 def get_saved_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """List all saved playlists with track counts and total durations."""
@@ -1275,6 +1275,7 @@ def get_saved_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     cursor.execute(query)
     return cursor.fetchall()
 
+
 @retry_db_locked()
 def delete_saved_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     """Delete a saved playlist and its tracks."""
@@ -1283,6 +1284,7 @@ def delete_saved_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     deleted = cursor.rowcount
     cursor.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
     return deleted > 0
+
 
 def list_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """List all saved playlists with track counts and total durations.
@@ -1488,3 +1490,79 @@ def update_track_vibe_tags(
         "UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (combined_tags_json, track_id),
     )
+
+
+@retry_db_locked()
+def bulk_update_track_vibe_tags(
+    conn: sqlite3.Connection,
+    updates: list[tuple[int, list[str], list[str]]]
+) -> None:
+    """Persist generated mood and genre tags for multiple tracks in bulk.
+
+    Args:
+        conn: Open SQLite connection.
+        updates: List of tuples (track_id, mood_tags, genre_tags).
+    """
+    if not updates:
+        return
+
+    cursor = conn.cursor()
+    chunk_size = 900  # Safe limit below 999 SQLite variable limit
+
+    for i in range(0, len(updates), chunk_size):
+        chunk = updates[i:i + chunk_size]
+        track_ids = [u[0] for u in chunk]
+        placeholders = ",".join("?" for _ in track_ids)
+
+        cursor.execute(
+            f"SELECT track_id FROM enrichment WHERE track_id IN ({placeholders})",
+            track_ids,
+        )
+        existing_ids = set()
+        for row in cursor.fetchall():
+            try:
+                existing_ids.add(row["track_id"])
+            except TypeError:
+                existing_ids.add(row[0])
+
+        updates_to_do = []
+        inserts_to_do = []
+        track_updates_to_do = []
+
+        for track_id, mood_tags, genre_tags in chunk:
+            combined_tags_json = json.dumps(mood_tags)
+            combined_genres_json = json.dumps(genre_tags)
+
+            if track_id in existing_ids:
+                updates_to_do.append((combined_tags_json, combined_genres_json, track_id))
+            else:
+                inserts_to_do.append((track_id, combined_tags_json, combined_genres_json))
+
+            track_updates_to_do.append((combined_tags_json, track_id))
+
+        if updates_to_do:
+            cursor.executemany(
+                """
+                UPDATE enrichment
+                SET tags = ?, genres = ?, fetched_at = CURRENT_TIMESTAMP
+                WHERE track_id = ?
+                """,
+                updates_to_do,
+            )
+
+        if inserts_to_do:
+            cursor.executemany(
+                """
+                INSERT INTO enrichment (track_id, source, tags, genres, status, confidence, fetched_at)
+                VALUES (?, 'llm', ?, ?, 'matched', 1.0, CURRENT_TIMESTAMP)
+                """,
+                inserts_to_do,
+            )
+
+        if track_updates_to_do:
+            cursor.executemany(
+                """
+                UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                """,
+                track_updates_to_do,
+            )
