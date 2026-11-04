@@ -49,64 +49,49 @@ class LibrosaAnalyzer(BaseAnalyzer):
         best_key, best_scale = max(scores, key=lambda k: scores[k])
         return best_key, best_scale
 
-    def extract_features(
-        self,
-        audio: np.ndarray,
-        track_id: int,
-    ) -> AudioFeatures:
-        mono_audio = downmix_to_mono(audio)
-        """Extract acoustic features and 128-dim embedding using librosa.
-
-        Args:
-            audio: 1D float32 audio waveform samples.
-            track_id: Database track ID.
-
-        Returns:
-            AudioFeatures: Extracted features.
-        """
-        # Rhythm / BPM
+    def _extract_bpm(self, mono_audio: np.ndarray, track_id: int) -> float | None:
         try:
             tempo, _ = librosa.beat.beat_track(y=mono_audio, sr=self._sample_rate)
             bpm_val = float(tempo[0] if isinstance(tempo, (list, np.ndarray)) else tempo)
-            bpm = round(bpm_val, 2)
+            return round(bpm_val, 2)
         except Exception as err:
             logger.debug("Librosa beat_track failed on track %d: %s", track_id, err)
-            bpm = None
+            return None
 
-        # Chroma and Key/Scale
+    def _extract_key_and_scale(self, mono_audio: np.ndarray, track_id: int) -> tuple[str | None, str | None, np.ndarray]:
         try:
             chroma = librosa.feature.chroma_stft(y=mono_audio, sr=self._sample_rate)
             chroma_mean = np.mean(chroma, axis=1)
             key, scale = self._estimate_key(chroma_mean)
+            return key, scale, chroma_mean
         except Exception as err:
             logger.debug("Librosa key estimation failed on track %d: %s", track_id, err)
-            key, scale = None, None
-            chroma_mean = np.zeros(12, dtype=np.float32)
+            return None, None, np.zeros(12, dtype=np.float32)
 
-        # RMS Energy and Loudness
+    def _extract_energy_and_loudness(self, mono_audio: np.ndarray) -> tuple[float, float]:
         try:
             rms_frames = librosa.feature.rms(y=mono_audio)[0]
             rms_val = float(np.mean(rms_frames))
             energy = float(round(np.clip(rms_val * 4.0, 0.0, 1.0), 4))
-            # Approximate LUFS / dB from RMS
             loudness = float(round(20.0 * np.log10(max(rms_val, 1e-5)), 2))
+            return energy, loudness
         except Exception:
-            energy, loudness = 0.5, -14.0
+            return 0.5, -14.0
 
-        # Danceability (regularity of onset strength peaks)
+    def _extract_danceability(self, mono_audio: np.ndarray) -> float:
         try:
             onset_env = librosa.onset.onset_strength(y=mono_audio, sr=self._sample_rate)
             autocorr = librosa.autocorrelate(onset_env, max_size=int(self._sample_rate / 64))
             if len(autocorr) > 1 and autocorr[0] > 0:
                 dance_score = float(np.max(autocorr[1:]) / autocorr[0])
-                danceability = float(round(np.clip(dance_score * 1.5, 0.0, 1.0), 4))
+                return float(round(np.clip(dance_score * 1.5, 0.0, 1.0), 4))
             else:
-                danceability = 0.5
+                return 0.5
         except Exception as err:
             logger.debug("Librosa danceability estimation failed: %s", err)
-            danceability = 0.5
+            return 0.5
 
-        # MFCC and Spectral features for Embedding
+    def _extract_spectral_features(self, mono_audio: np.ndarray) -> tuple[np.ndarray, np.ndarray, float, np.ndarray]:
         try:
             mfcc = librosa.feature.mfcc(y=mono_audio, sr=self._sample_rate, n_mfcc=20)
             mfcc_mean = np.mean(mfcc, axis=1)
@@ -117,13 +102,27 @@ class LibrosaAnalyzer(BaseAnalyzer):
 
             spectral_contrast = librosa.feature.spectral_contrast(y=mono_audio, sr=self._sample_rate)
             sc_mean = np.mean(spectral_contrast, axis=1)
+            return mfcc_mean, mfcc_std, sc_norm, sc_mean
         except Exception:
-            mfcc_mean = np.zeros(20, dtype=np.float32)
-            mfcc_std = np.zeros(20, dtype=np.float32)
-            sc_norm = 0.5
-            sc_mean = np.zeros(7, dtype=np.float32)
+            return (
+                np.zeros(20, dtype=np.float32),
+                np.zeros(20, dtype=np.float32),
+                0.5,
+                np.zeros(7, dtype=np.float32),
+            )
 
-        # Assemble 128-dimensional embedding
+    def _assemble_embedding(
+        self,
+        bpm: float | None,
+        energy: float,
+        danceability: float,
+        loudness: float,
+        chroma_mean: np.ndarray,
+        mfcc_mean: np.ndarray,
+        mfcc_std: np.ndarray,
+        sc_norm: float,
+        sc_mean: np.ndarray,
+    ) -> np.ndarray:
         feature_concat = np.concatenate(
             [
                 mfcc_mean,
@@ -146,8 +145,9 @@ class LibrosaAnalyzer(BaseAnalyzer):
         norm = np.linalg.norm(embedding)
         if norm > 0:
             embedding = embedding / norm
+        return embedding
 
-        # Mood scores
+    def _calculate_mood_scores(self, bpm: float | None, scale: str | None, loudness: float, energy: float, danceability: float) -> dict[str, float]:
         is_major = 1.0 if scale == "major" else 0.0
         norm_bpm = np.clip(((bpm or 120.0) - 60.0) / 100.0, 0.0, 1.0)
         norm_loud = np.clip((loudness + 30.0) / 30.0, 0.0, 1.0)
@@ -184,7 +184,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
         )
         electronic = float(np.clip(0.4 * danceability + 0.3 * energy + 0.3 * norm_loud, 0.0, 1.0))
 
-        mood_scores = {
+        return {
             "happy": round(happy, 4),
             "sad": round(sad, 4),
             "relaxed": round(relaxed, 4),
@@ -193,6 +193,32 @@ class LibrosaAnalyzer(BaseAnalyzer):
             "acoustic": round(acoustic, 4),
             "electronic": round(electronic, 4),
         }
+
+    def extract_features(
+        self,
+        audio: np.ndarray,
+        track_id: int,
+    ) -> AudioFeatures:
+        """Extract acoustic features and 128-dim embedding using librosa.
+
+        Args:
+            audio: 1D float32 audio waveform samples.
+            track_id: Database track ID.
+
+        Returns:
+            AudioFeatures: Extracted features.
+        """
+        mono_audio = downmix_to_mono(audio)
+
+        bpm = self._extract_bpm(mono_audio, track_id)
+        key, scale, chroma_mean = self._extract_key_and_scale(mono_audio, track_id)
+        energy, loudness = self._extract_energy_and_loudness(mono_audio)
+        danceability = self._extract_danceability(mono_audio)
+        mfcc_mean, mfcc_std, sc_norm, sc_mean = self._extract_spectral_features(mono_audio)
+
+        embedding = self._assemble_embedding(bpm, energy, danceability, loudness, chroma_mean, mfcc_mean, mfcc_std, sc_norm, sc_mean)
+
+        mood_scores = self._calculate_mood_scores(bpm, scale, loudness, energy, danceability)
 
         return AudioFeatures(
             track_id=track_id,

@@ -2302,7 +2302,7 @@ def create_app(
     plugin_mgr.initialize()
     app.state.plugin_manager = plugin_mgr
 
-    @app.get("/api/plugins/list")
+    @app.get("/api/plugins/list", name="api_plugins_list")
     async def api_plugins_list_duplicate() -> JSONResponse:
         """Return the plugin manager's list, or a 500 response if it is absent."""
         pm = getattr(app.state, "plugin_manager", None)
@@ -2310,7 +2310,7 @@ def create_app(
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
         return JSONResponse(content={"plugins": pm.list_plugins()})
 
-    @app.post("/api/plugins/{plugin_id}/toggle")
+    @app.post("/api/plugins/{plugin_id}/toggle", name="api_plugins_toggle")
     async def api_plugins_toggle_duplicate(plugin_id: str, request: Request) -> JSONResponse:
         """Toggle a plugin using the JSON enable value, which defaults to false.
 

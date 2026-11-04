@@ -766,6 +766,25 @@ class PlaylistRuleConfig(BaseModel):
     allow_half_double_time: bool = False
 
 
+class PlaylistRequest(BaseModel):
+    """Request object for generating a playlist, encapsulating CLI or API parameters."""
+
+    name: str = "Vibe Playlist"
+    prompt: str | None = None
+    seed: str | None = None
+    cluster: int | None = None
+    vibe: str | None = None
+    arc: str | None = None
+    limit: int = 25
+    minutes: float | None = None
+    max_artist_tracks: int = 2
+    export_m3u8: Path | None = None
+    relative: bool = False
+    play: bool = False
+    db: Path | None = None
+
+
+
 def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
     """Calculate target energy value at a normalized position along an energy arc.
 
@@ -1756,3 +1775,62 @@ def generate_playlist(
         total_duration=round(current_duration, 2),
         avg_transition_score=round(avg_trans_score, 4),
     )
+
+
+def generate_vibe_playlist(request: PlaylistRequest, settings: Settings | None = None) -> GeneratedPlaylist:
+    """Process a PlaylistRequest and generate a GeneratedPlaylist."""
+    cfg = settings or get_settings()
+    db_path = request.db.expanduser().resolve() if request.db else cfg.db_path.expanduser().resolve()
+
+    seed_ids: list[int] = []
+    if request.seed:
+        try:
+            seed_ids = [int(s.strip()) for s in request.seed.split(",") if s.strip()]
+        except ValueError:
+            raise ValueError(f"Invalid seed track ID format: '{request.seed}'. Expected integer(s).")
+
+    description: str | None = None
+    custom_rules: PlaylistRuleConfig | None = None
+    name = request.name
+
+    if request.prompt and request.prompt.strip():
+        nl_query = parse_natural_language_prompt(request.prompt.strip())
+        vibe = request.vibe or nl_query.vibe
+        arc = request.arc or nl_query.arc
+
+        if name == "Vibe Playlist":
+            name = request.prompt.strip().title()
+
+        description = f"Smart playlist for '{request.prompt.strip()}'"
+
+        custom_rules = PlaylistRuleConfig(
+            mode="rules",
+            arc=arc,
+            vibe=vibe,
+            bpm_min=nl_query.bpm_min,
+            bpm_max=nl_query.bpm_max,
+            energy_min=nl_query.energy_min,
+            energy_max=nl_query.energy_max,
+            danceability_min=nl_query.danceability_min,
+            danceability_max=nl_query.danceability_max,
+            genre_include=[nl_query.genre_like] if nl_query.genre_like else [],
+            limit=request.limit,
+            max_artist_tracks=request.max_artist_tracks,
+        )
+
+    gen = generate_playlist(
+        db_path=db_path,
+        name=name,
+        seed_track_ids=seed_ids,
+        cluster_id=request.cluster,
+        vibe=request.vibe if custom_rules is None else custom_rules.vibe,
+        arc=request.arc if custom_rules is None else custom_rules.arc,
+        limit=request.limit if custom_rules is None else custom_rules.limit,
+        minutes=request.minutes,
+        max_artist_tracks=request.max_artist_tracks,
+        rules=custom_rules,
+        description=description,
+        settings=cfg,
+    )
+
+    return gen

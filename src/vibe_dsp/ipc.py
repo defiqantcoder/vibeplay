@@ -117,9 +117,8 @@ def switch_audio_profile(profile_id: str, options: dict[str, Any] | None = None)
         target_dac = report.active_dac or report.fallback_endpoint
         if target_dac:
             mpd_cfg = generate_mpd_audio_outputs(
-                endpoints=report.endpoints,
-                primary_device=target_dac.hw_device,
-                enable_bitperfect=True,
+                primary_endpoint=target_dac,
+                fallback_endpoint=report.fallback_endpoint,
             )
             write_mpd_audio_outputs_config(mpd_cfg)
         apply_wpctl_sink_rate_override()

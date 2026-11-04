@@ -237,16 +237,16 @@ def detect_cpu_power_profile(
                 if online_file.exists():
                     try:
                         ac_online = online_file.read_text().strip() == "1"
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Failed to read AC online status from %s: %s", online_file, e)
             elif "BAT" in name:
                 battery_present = True
                 status_file = psy / "status"
                 if status_file.exists():
                     try:
                         battery_status = status_file.read_text().strip()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Failed to read battery status from %s: %s", status_file, e)
 
     rec = "System power profile optimal."
     if not ac_online and is_throttled:

@@ -159,3 +159,19 @@ class LatencyMonitorReport(BaseModel):
     system_load: float = 0.0
     anomalies: list[MicroStutterAnomaly] = Field(default_factory=list)
     diagnostics: list[str] = Field(default_factory=list)
+
+
+class BitPerfectRoutingResult(BaseModel):
+    """Result of configuring bit-perfect routing."""
+
+    target_ep: AudioEndpoint = Field(description="Primary target endpoint")
+    fallback_ep: AudioEndpoint | None = Field(default=None, description="Secondary fallback endpoint")
+    pipewire_cfg: str = Field(description="Generated PipeWire configuration")
+    mpd_cfg: str = Field(description="Generated MPD configuration")
+    target_pw_file: str = Field(description="Path to target PipeWire configuration file")
+    target_mpd_file: str = Field(description="Path to target MPD configuration file")
+    backup_dir: str | None = Field(default=None, description="Path to configuration backup directory")
+    rollback_script: str | None = Field(default=None, description="Path to rollback bash script")
+    reload_msg: str = Field(description="Status message from daemon reload attempt")
+    reload_success: bool = Field(default=False, description="Whether the daemon reload was successful")
+    device_status: str = Field(description="Status of ALSA hardware subdevice")
