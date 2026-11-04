@@ -375,7 +375,7 @@ def extract_energy_arcs() -> dict[str, EnergyArcCurveSpec]:
             "name": "Slow Burn",
             "formula": "0.25 + 0.65 * (t ** 3)",
             "desc": "Extended subtle incubation exploding into exponential explosive energy in the final third.",
-            "fn": lambda t: min(1.0, max(0.20, 0.25 + 0.65 * (t ** 3))),
+            "fn": lambda t: min(1.0, max(0.20, 0.25 + 0.65 * (t**3))),
         },
         {
             "id": "steady_pulse",
@@ -417,7 +417,7 @@ def extract_energy_arcs() -> dict[str, EnergyArcCurveSpec]:
             "name": "Exponential Drop",
             "formula": "0.90 - 0.70 * (t ** 2)",
             "desc": "High-impact opening that drops with accelerating deceleration into ambient quietude.",
-            "fn": lambda t: max(0.20, 0.90 - 0.70 * (t ** 2)),
+            "fn": lambda t: max(0.20, 0.90 - 0.70 * (t**2)),
         },
         {
             "id": "sine_plateau",
@@ -431,14 +431,14 @@ def extract_energy_arcs() -> dict[str, EnergyArcCurveSpec]:
             "name": "Early Apex",
             "formula": "0.35 + 0.60 * sin(pi * (t ** 0.5))",
             "desc": "Quick surge to an early climax followed by a long, graceful wind-down.",
-            "fn": lambda t: min(1.0, max(0.20, 0.35 + 0.60 * math.sin(math.pi * (t ** 0.5)))),
+            "fn": lambda t: min(1.0, max(0.20, 0.35 + 0.60 * math.sin(math.pi * (t**0.5)))),
         },
         {
             "id": "late_apex",
             "name": "Late Apex",
             "formula": "0.25 + 0.70 * (sin(pi * (t ** 2)) ** 0.5)",
             "desc": "Patient slow-burn build peaking at the 85% mark before a brief outro cooldown.",
-            "fn": lambda t: min(1.0, max(0.20, 0.25 + 0.70 * (math.sin(math.pi * (t ** 2)) ** 0.5) if math.sin(math.pi * (t ** 2)) >= 0 else 0.25)),
+            "fn": lambda t: min(1.0, max(0.20, 0.25 + 0.70 * (math.sin(math.pi * (t**2)) ** 0.5) if math.sin(math.pi * (t**2)) >= 0 else 0.25)),
         },
         {
             "id": "ambient_drift",
@@ -628,9 +628,13 @@ def main() -> int:
         print(f"    - Algorithm Weights: BPM={validated.algorithm_weights.bpm_harmonic_weight}")
         print(f"    - Vibe Presets: {len(validated.vibe_presets)} presets")
         print(f"    - Derived Moods: {len(validated.derived_moods)} formulas")
-        print(f"    - Camelot System: 24 keys, {len(validated.camelot_harmonic_system.distance_matrix)}x{len(validated.camelot_harmonic_system.distance_matrix)} distance matrix")
+        print(
+            f"    - Camelot System: 24 keys, {len(validated.camelot_harmonic_system.distance_matrix)}x{len(validated.camelot_harmonic_system.distance_matrix)} distance matrix"
+        )
         print(f"    - Energy Arcs: {len(validated.energy_arcs)} curves sampled at 11 positions")
-        print(f"    - Biquad Validation: Fc {validated.biquad_filter_validation.frequency_hz['min']}-{validated.biquad_filter_validation.frequency_hz['max']} Hz, Gain +/-{validated.biquad_filter_validation.gain_db['max']} dB")
+        print(
+            f"    - Biquad Validation: Fc {validated.biquad_filter_validation.frequency_hz['min']}-{validated.biquad_filter_validation.frequency_hz['max']} Hz, Gain +/-{validated.biquad_filter_validation.gain_db['max']} dB"
+        )
         print(f"    - K-Weighting: {len(validated.k_weighting_loudness.coefficients)} sample rates calibrated (48kHz & 44.1kHz)")
     except Exception as val_err:
         print(f"[!] Schema re-validation FAILED: {val_err}", file=sys.stderr)
