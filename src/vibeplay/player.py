@@ -568,12 +568,15 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
         with get_mpd_transport(cfg) as transport:
             if transport.client:
                 mpd_outs = transport.client.outputs()
+                has_fiio = any("fiio" in p.lower() for p in profiles)
+                profiles_set = set(profiles)
                 for out in mpd_outs:
                     name = out.get("outputname")
-                    if name and name not in profiles:
-                        if "fiio" in name.lower() and not any("fiio" in p.lower() for p in profiles):
+                    if name and name not in profiles_set:
+                        if not has_fiio and "fiio" in name.lower():
                             continue
                         profiles.append(name)
+                        profiles_set.add(name)
     except Exception:
         pass
 
