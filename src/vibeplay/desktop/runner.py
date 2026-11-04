@@ -23,13 +23,11 @@ from urllib.request import urlopen
 
 import uvicorn
 
-from vibeplay.desktop.app import resolve_app_icon_path as resolve_app_icon_path
-from vibeplay.desktop.app import run_webview, setup_gtk
+from vibeplay.desktop.app import run_webview, setup_gtk, resolve_app_icon_path
 from vibeplay.desktop.constants import (
     DEFAULT_BACKEND_HOST,
     DEFAULT_BACKEND_PORT,
 )
-from vibeplay.desktop.mpris import MPRISServer
 from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.web import create_app
 
@@ -129,7 +127,6 @@ class DesktopRunner:
         self.mpd_proc: subprocess.Popen[Any] | None = None
         self.window: Any = None
         self.is_running: bool = False
-        self.mpris = MPRISServer(self)
         self.ready_event = threading.Event()
         self._shutdown_lock = threading.Lock()
 
@@ -209,7 +206,6 @@ class DesktopRunner:
 
         self._start_mpd_if_needed()
         self._start_backend_server()
-        self.mpris.start()
 
         if headless:
             logger.info("Running vibeplay desktop in headless mode on http://%s:%d", self.host, self.port)
@@ -234,7 +230,6 @@ class DesktopRunner:
             if not self.is_running:
                 return
             self.is_running = False
-            self.mpris.stop()
 
             if self.server:
                 self.server.should_exit = True

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Any
 
 from vibeplay.desktop.constants import (
@@ -13,6 +12,8 @@ from vibeplay.desktop.constants import (
     DEFAULT_WINDOW_WIDTH,
     WINDOW_TITLE,
 )
+from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 

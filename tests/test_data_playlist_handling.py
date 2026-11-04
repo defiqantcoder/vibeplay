@@ -1,6 +1,6 @@
+import pytest
 
 from vibeplay.playlist import PlaylistRuleConfig
-
 
 def test_playlist_rule_config():
     config = PlaylistRuleConfig(

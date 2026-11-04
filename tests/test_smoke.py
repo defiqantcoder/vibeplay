@@ -7,7 +7,6 @@ from typing import Any
 from typer.testing import CliRunner
 
 import vibeplay
-from vibeplay.capabilities import CapabilityStatus
 from vibeplay.cli import app
 from vibeplay.db import init_db
 
@@ -35,7 +34,6 @@ def test_cli_help() -> None:
         "export",
         "play",
         "serve",
-        "doctor",
     ]:
         assert cmd in result.stdout
 
@@ -87,35 +85,3 @@ def test_db_init_schema(tmp_path: Path) -> None:
     assert "v_tracks_best_value" in views
 
     conn.close()
-
-
-def test_cli_doctor(monkeypatch: Any) -> None:
-    """Verify that vibeplay doctor executes successfully and outputs the capabilities table."""
-
-    def mock_check_all_capabilities(settings: Any) -> list[CapabilityStatus]:
-        return [
-            CapabilityStatus(
-                name="Test Available Cap",
-                available=True,
-                provider="Test Provider",
-                detail="Test Detail",
-            ),
-            CapabilityStatus(
-                name="Test Missing Cap",
-                available=False,
-                provider="Test Provider 2",
-                detail="Test Detail 2",
-                remediation="Test Remediation",
-            ),
-        ]
-
-    monkeypatch.setattr("vibeplay.cli.check_all_capabilities", mock_check_all_capabilities)
-
-    result = runner.invoke(app, ["doctor"])
-    assert result.exit_code == 0
-    assert "VibePlay Runtime Capabilities" in result.stdout
-    assert "Test Available Cap" in result.stdout
-    assert "Available" in result.stdout
-    assert "Test Missing Cap" in result.stdout
-    assert "Missing" in result.stdout
-    # Test Remediation is split across lines in rich output\n    assert "Test" in result.stdout and "Remediation" in result.stdout

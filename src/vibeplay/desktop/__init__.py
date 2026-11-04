@@ -98,7 +98,6 @@ __all__ = [
     "inspect_desktop_environment",
     "is_frozen_bundle",
     "is_loopback_host",
-    "secure_chmod",
     "load_desktop_settings",
     "resolve_app_icon_path",
     "resolve_dsp_profiles_dir",

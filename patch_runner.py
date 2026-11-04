@@ -1,3 +1,4 @@
+import re
 
 with open("src/vibeplay/desktop/runner.py", "r") as f:
     content = f.read()

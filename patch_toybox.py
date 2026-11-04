@@ -1,3 +1,5 @@
+import sys
+import re
 
 def patch_file(filepath):
     with open(filepath, 'r') as f:
