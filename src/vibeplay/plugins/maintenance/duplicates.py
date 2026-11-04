@@ -1,6 +1,7 @@
 """Duplicate detection engine for finding redundant audio files."""
 
 import logging
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
@@ -111,15 +112,28 @@ def find_duplicates(db_path: str) -> list[DuplicateGroup]:
         for (artist, title), tracks in at_groups.items():
             if len(tracks) > 1:
                 # Sub-group by duration (+- 2 seconds)
-                # Optimize by sorting to make it O(N log N) instead of O(N^2)
-                tracks.sort(key=lambda x: x["duration"])
                 dur_groups = []
+                representative_buckets = defaultdict(list)
                 for t in tracks:
-                    # In O(N log N) approach, since tracks are sorted by duration,
-                    # we can check if it belongs to the previous group
-                    if dur_groups and abs(t["duration"] - dur_groups[-1][0]["duration"]) <= 2.0:
-                        dur_groups[-1].append(t)
+                    duration = t["duration"]
+                    # Non-finite durations cannot match even themselves under the original comparison.
+                    bucket = math.floor(duration / 2.0) if math.isfinite(duration) else None
+                    # Include a second neighboring bucket for floating-point rounding at boundaries.
+                    candidates = (
+                        (index for offset in range(-2, 3) for index in representative_buckets.get(bucket + offset, ()))
+                        if bucket is not None
+                        else ()
+                    )
+                    # Pick the earliest created matching group, as in the original scan.
+                    match = min(
+                        (index for index in candidates if abs(dur_groups[index][0]["duration"] - duration) <= 2.0),
+                        default=None,
+                    )
+                    if match is not None:
+                        dur_groups[match].append(t)
                     else:
+                        if bucket is not None:
+                            representative_buckets[bucket].append(len(dur_groups))
                         dur_groups.append([t])
 
                 for dg in dur_groups:
