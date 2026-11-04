@@ -3,10 +3,11 @@
 import json
 import logging
 import time
+from abc import ABC, abstractmethod
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Iterator
 
 from vibeplay.analysis.base import (
     AudioFeatures,
@@ -110,6 +111,77 @@ def _analyze_single_track_task(
         return track_id, None, str(err), elapsed
 
 
+class ExecutionAdapter(ABC):
+    """Abstract adapter for executing analysis tasks."""
+
+    @abstractmethod
+    def process_batch(
+        self,
+        batch: list[tuple],
+        cancel_check: CancelCheckCallback | None,
+    ) -> Iterator[tuple[tuple, Any]]:
+        """Process a batch of tasks and yield results as they complete."""
+        ...
+
+    def cancel(self) -> None:
+        """Cancel ongoing execution if supported."""
+        pass
+
+    def shutdown(self) -> None:
+        """Shutdown resources."""
+        pass
+
+
+class SequentialExecutionAdapter(ExecutionAdapter):
+    """Executes analysis tasks sequentially."""
+
+    def process_batch(
+        self,
+        batch: list[tuple],
+        cancel_check: CancelCheckCallback | None,
+    ) -> Iterator[tuple[tuple, Any]]:
+        for args in batch:
+            if cancel_check and cancel_check():
+                break
+            try:
+                result = _analyze_single_track_task(*args)
+                yield args, result
+            except Exception as err:
+                yield args, err
+
+
+class ParallelExecutionAdapter(ExecutionAdapter):
+    """Executes analysis tasks in parallel using a process pool."""
+
+    def __init__(self, worker_count: int) -> None:
+        self.executor = ProcessPoolExecutor(max_workers=worker_count)
+
+    def process_batch(
+        self,
+        batch: list[tuple],
+        cancel_check: CancelCheckCallback | None,
+    ) -> Iterator[tuple[tuple, Any]]:
+        futures = {self.executor.submit(_analyze_single_track_task, *args): args for args in batch}
+        try:
+            for future in as_completed(futures):
+                if cancel_check and cancel_check():
+                    self.cancel()
+                    break
+                args = futures[future]
+                try:
+                    yield args, future.result()
+                except Exception as err:
+                    yield args, err
+        except Exception as e:
+            logger.error("Batch processing error: %s", e)
+
+    def cancel(self) -> None:
+        self.executor.shutdown(wait=False, cancel_futures=True)
+
+    def shutdown(self) -> None:
+        self.executor.shutdown(wait=True)
+
+
 def analyze_tracks(
     db_path: Path,
     backend: str = "essentia",
@@ -181,67 +253,42 @@ def analyze_tracks(
         batch_size = 16
         completed_count = 0
 
-        # Create executor once for entire job
-        executor = ProcessPoolExecutor(max_workers=worker_count) if worker_count > 1 else None
+        # Create execution adapter
+        adapter: ExecutionAdapter
+        if worker_count > 1:
+            adapter = ParallelExecutionAdapter(worker_count)
+        else:
+            adapter = SequentialExecutionAdapter()
 
         try:
             for i in range(0, len(task_args), batch_size):
                 if cancel_check and cancel_check():
                     logger.info("Analysis job cancelled.")
-                    if executor:
-                        executor.shutdown(wait=False, cancel_futures=True)
+                    adapter.cancel()
                     break
 
                 batch = task_args[i : i + batch_size]
                 batch_results = []
 
-                if executor is None:
-                    # Sequential processing
-                    for args in batch:
-                        if cancel_check and cancel_check():
-                            break
-                        result = _analyze_single_track_task(*args)
-                        completed_count += 1
+                for args, result_or_err in adapter.process_batch(batch, cancel_check):
+                    if isinstance(result_or_err, Exception):
+                        summary.failed += 1
+                        logger.warning("Task execution error for %s: %s", args[1], result_or_err)
+                        continue
 
-                        track_name = Path(args[1]).name
-                        track_id, features, err_msg, elapsed = result
-                        if progress_callback:
-                            progress_callback(
-                                completed_count,
-                                summary.total_considered,
-                                track_name,
-                                elapsed,
-                            )
-                        batch_results.append((args, result))
-                else:
-                    # Parallel processing
-                    futures = {executor.submit(_analyze_single_track_task, *args): args for args in batch}
-                    try:
-                        for future in as_completed(futures):
-                            if cancel_check and cancel_check():
-                                executor.shutdown(wait=False, cancel_futures=True)
-                                break
+                    result = result_or_err
+                    completed_count += 1
 
-                            args = futures[future]
-                            try:
-                                result = future.result()
-                                completed_count += 1
-
-                                track_name = Path(args[1]).name
-                                track_id, features, err_msg, elapsed = result
-                                if progress_callback:
-                                    progress_callback(
-                                        completed_count,
-                                        summary.total_considered,
-                                        track_name,
-                                        elapsed,
-                                    )
-                                batch_results.append((args, result))
-                            except Exception as err:
-                                summary.failed += 1
-                                logger.warning("Task execution error for %s: %s", args[1], err)
-                    except Exception as e:
-                        logger.error("Batch processing error: %s", e)
+                    track_name = Path(args[1]).name
+                    track_id, features, err_msg, elapsed = result
+                    if progress_callback:
+                        progress_callback(
+                            completed_count,
+                            summary.total_considered,
+                            track_name,
+                            elapsed,
+                        )
+                    batch_results.append((args, result))
 
                 if cancel_check and cancel_check():
                     logger.info("Analysis job cancelled during batch processing.")
@@ -273,8 +320,7 @@ def analyze_tracks(
                             summary.failed += 1
                             logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
         finally:
-            if executor:
-                executor.shutdown(wait=True)
+            adapter.shutdown()
     summary.total_seconds = time.perf_counter() - start_total_time
     if durations:
         summary.avg_seconds_per_track = sum(durations) / len(durations)

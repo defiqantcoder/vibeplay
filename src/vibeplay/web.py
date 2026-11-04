@@ -464,48 +464,6 @@ def create_app(
             },
         )
 
-    @app.get("/api/library/table", response_class=HTMLResponse)
-    async def api_library_table(
-        request: Request,
-        q: str | None = None,
-        artist: str | None = None,
-        key: str | None = None,
-        mood: str | None = None,
-        bpm_min: float | None = None,
-        bpm_max: float | None = None,
-        sort: str = "id_asc",
-    ) -> Response:
-        """HTMX endpoint returning filtered library table component."""
-        with get_connection(resolved_db_path) as conn:
-            tracks = get_filtered_tracks(
-                conn=conn,
-                q=q,
-                artist=artist,
-                key=key,
-                mood=mood,
-                bpm_min=bpm_min,
-                bpm_max=bpm_max,
-                sort=sort,
-                mood_threshold=cfg.mood_confidence_threshold,
-            )
-
-        playback = get_playback_status(resolved_db_path, cfg)
-        return templates.TemplateResponse(
-            request=request,
-            name="components/library_table.html",
-            context={
-                "tracks": tracks,
-                "playback": playback,
-                "current_sort": sort,
-                "q": q or "",
-                "artist": artist or "",
-                "key": key or "",
-                "mood": mood or "",
-                "bpm_min": bpm_min,
-                "bpm_max": bpm_max,
-            },
-        )
-
     @app.get("/api/track/{track_id}", response_class=HTMLResponse)
     async def api_track_detail(request: Request, track_id: int, view: str | None = None) -> Response:
         """HTMX endpoint returning track detail modal or docked inspector content."""
@@ -961,7 +919,6 @@ def create_app(
             },
         )
 
-
     from vibeplay.db import delete_saved_playlist, save_playlist
 
     @app.post("/api/playlist/save")
@@ -974,6 +931,7 @@ def create_app(
         """Save a playlist to the saved_playlists table."""
         try:
             import json
+
             track_ids = json.loads(track_ids_json)
             with get_connection(resolved_db_path) as conn:
                 playlist_id = save_playlist(conn, name, vibe_arc, track_ids)
@@ -1756,27 +1714,6 @@ def create_app(
         except Exception as err:
             return JSONResponse(status_code=500, content={"error": str(err)})
 
-    @app.post("/api/library/rescan")
-    async def api_library_rescan() -> JSONResponse:
-        """Scan music directory for new audio files."""
-        try:
-            from vibeplay.scanner import scan_directory
-
-            music_dir = Path("~/Music").expanduser()
-            if not music_dir.exists():
-                music_dir = Path.cwd()
-            stats = scan_directory(music_dir, db_path=resolved_db_path)
-            return JSONResponse(
-                content={
-                    "status": "success",
-                    "files_found": stats.files_found,
-                    "files_added": stats.files_added,
-                    "files_updated": stats.files_updated,
-                }
-            )
-        except Exception as err:
-            return JSONResponse(status_code=500, content={"error": str(err)})
-
     @app.get("/api/dsp/telemetry")
     async def api_dsp_telemetry() -> JSONResponse:
         """Return real-time hardware latency, xruns, and buffer telemetry."""
@@ -1897,17 +1834,6 @@ def create_app(
         except Exception as err:
             return JSONResponse(status_code=500, content={"error": str(err)})
 
-    @app.post("/api/library/duplicates")
-    async def api_library_duplicates() -> JSONResponse:
-        """Run duplicate track detection via the maintenance plugin."""
-        from vibeplay.plugins.maintenance.duplicates import find_duplicate_tracks
-
-        try:
-            duplicates = find_duplicate_tracks(resolved_db_path)
-            return JSONResponse(content={"duplicates": duplicates, "count": len(duplicates)})
-        except Exception as err:
-            return JSONResponse(status_code=500, content={"error": str(err)})
-
     @app.post("/api/desktop/open")
     async def api_desktop_open(request: Request) -> JSONResponse:
         """Open audio files, M3U/M3U8 playlists, or directories forwarded from XDG desktop (%U)."""
@@ -1951,13 +1877,27 @@ def create_app(
         opened_items: list[dict[str, Any]] = []
         matched_track_ids: list[int] = []
 
-        def _find_track_id_by_path(file_path: Path) -> int | None:
+        def _find_track_ids_by_paths(file_paths: list[Path]) -> dict[str, int]:
+            resolved_paths = [str(p.resolve()) for p in file_paths]
+            if not resolved_paths:
+                return {}
+
+            chunk_size = 900
+            result = {}
             with get_connection(resolved_db_path) as conn:
-                row = conn.execute(
-                    "SELECT id FROM tracks WHERE path = ? AND status = 'active' LIMIT 1",
-                    (str(file_path.resolve()),),
-                ).fetchone()
-                return int(row["id"]) if row else None
+                for i in range(0, len(resolved_paths), chunk_size):
+                    chunk = resolved_paths[i : i + chunk_size]
+                    placeholders = ",".join("?" * len(chunk))
+                    rows = conn.execute(
+                        f"SELECT id, path FROM tracks WHERE path IN ({placeholders}) AND status = 'active'",
+                        chunk,
+                    ).fetchall()
+                    for r in rows:
+                        result[r["path"]] = int(r["id"])
+            return result
+
+        def _find_track_id_by_path(file_path: Path) -> int | None:
+            return _find_track_ids_by_paths([file_path]).get(str(file_path.resolve()))
 
         for raw in raw_uris:
             try:
@@ -2001,11 +1941,8 @@ def create_app(
                     item_info["track_id"] = tid
             elif target.target_type == "playlist" and target.exists:
                 pl_paths = parse_m3u_playlist(target.path)
-                pl_track_ids: list[int] = []
-                for p in pl_paths:
-                    tid = _find_track_id_by_path(p)
-                    if tid is not None:
-                        pl_track_ids.append(tid)
+                path_to_id = _find_track_ids_by_paths(pl_paths)
+                pl_track_ids = [path_to_id[str(p.resolve())] for p in pl_paths if str(p.resolve()) in path_to_id]
                 matched_track_ids.extend(pl_track_ids)
                 item_info["playlist_tracks"] = len(pl_paths)
                 item_info["matched_tracks"] = len(pl_track_ids)
@@ -2295,30 +2232,13 @@ def create_app(
     plugin_mgr.initialize()
     app.state.plugin_manager = plugin_mgr
 
-    @app.get("/api/plugins/list")
-    async def api_plugins_list() -> JSONResponse:
-        pm = getattr(app.state, "plugin_manager", None)
-        if not pm:
-            return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
-        return JSONResponse(content={"plugins": pm.list_plugins()})
+    app.state.db_path = resolved_db_path
+    app.state.settings = cfg
+    app.state.templates = templates
 
-    @app.post("/api/plugins/{plugin_id}/toggle")
-    async def api_plugins_toggle(plugin_id: str, request: Request) -> JSONResponse:
-        pm = getattr(app.state, "plugin_manager", None)
-        if not pm:
-            return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
+    from vibeplay.api.library import router as library_router
 
-        try:
-            data = await request.json()
-            enable = data.get("enable", False)
-        except Exception:
-            return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
-
-        success = pm.toggle_plugin(plugin_id, enable)
-        if success:
-            return JSONResponse(content={"status": "ok", "plugin_id": plugin_id, "enabled": enable})
-        return JSONResponse(status_code=400, content={"error": f"Failed to toggle plugin {plugin_id}"})
-
+    app.include_router(library_router)
     return app
 
 
