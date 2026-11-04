@@ -312,3 +312,63 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM tracks")
         count = cursor.fetchone()[0]
         assert count == num_threads * tracks_per_thread
+
+def test_list_playlists_empty(tmp_path: Path):
+    db_file = tmp_path / "test.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        from vibeplay.db import list_playlists
+        playlists = list_playlists(conn)
+        assert len(playlists) == 0
+
+def test_list_playlists(tmp_path: Path):
+    db_file = tmp_path / "test.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        cursor = conn.cursor()
+
+        # Insert tracks
+        cursor.execute("""
+            INSERT INTO tracks (path, mtime, size, hash, status, duration)
+            VALUES
+                ('/path/to/song1.mp3', 1.0, 100, 'hash1', 'active', 120.0),
+                ('/path/to/song2.mp3', 1.0, 100, 'hash2', 'active', 180.0)
+        """)
+
+        # Insert playlists
+        cursor.execute("""
+            INSERT INTO playlists (name, description)
+            VALUES
+                ('Playlist 1', 'Desc 1'),
+                ('Playlist 2', 'Desc 2')
+        """)
+
+        # Insert playlist_tracks (Playlist 1 has both songs, Playlist 2 has only song 1)
+        cursor.execute("""
+            INSERT INTO playlist_tracks (playlist_id, track_id, position)
+            VALUES
+                (1, 1, 1),
+                (1, 2, 2),
+                (2, 1, 1)
+        """)
+        conn.commit()
+
+        from vibeplay.db import list_playlists
+        playlists = list_playlists(conn)
+
+        assert len(playlists) == 2
+
+        # Query results are ordered by p.id DESC
+        # First row should be Playlist 2
+        p2 = playlists[0]
+        assert p2["name"] == "Playlist 2"
+        assert p2["track_count"] == 1
+        assert p2["total_duration"] == 120.0
+
+        # Second row should be Playlist 1
+        p1 = playlists[1]
+        assert p1["name"] == "Playlist 1"
+        assert p1["track_count"] == 2
+        assert p1["total_duration"] == 300.0
