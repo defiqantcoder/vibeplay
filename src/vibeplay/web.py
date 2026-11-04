@@ -1016,30 +1016,6 @@ def create_app(
 
         return JSONResponse({"status": "success", "playlist_id": playlist_id, "matched_tracks": len(track_ids)})
 
-    @app.get("/api/playlist/{playlist_id}")
-    async def api_playlist_json(playlist_id: int) -> JSONResponse:
-        """Export a saved playlist and its ordered tracks as JSON."""
-        with get_connection(resolved_db_path) as conn:
-            playlist = get_playlist(conn, playlist_id)
-            if not playlist:
-                raise HTTPException(status_code=404, detail="Playlist not found")
-            tracks = get_playlist_tracks(conn, playlist_id)
-        rules = playlist["rules_json"]
-        if rules:
-            try:
-                rules = json.loads(rules)
-            except (TypeError, ValueError):
-                pass
-        return JSONResponse({
-            "id": playlist["id"],
-            "name": playlist["name"],
-            "description": playlist["description"],
-            "rules": rules,
-            "created_at": playlist["created_at"],
-            "track_count": len(tracks),
-            "tracks": [dict(track) for track in tracks],
-        }, headers={"Content-Disposition": f'attachment; filename="playlist_{playlist_id}.json"'})
-
     @app.delete("/api/playlist/{playlist_id}")
     async def api_playlist_delete(playlist_id: int) -> Response:
         """Remove a saved playlist."""
@@ -2321,14 +2297,14 @@ def create_app(
     plugin_mgr.initialize()
     app.state.plugin_manager = plugin_mgr
 
-    @app.get("/api/plugins/list", name="api_plugins_list")
+    @app.get("/api/plugins/list")
     async def api_plugins_list_duplicate() -> JSONResponse:
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
         return JSONResponse(content={"plugins": pm.list_plugins()})
 
-    @app.post("/api/plugins/{plugin_id}/toggle", name="api_plugins_toggle")
+    @app.post("/api/plugins/{plugin_id}/toggle")
     async def api_plugins_toggle_duplicate(plugin_id: str, request: Request) -> JSONResponse:
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:

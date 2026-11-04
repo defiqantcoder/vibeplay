@@ -27,7 +27,7 @@ from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.exporter import export_playlist_to_file
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import PlaylistRuleConfig, generate_playlist, parse_natural_language_prompt
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.plugins.maintenance.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
 
@@ -472,24 +472,32 @@ def playlist(
     custom_rules: PlaylistRuleConfig | None = None
 
     if prompt:
-        plan = parse_natural_language_prompt(prompt)
-        description = plan.raw_prompt
+        console.print(f'[bold cyan]AI Vibe Planner:[/bold cyan] Translating prompt: [italic]"{prompt}"[/italic]')
+        plan = parse_prompt_to_plan(prompt, db_path=db_path, settings=settings)
+        console.print(f"[bold green]Thematic Concept:[/bold green] [bold]{plan.name}[/bold]")
+        console.print(f"[bold dim]Vibe Summary:[/bold dim]     {plan.description}")
+
+        if name == "Vibe Playlist":
+            name = plan.name
+        description = plan.description
         if vibe is None and plan.vibe:
             vibe = plan.vibe
         if arc is None and plan.arc:
             arc = plan.arc
 
         custom_rules = PlaylistRuleConfig(
-            mode="seed" if seed_ids else "cluster" if cluster is not None else "arc" if arc else "rules",
-            arc=arc,
-            vibe=vibe,
+            mode=plan.mode,
+            arc=plan.arc,
+            vibe=plan.vibe,
             bpm_min=plan.bpm_min,
             bpm_max=plan.bpm_max,
             energy_min=plan.energy_min,
             energy_max=plan.energy_max,
             danceability_min=plan.danceability_min,
             danceability_max=plan.danceability_max,
-            genre_include=[plan.genre_like] if plan.genre_like else [],
+            mood_min=plan.mood_min,
+            genre_include=plan.genre_include,
+            genre_exclude=plan.genre_exclude,
             limit=plan.limit if limit == 25 else limit,
             max_artist_tracks=max_artist_tracks,
         )

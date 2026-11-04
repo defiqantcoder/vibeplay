@@ -75,6 +75,12 @@ def build_desktop_menu_bar() -> list[MenuSection]:
                     label="Clear Playback Queue",
                     action_endpoint="/api/player/clear",
                 ),
+                MenuItem(id="edit_sep_1", label="", is_separator=True),
+                MenuItem(
+                    id="edit_cleanup_cache",
+                    label="Clean Expired Caches (TTL > 30d)",
+                    action_endpoint="/api/cache/cleanup",
+                ),
             ],
         ),
         MenuSection(

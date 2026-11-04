@@ -92,7 +92,6 @@ def test_build_desktop_menu_bar_structure() -> None:
     assert "dsp" in section_ids
     assert "view" in section_ids
     assert "help" in section_ids
-    assert all(item.action_endpoint != "/api/cache/cleanup" for section in menu for item in section.items)
 
     # Verify shortcuts
     file_section = next(s for s in menu if s.id == "file")

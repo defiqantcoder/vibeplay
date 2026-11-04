@@ -268,16 +268,6 @@ def test_environment(tmp_path: Path) -> tuple[Path, Settings, TestClient]:
     return db_file, settings, client
 
 
-def test_plugin_manager_route_names_and_operation_ids(test_environment: tuple[Path, Settings, TestClient]) -> None:
-    _, _, client = test_environment
-    routes = {route.path: route for route in client.app.routes}
-    assert routes["/api/plugins/list"].name == "api_plugins_list"
-    assert routes["/api/plugins/{plugin_id}/toggle"].name == "api_plugins_toggle"
-    paths = client.app.openapi()["paths"]
-    assert paths["/api/plugins/list"]["get"]["operationId"] == "api_plugins_list_api_plugins_list_get"
-    assert paths["/api/plugins/{plugin_id}/toggle"]["post"]["operationId"] == "api_plugins_toggle_api_plugins__plugin_id__toggle_post"
-
-
 def test_index_page(test_environment: tuple[Path, Settings, TestClient]) -> None:
     """Verify that root page renders dashboard telemetry, library table, and transport bar."""
     _, _, client = test_environment
@@ -412,11 +402,6 @@ def test_playlist_generation_reorder_and_export(
     assert "#EXTM3U" in export_res.text
     assert "#EXTINF:" in export_res.text
     assert f"_{playlist_id}.m3u8" in export_res.headers["content-disposition"]
-    json_res = client.get(f"/api/playlist/{playlist_id}")
-    assert json_res.status_code == 200
-    assert json_res.json()["id"] == playlist_id
-    assert [track["track_id"] for track in json_res.json()["tracks"]] == initial_ids
-    assert client.get("/api/playlist/99999").status_code == 404
 
     # Reorder tracks (reverse initial order)
     reversed_ids = list(reversed(initial_ids))

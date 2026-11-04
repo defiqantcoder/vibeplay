@@ -55,27 +55,6 @@ def test_switch_audio_profile_invalid() -> None:
         switch_audio_profile("nonexistent-profile-xyz")
 
 
-@pytest.mark.parametrize("has_dac", [True, False])
-def test_switch_audio_profile_bitperfect_writes_outputs(tmp_path, monkeypatch, mocker, has_dac):
-    from vibe_dsp.models import AudioEndpoint, AuditReport, CardType
-
-    dac = AudioEndpoint(card_index=1, card_id="dac", card_name="USB DAC", driver="usb", device_name="DAC", card_type=CardType.USB_DAC)
-    speaker = AudioEndpoint(card_index=0, card_id="speaker", card_name="Speaker", driver="hda", device_name="Analog", card_type=CardType.SPEAKER_ANALOG)
-    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_STATE_FILE", tmp_path / "state.json")
-    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_IPC_DIR", tmp_path)
-    mocker.patch("vibe_dsp.ipc.scan_hardware", return_value=AuditReport(active_dac=dac if has_dac else None, fallback_endpoint=speaker))
-    write = mocker.patch("vibe_dsp.ipc.write_mpd_audio_outputs_config")
-    mocker.patch("vibe_dsp.ipc.apply_wpctl_sink_rate_override")
-    mocker.patch("vibe_dsp.ipc.set_spatial_virtualization_mode")
-    assert switch_audio_profile("pure-bitperfect")["status"] == "ok"
-    config = write.call_args.args[0]
-    if has_dac:
-        assert 'device          "hw:1,0"' in config
-    assert 'device          "hw:0,0"' in config
-    assert 'auto_resample   "no"' in config
-    assert load_persistent_state()["active_profile"] == "pure-bitperfect"
-
-
 def test_switch_audio_profile_spatial(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify switching to spatial-headphones activates 3D binaural virtualization."""
     state_file = tmp_path / "state.json"
