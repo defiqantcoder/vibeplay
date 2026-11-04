@@ -175,3 +175,36 @@ def test_cli_web_help() -> None:
     result = runner.invoke(app, ["web", "--help"])
     assert result.exit_code == 0
     assert "Alias for serve" in result.stdout
+
+
+@patch("vibeplay.db.cleanup_expired_caches")
+def test_cli_cache_cleanup(mock_cleanup: MagicMock) -> None:
+    """Verify vibeplay cache cleanup calls cleanup_expired_caches."""
+    mock_cleanup.return_value = {"llm_cache": 5, "network_cache": 10}
+    result = runner.invoke(app, ["cache", "cleanup", "--days", "15"])
+    assert result.exit_code == 0
+    assert "Cache cleanup completed" in result.stdout
+    assert "LLM Prompts Pruned:     5" in result.stdout
+    assert "Network Records Pruned: 10" in result.stdout
+    assert mock_cleanup.called
+    kwargs = mock_cleanup.call_args.kwargs
+    assert kwargs.get("max_age_days") == 15
+
+
+@patch("vibeplay.db.purge_all_caches")
+def test_cli_cache_purge_yes(mock_purge: MagicMock) -> None:
+    """Verify vibeplay cache purge --yes calls purge_all_caches."""
+    mock_purge.return_value = {"llm_cache": 50, "network_cache": 100}
+    result = runner.invoke(app, ["cache", "purge", "--yes"])
+    assert result.exit_code == 0
+    assert "All caches purged" in result.stdout
+    assert "LLM Prompts Deleted:     50" in result.stdout
+    assert "Network Records Deleted: 100" in result.stdout
+    assert mock_purge.called
+
+
+def test_cli_cache_purge_abort() -> None:
+    """Verify vibeplay cache purge aborts without --yes."""
+    result = runner.invoke(app, ["cache", "purge"], input="n\n")
+    assert result.exit_code == 0
+    assert "Aborted." in result.stdout
