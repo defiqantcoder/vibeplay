@@ -203,10 +203,10 @@ class TestDesktopShellRendering:
         assert "Slate Audiophile" in html
 
         # 5. Client Scripts
-
-
-
-
+        assert "initThemeEngine" in html
+        assert "applyTheme" in html
+        assert "switchSettingsTab" in html
+        assert "toggleSettingsDialog" in html
 
         # 6. Stitch HUD Micro-Visualizers (Screen 3)
         assert "telemetry-oscilloscope" in html

@@ -7,6 +7,7 @@ from typing import Annotated, Any
 
 warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
+
 import typer
 from rich.console import Console
 from rich.progress import (
@@ -26,7 +27,7 @@ from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.exporter import export_playlist_to_file
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import PlaylistRequest, generate_vibe_playlist
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.plugins.maintenance.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
 
@@ -457,33 +458,69 @@ def playlist(
 ) -> None:
     """Generate a cohesive smart playlist based on seeds, vibe, cluster, energy arc, or AI prompt."""
     settings = get_settings()
+    db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
 
-    req = PlaylistRequest(
-        name=name,
-        prompt=prompt,
-        seed=seed,
-        cluster=cluster,
-        vibe=vibe,
-        arc=arc,
-        limit=limit,
-        minutes=minutes,
-        max_artist_tracks=max_artist_tracks,
-        export_m3u8=export_m3u8,
-        relative=relative,
-        play=play,
-        db=db,
-    )
+    seed_ids: list[int] = []
+    if seed:
+        try:
+            seed_ids = [int(s.strip()) for s in seed.split(",") if s.strip()]
+        except ValueError:
+            console.print(f"[bold red]Error:[/bold red] Invalid seed track ID format: '{seed}'. Expected integer(s).")
+            raise typer.Exit(code=1)
+
+    description: str | None = None
+    custom_rules: PlaylistRuleConfig | None = None
+
+    if prompt:
+        console.print(f'[bold cyan]AI Vibe Planner:[/bold cyan] Translating prompt: [italic]"{prompt}"[/italic]')
+        plan = parse_prompt_to_plan(prompt, db_path=db_path, settings=settings)
+        console.print(f"[bold green]Thematic Concept:[/bold green] [bold]{plan.name}[/bold]")
+        console.print(f"[bold dim]Vibe Summary:[/bold dim]     {plan.description}")
+
+        if name == "Vibe Playlist":
+            name = plan.name
+        description = plan.description
+        if vibe is None and plan.vibe:
+            vibe = plan.vibe
+        if arc is None and plan.arc:
+            arc = plan.arc
+
+        custom_rules = PlaylistRuleConfig(
+            mode=plan.mode,
+            arc=plan.arc,
+            vibe=plan.vibe,
+            bpm_min=plan.bpm_min,
+            bpm_max=plan.bpm_max,
+            energy_min=plan.energy_min,
+            energy_max=plan.energy_max,
+            danceability_min=plan.danceability_min,
+            danceability_max=plan.danceability_max,
+            mood_min=plan.mood_min,
+            genre_include=plan.genre_include,
+            genre_exclude=plan.genre_exclude,
+            limit=plan.limit if limit == 25 else limit,
+            max_artist_tracks=max_artist_tracks,
+        )
 
     try:
-        gen = generate_vibe_playlist(req, settings=settings)
-    except ValueError as err:
-        console.print(f"[bold red]Error:[/bold red] {err}")
-        raise typer.Exit(code=1)
+        gen = generate_playlist(
+            db_path=db_path,
+            name=name,
+            seed_track_ids=seed_ids,
+            cluster_id=cluster,
+            vibe=vibe,
+            arc=arc,
+            limit=limit,
+            minutes=minutes,
+            max_artist_tracks=max_artist_tracks,
+            rules=custom_rules,
+            description=description,
+            settings=settings,
+        )
     except Exception as err:
         console.print(f"[bold red]Playlist Generation Error:[/bold red] {err}")
         raise typer.Exit(code=1)
 
-    db_path = req.db.expanduser().resolve() if req.db else settings.db_path.expanduser().resolve()
     # Render playlist table
     table = Table(
         title=f"Playlist: {gen.name} (ID: {gen.playlist_id})",
