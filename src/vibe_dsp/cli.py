@@ -445,7 +445,11 @@ def peq_generate(
     backup: Annotated[bool, typer.Option("--backup/--no-backup", help="Generate automatic backup and rollback script before writing preset.")] = True,
     json_output: Annotated[bool, typer.Option("--json", help="Output generated profile and gain staging in JSON format.")] = False,
 ) -> None:
-    """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging."""
+    """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging.
+
+    Print the profile as JSON or a formatted report, and optionally export an
+    EasyEffects preset. Generation errors propagate to the caller.
+    """
     profile, preset_path, rollback_script = generate_peq_profile(
         input_source=input_source,
         model=model,
@@ -550,7 +554,7 @@ def peq_show(
     profile: Annotated[str, typer.Argument(help="Name, model, or file path of PEQ profile to inspect.")] = "moondrop_blessing_2",
     json_output: Annotated[bool, typer.Option("--json", help="Output profile in JSON format.")] = False,
 ) -> None:
-    """Inspect the frequency curves, filter biquad parameters, and headroom of a profile."""
+    """Inspect the filter biquad parameters and headroom of a profile."""
     prof = lookup_autoeq_model(profile)
     if not prof:
         prof = ingest_peq_source(profile)
