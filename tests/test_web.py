@@ -585,3 +585,46 @@ def test_dsp_profile_web_endpoints(test_environment: tuple[Path, Settings, TestC
     form_res = client.post("/api/player/output", data={"profile": "7.1.4 Spatial Headphones (SOFA 3D)"})
     assert form_res.status_code == 200
     assert "transport-footer" in form_res.text
+
+
+def test_get_filtered_tracks(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    """Test get_filtered_tracks directly with different arguments."""
+    from vibeplay.web import get_filtered_tracks
+
+    db_file, _, _ = test_environment
+    with get_connection(db_file) as conn:
+        # All tracks
+        all_tracks = get_filtered_tracks(conn)
+        assert len(all_tracks) == 10
+
+        # Test q filter (title search)
+        q_tracks = get_filtered_tracks(conn, q="Summer")
+        assert len(q_tracks) == 1
+        assert q_tracks[0]["title"] == "Summer Breeze"
+
+        # Test artist filter
+        artist_tracks = get_filtered_tracks(conn, artist="Solaris")
+        assert len(artist_tracks) == 3
+        assert all(t["artist"] == "Solaris" for t in artist_tracks)
+
+        # Test bpm range filter
+        bpm_tracks = get_filtered_tracks(conn, bpm_min=90, bpm_max=100)
+        assert len(bpm_tracks) == 2
+        assert any(t["title"] == "Acoustic Morning" for t in bpm_tracks)
+        assert any(t["title"] == "Rustic Strings" for t in bpm_tracks)
+
+        # Test key filter (camelot translation)
+        # Assuming we can just test with uppercase value since logic does: str(cam or "").upper()
+        # "Summer Breeze" has key=C, scale=major, camelot=8B
+        key_tracks = get_filtered_tracks(conn, key="8B")
+        assert any(t["title"] == "Summer Breeze" for t in key_tracks)
+
+        # Test mood filter
+        mood_tracks = get_filtered_tracks(conn, mood="acoustic")
+        # Acoustic Morning has acoustic=0.9
+        assert any(t["title"] == "Acoustic Morning" for t in mood_tracks)
+
+        # Test sort (id_desc)
+        sorted_tracks = get_filtered_tracks(conn, sort="id_desc")
+        assert sorted_tracks[0]["track_id"] == 10
+        assert sorted_tracks[-1]["track_id"] == 1
