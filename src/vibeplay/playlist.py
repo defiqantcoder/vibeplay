@@ -372,6 +372,10 @@ class TransitionContext:
 
 
 def _evaluate_camelot(c1: str, c2: str) -> dict[str, Any]:
+    """Classify two uppercase Camelot codes and return harmonic scores and labels.
+
+    Missing or invalid codes return an unknown relation with a neutral score of 70.
+    """
     if not c1 or not c2 or len(c1) < 2 or len(c2) < 2:
         return {
             "harmonic_type": "unknown",
@@ -455,6 +459,12 @@ def _evaluate_camelot(c1: str, c2: str) -> dict[str, Any]:
 
 
 def _evaluate_bpm(ctx: TransitionContext) -> dict[str, Any]:
+    """Return tempo deltas, status, badge, score, and octave-jump flag.
+
+    Deltas use folded tempos in BPM and as a percentage of the folded starting tempo.
+    Missing or nonpositive tempos produce zero deltas and a neutral score of 70.
+    A raw tempo ratio of at least 1.65 is flagged as a half-time/double-time jump.
+    """
     if ctx.from_bpm is not None and ctx.to_bpm is not None and ctx.from_bpm > 0 and ctx.to_bpm > 0:
         ratio = max(float(ctx.from_bpm), float(ctx.to_bpm)) / min(float(ctx.from_bpm), float(ctx.to_bpm))
         is_octave_fold = ratio >= 1.65
@@ -507,6 +517,11 @@ def _evaluate_bpm(ctx: TransitionContext) -> dict[str, Any]:
 
 
 def _compute_overall_quality(total_score: float) -> tuple[str, str]:
+    """Return the quality label and badge class for a score on the 100-point scale.
+
+    Thresholds of 85, 70, and 50 are inclusive for Seamless, Harmonic, and
+    Acceptable, respectively; lower scores are Harmonic Clash.
+    """
     if total_score >= 85.0:
         return "Seamless", "score-high"
     elif total_score >= 70.0:
@@ -523,6 +538,19 @@ def evaluate_harmonic_transition(ctx: TransitionContext) -> dict[str, Any]:
     Handles Camelot wheel notation ([1-12][A-B]), detecting exact harmonic matches,
     relative major/minor matches, +1 energy boosts, -1 energy drops, and harmonic clashes.
     Also calculates folded tempo delta and provides color-coded badge classes.
+
+    Args:
+        ctx: Track keys, scales, Camelot codes, tempos in BPM, and optional energy
+            values. A supplied Camelot code takes precedence over key and scale.
+            allow_half_double_time permits octave jumps without the usual penalty.
+
+    Returns:
+        A dictionary of track details, harmonic and tempo metrics, and overall
+        quality. The total score weights harmonic compatibility at 60% and tempo
+        at 40%; normalized_score is the total divided by 100.
+
+    Missing or invalid keys use a neutral harmonic score. Missing or nonpositive
+    tempos use a neutral BPM score and zero deltas.
     """
     c1 = (ctx.from_camelot or key_to_camelot(ctx.from_key, ctx.from_scale) or "").strip().upper()
     c2 = (ctx.to_camelot or key_to_camelot(ctx.to_key, ctx.to_scale) or "").strip().upper()

@@ -340,6 +340,11 @@ def create_app(
 
         @app.middleware("http")
         async def auth_middleware(request: Request, call_next):
+            """Authenticate requests, exempting static assets and API documentation.
+
+            Reject invalid credentials with a 401 response. A valid query credential
+            also sets session cookies on the downstream response.
+            """
             path = request.url.path
             if path.startswith("/static") or path == "/favicon.ico" or path == "/docs" or path == "/openapi.json":
                 return await call_next(request)
@@ -2299,6 +2304,7 @@ def create_app(
 
     @app.get("/api/plugins/list")
     async def api_plugins_list_duplicate() -> JSONResponse:
+        """Return the plugin manager's list, or a 500 response if it is absent."""
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})
@@ -2306,6 +2312,11 @@ def create_app(
 
     @app.post("/api/plugins/{plugin_id}/toggle")
     async def api_plugins_toggle_duplicate(plugin_id: str, request: Request) -> JSONResponse:
+        """Toggle a plugin using the JSON enable value, which defaults to false.
+
+        Return 400 for invalid JSON or an unsuccessful toggle, and 500 when the
+        plugin manager is absent.
+        """
         pm = getattr(app.state, "plugin_manager", None)
         if not pm:
             return JSONResponse(status_code=500, content={"error": "Plugin manager not initialized"})

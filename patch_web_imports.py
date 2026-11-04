@@ -2,6 +2,7 @@ import sys
 
 
 def patch_file(filepath):
+    """Read the file without changing it; file access and decoding errors propagate."""
     with open(filepath, "r") as f:
         content = f.read()
 

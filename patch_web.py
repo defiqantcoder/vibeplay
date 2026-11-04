@@ -2,6 +2,11 @@ import sys
 
 
 def patch_file(filepath):
+    """Insert plugin setup and endpoints at each matching return statement.
+
+    If the target text is absent, print a message and leave the file unchanged.
+    File access and encoding errors propagate.
+    """
     with open(filepath, "r") as f:
         content = f.read()
 
