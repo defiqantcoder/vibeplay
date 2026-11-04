@@ -804,3 +804,47 @@ def list_available_presets(target_dir: Path | None = None) -> list[dict[str, Any
                     continue
 
     return results
+
+
+def generate_peq_profile(
+    input_source: str | None = None,
+    model: str | None = None,
+    name: str | None = None,
+    safety_margin: float = 0.3,
+    export_easyeffects: bool = True,
+    output_dir: Path | None = None,
+    backup: bool = True,
+) -> tuple[PEQProfile, Path | None, Path | None]:
+    """Generate and optionally export a calibrated PEQ profile."""
+    profile: PEQProfile | None = None
+
+    if input_source:
+        profile = ingest_peq_source(input_source, name=name)
+    elif model:
+        profile = lookup_autoeq_model(model)
+        if not profile:
+            raise ValueError(
+                f"Could not locate AutoEq profile for model '{model}'.\n"
+                "Please check the model spelling, specify an AutoEq file with --input, or use 'vibe-dsp peq list'."
+            )
+        if name:
+            profile.name = name
+    else:
+        # Default to bundled reference profile if nothing specified
+        profile = lookup_autoeq_model("Moondrop Blessing 2")
+        if not profile:
+            raise ValueError("Must provide either --input or --model.")
+
+    profile = apply_headroom_calculation(profile, safety_margin_db=safety_margin)
+
+    preset_path: Path | None = None
+    rollback_script: Path | None = None
+
+    if export_easyeffects:
+        preset_path, rollback_script = export_easyeffects_preset(
+            profile=profile,
+            target_dir=output_dir,
+            backup=backup,
+        )
+
+    return profile, preset_path, rollback_script

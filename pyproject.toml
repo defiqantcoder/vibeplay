@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "astunparse>=1.6.3",
     "essentia-tensorflow>=2.1b6.dev1389",
     "fastapi>=0.159.1",
     "google-genai>=2.32.0",
@@ -20,6 +21,7 @@ dependencies = [
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
     "pytest>=9.1.1",
+    "pytest-mock>=3.17.0",
     "python-mpd2>=3.1.1",
     "python-multipart>=0.0.32",
     "pywebview>=6.2.1",
