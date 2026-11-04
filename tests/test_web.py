@@ -607,24 +607,20 @@ def test_get_filtered_tracks(test_environment: tuple[Path, Settings, TestClient]
         assert len(artist_tracks) == 3
         assert all(t["artist"] == "Solaris" for t in artist_tracks)
 
-        # Test bpm range filter
-        bpm_tracks = get_filtered_tracks(conn, bpm_min=90, bpm_max=100)
-        assert len(bpm_tracks) == 2
-        assert any(t["title"] == "Acoustic Morning" for t in bpm_tracks)
-        assert any(t["title"] == "Rustic Strings" for t in bpm_tracks)
+        # Test bpm range filter with tracks on both sides
+        bpm_tracks = get_filtered_tracks(conn, bpm_min=100, bpm_max=125)
+        assert {t["track_id"] for t in bpm_tracks} == {1, 2, 4, 9, 10}
 
         # Test key filter (camelot translation)
-        # Assuming we can just test with uppercase value since logic does: str(cam or "").upper()
-        # "Summer Breeze" has key=C, scale=major, camelot=8B
+        # "Summer Breeze" and "Acoustic Morning" have key=C, scale=major, camelot=8B
         key_tracks = get_filtered_tracks(conn, key="8B")
-        assert any(t["title"] == "Summer Breeze" for t in key_tracks)
+        assert {t["track_id"] for t in key_tracks} == {1, 8}
 
         # Test mood filter
+        # Acoustic Morning (0.95) and Rustic Strings (0.90) match acoustic mood
         mood_tracks = get_filtered_tracks(conn, mood="acoustic")
-        # Acoustic Morning has acoustic=0.9
-        assert any(t["title"] == "Acoustic Morning" for t in mood_tracks)
+        assert {t["track_id"] for t in mood_tracks} == {8, 9}
 
         # Test sort (id_desc)
         sorted_tracks = get_filtered_tracks(conn, sort="id_desc")
-        assert sorted_tracks[0]["track_id"] == 10
-        assert sorted_tracks[-1]["track_id"] == 1
+        assert [t["track_id"] for t in sorted_tracks] == list(range(10, 0, -1))
