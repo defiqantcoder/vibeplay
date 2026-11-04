@@ -1,7 +1,5 @@
-import sys
-
 def patch_file(filepath):
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         content = f.read()
 
     # Find the end of `def create_app(...) -> FastAPI:` function
@@ -46,10 +44,11 @@ def patch_file(filepath):
     return app
 """
 
-    new_content = content.replace(target_str, injection.lstrip('\n'))
+    new_content = content.replace(target_str, injection.lstrip("\n"))
 
-    with open(filepath, 'w') as f:
+    with open(filepath, "w") as f:
         f.write(new_content)
 
-if __name__ == '__main__':
-    patch_file('src/vibeplay/web.py')
+
+if __name__ == "__main__":
+    patch_file("src/vibeplay/web.py")
