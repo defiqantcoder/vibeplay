@@ -26,6 +26,23 @@ def test_cli_playlist_help() -> None:
     assert "--play" in result.stdout
 
 
+def test_cli_playlist_prompt_maps_local_parser_fields(tmp_path: Path) -> None:
+    with patch("vibeplay.cli.generate_playlist", side_effect=ValueError("stop after capturing rules")) as generate:
+        result = runner.invoke(app, ["playlist", "--prompt", "dance party around 125 bpm", "--limit", "7", "--db", str(tmp_path / "test.db")])
+    assert result.exit_code == 1
+    rules = generate.call_args.kwargs["rules"]
+    assert (rules.bpm_min, rules.bpm_max, rules.danceability_min, rules.vibe, rules.limit) == (120, 130, 0.7, "party", 7)
+    assert generate.call_args.kwargs["description"] == "dance party around 125 bpm"
+
+
+def test_cli_playlist_prompt_generates_playlist(tmp_path: Path, seed_test_database: Callable[[Path], list[int]]) -> None:
+    db_file = tmp_path / "prompt.db"
+    seed_test_database(db_file)
+    result = runner.invoke(app, ["playlist", "--prompt", "around 120 bpm", "--db", str(db_file)])
+    assert result.exit_code == 0, result.stdout
+    assert "Playlist Saved:" in result.stdout
+
+
 def test_cli_export_help() -> None:
     """Verify vibeplay export --help outputs options."""
     result = runner.invoke(app, ["export", "--help"])

@@ -285,7 +285,7 @@ function gatherSettingsFormPayload() {
     analyzer_backend: getVal('cfg-analyzer-backend', 'essentia'),
     analyzer_workers: parseInt(getVal('cfg-workers', '4'), 10),
     analyzer_window_seconds: parseFloat(getVal('cfg-window-sec', '60.0')),
-    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '50')) / 100.0,
+    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '0.5')),
     theme_id: activeTheme,
     custom_accent_color: getVal('cfg-custom-accent', '#6874a6'),
     contrast_mode: getVal('cfg-contrast-mode', 'standard'),
@@ -433,7 +433,8 @@ function throttleKey(ms = 150) {
 window.addEventListener('keydown', (e) => {
   const activeEl = document.activeElement;
   const activeTag = activeEl ? activeEl.tagName.toLowerCase() : '';
-  const isInputActive = activeTag === 'textarea' || (activeTag === 'input' && ['text', 'search', 'password', 'email', 'number'].includes(activeEl.type));
+  const isInputActive = ['input', 'textarea', 'select', 'button', 'a'].includes(activeTag) ||
+    Boolean(activeEl && (activeEl.isContentEditable || activeEl.closest('[contenteditable="true"], [role="button"], [role="slider"], [role="textbox"]')));
 
   // Escape: Close all menus and open dialogs
   if (e.key === 'Escape') {
@@ -525,7 +526,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Previous Track: F9, F8, MediaTrackPrevious, or Ctrl+ArrowLeft
-  if (e.key === 'F8' || e.code === 'F8' || e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft')) {
+  if (e.key === 'F8' || e.code === 'F8' || e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft' && !isInputActive)) {
     e.preventDefault();
     if (!throttleKey(150)) return;
     triggerPrevTrack();
@@ -541,7 +542,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Next Track: F11, MediaTrackNext, or Ctrl+ArrowRight
-  if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight')) {
+  if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight' && !isInputActive)) {
     e.preventDefault();
     if (!throttleKey(150)) return;
     triggerNextTrack();
@@ -850,18 +851,6 @@ function initInspectorState() {
   } catch (e) {}
 }
 
-function triggerCacheCleanup() {
-  closeAllMenus();
-  alert('Expired cache cleanup scheduled (> 30 days retention threshold).');
-}
-
-function triggerCachePurge() {
-  closeAllMenus();
-  if (confirm('Are you sure you want to purge all network and prompt caches?')) {
-    alert('All caches purged.');
-  }
-}
-
 function setDspProfile(profileId) {
   closeAllMenus();
   fetch(`/api/dsp/profile?profile=${encodeURIComponent(profileId)}`, { method: 'POST' })
@@ -953,10 +942,15 @@ function toggleAboutDialog() {
 
 function exportActivePlaylist(format = 'm3u8') {
   closeAllMenus();
+  const playlistId = document.getElementById('playlist-tracks-list')?.getAttribute('data-playlist-id');
+  if (!playlistId) {
+    alert('Generate or select a playlist before exporting.');
+    return;
+  }
   if (format === 'json') {
-    window.open('/api/playlist/1', '_blank');
+    window.open(`/api/playlist/${encodeURIComponent(playlistId)}`, '_blank');
   } else {
-    window.open('/api/playlist/1/export-m3u8', '_blank');
+    window.open(`/api/playlist/${encodeURIComponent(playlistId)}/export`, '_blank');
   }
 }
 
@@ -1776,9 +1770,9 @@ function browseLibraryFolder() {
   fetch('/api/desktop/browse-folder', { method: 'POST' })
     .then(r => r.json())
     .then(data => {
-      if (data.folder) {
+      if (!data.cancelled && data.path) {
         const lbl = document.getElementById('onboarding-folder-label');
-        if (lbl) lbl.textContent = 'Selected: ' + data.folder;
+        if (lbl) lbl.textContent = 'Selected: ' + data.path;
       }
     }).catch(() => {});
 }
