@@ -84,8 +84,8 @@
     <!-- Live Background Job Progress Bar -->
     {% include "components/job_progress.html" %}
 
-    <!-- Tab 1: Lo-Fi Lounge -->
-    <section id="tab-lounge" style="display: block;">
+    <!-- Tab 1: Library & Master Crate (includes Lo-Fi Lounge, Telemetry HUD, and Master Crate Table) -->
+    <section id="tab-library" style="display: block;">
       <!-- ====================================================================
            VIBEPLAY AUDIOPHILE LO-FI MUSIC LOUNGE (STITCH MASTER SPECIFICATION)
            ==================================================================== -->
@@ -587,15 +587,7 @@
             </div>
           </section>
       </div><!-- End .lofi-lounge-deck -->
-    </section>
 
-    <!-- Tab 2: Dedicated Record Crate View -->
-    <section id="tab-crate" style="display: none;">
-      {% include "components/record_crate.html" %}
-    </section>
-
-    <!-- Tab 3: Master Crate & Library View -->
-    <section id="tab-library" style="display: none;">
       <!-- Collapsible Studio Telemetry Section (Preserves HUD Micro-Visualizers) -->
       <section class="telemetry-grid" id="telemetry-hud-deck" style="display: none; margin-top: 1.5rem;">
         <!-- Card 1: Master Clock // ALSA -->
@@ -1187,6 +1179,11 @@
           {% include "components/playlist_builder.html" %}
         </div>
       </div>
+    </section>
+
+    <!-- Tab 3: Dedicated Record Crate View -->
+    <section id="tab-crate" style="display: none;">
+      {% include "components/record_crate.html" %}
     </section>
   </div><!-- end .workspace-center -->
 

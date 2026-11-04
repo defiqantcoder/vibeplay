@@ -43,15 +43,13 @@ def test_top_navigation_tabs_and_view_separation(client: TestClient):
     assert 'id="nav-btn-bigscreen"' in html
 
     # 2. Distinct Screen Tab Sections
-    assert 'id="tab-lounge"' in html
-    assert 'id="tab-crate"' in html
     assert 'id="tab-library"' in html
     assert 'id="tab-builder"' in html
+    assert 'id="tab-crate"' in html
 
-    # 3. Default Visibility: Lounge visible, others isolated/hidden
-    assert '<section id="tab-lounge" style="display: block;">' in html
+    # 3. Default Visibility: Library visible by default, others isolated/hidden
+    assert '<section id="tab-library" style="display: block;">' in html
     assert '<section id="tab-crate" style="display: none;">' in html
-    assert '<section id="tab-library" style="display: none;">' in html
     assert '<section id="tab-builder" style="display: none;">' in html
 
     # 4. Workspace inspector drawer is hidden by default

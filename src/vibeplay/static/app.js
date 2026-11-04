@@ -3,8 +3,8 @@
 // Tab Navigation
 function showTab(tabId) {
   let target = tabId;
-  if (target === 'table') target = 'library';
-  if (!target) target = 'lounge';
+  if (target === 'table' || target === 'lounge') target = 'library';
+  if (!target) target = 'library';
 
   const tabs = ['lounge', 'crate', 'library', 'builder', 'clusters'];
   tabs.forEach(t => {
@@ -19,14 +19,14 @@ function showTab(tabId) {
       }
     }
     if (btn) {
-      if (t === target) {
+      if (t === target || (target === 'library' && (t === 'lounge' || t === 'library'))) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
     }
     if (sideBtn) {
-      if (t === target) {
+      if (t === target || (target === 'library' && (t === 'lounge' || t === 'library'))) {
         sideBtn.classList.add('active');
       } else {
         sideBtn.classList.remove('active');
