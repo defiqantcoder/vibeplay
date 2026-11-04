@@ -585,3 +585,55 @@ def test_dsp_profile_web_endpoints(test_environment: tuple[Path, Settings, TestC
     form_res = client.post("/api/player/output", data={"profile": "7.1.4 Spatial Headphones (SOFA 3D)"})
     assert form_res.status_code == 200
     assert "transport-footer" in form_res.text
+
+
+def test_get_filtered_tracks(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    """Test get_filtered_tracks directly with different arguments."""
+    from vibeplay.web import get_filtered_tracks
+
+    db_file, _, _ = test_environment
+    with get_connection(db_file) as conn:
+        # All tracks
+        all_tracks = get_filtered_tracks(conn)
+        assert len(all_tracks) == 10
+
+        # Test q filter (title search)
+        q_tracks = get_filtered_tracks(conn, q="Summer")
+        assert len(q_tracks) == 1
+        assert q_tracks[0]["title"] == "Summer Breeze"
+
+        # Test artist filter
+        artist_tracks = get_filtered_tracks(conn, artist="Solaris")
+        assert len(artist_tracks) == 3
+        assert all(t["artist"] == "Solaris" for t in artist_tracks)
+
+        # Test bpm range filter with tracks on both sides
+        bpm_tracks = get_filtered_tracks(conn, bpm_min=100, bpm_max=125)
+        assert {t["track_id"] for t in bpm_tracks} == {1, 2, 4, 9, 10}
+
+        # Test key filter (camelot translation)
+        # "Summer Breeze" and "Acoustic Morning" have key=C, scale=major, camelot=8B
+        key_tracks = get_filtered_tracks(conn, key="8B")
+        assert {t["track_id"] for t in key_tracks} == {1, 8}
+
+        # Test mood filter
+        # Acoustic Morning (0.95) and Rustic Strings (0.90) match acoustic mood
+        mood_tracks = get_filtered_tracks(conn, mood="acoustic")
+        assert {t["track_id"] for t in mood_tracks} == {8, 9}
+
+        # Test sort (id_desc)
+        sorted_tracks = get_filtered_tracks(conn, sort="id_desc")
+        assert [t["track_id"] for t in sorted_tracks] == list(range(10, 0, -1))
+
+
+def test_get_library_clusters(tmp_path: Path) -> None:
+    from vibeplay.web import get_library_clusters
+
+    db_file = tmp_path / "web_test.db"
+    settings = Settings(db_path=db_file)
+
+    # Test with settings
+    assert get_library_clusters(db_path=db_file, settings=settings) == []
+
+    # Test without settings
+    assert get_library_clusters(db_path=db_file) == []

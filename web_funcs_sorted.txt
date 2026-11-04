@@ -1,0 +1,6 @@
+getDragAfterElement
+initPlaylistDragDrop
+openTrackModal
+showTab
+submitNewPlaylistOrder
+updateSliderLabel

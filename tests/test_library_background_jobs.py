@@ -11,11 +11,13 @@ from fastapi.testclient import TestClient
 from vibeplay.config import Settings
 from vibeplay.db import init_db
 from vibeplay.jobs import (
+    cancel_job_run,
     complete_job_run,
     create_job_run,
     fail_job_run,
     get_active_jobs,
     get_recent_jobs,
+    is_job_cancelled,
     is_job_type_running,
     update_job_progress,
 )
@@ -189,3 +191,75 @@ def test_custom_audio_output_dropdown_rendered(test_env):
     assert res_post.status_code == 200
     assert "audio-output-dropdown-container" in res_post.text
     assert "PipeWire Sound Server" in res_post.text
+
+
+def test_is_job_cancelled(test_env):
+    db_path = test_env["db_path"]
+
+    # 1. Non-existent job
+    from vibeplay.jobs import cancel_job_run, is_job_cancelled
+
+    assert is_job_cancelled(db_path, "does-not-exist") is False
+
+    # 2. Running job is not cancelled
+    job_id1 = create_job_run(db_path, "scan", total_items=10)
+    assert is_job_cancelled(db_path, job_id1) is False
+
+    # 3. Cancel the job
+    cancel_job_run(db_path, job_id1)
+    assert is_job_cancelled(db_path, job_id1) is True
+
+    # 4. Completed job is not cancelled
+    job_id2 = create_job_run(db_path, "enrich", total_items=5)
+    complete_job_run(db_path, job_id2, total_items=5)
+    assert is_job_cancelled(db_path, job_id2) is False
+
+    # 5. Failed job is not cancelled
+    job_id3 = create_job_run(db_path, "analyze", total_items=5)
+    fail_job_run(db_path, job_id3, "Test error")
+    assert is_job_cancelled(db_path, job_id3) is False
+
+
+def test_cancel_job_run(test_env):
+    db_path = test_env["db_path"]
+
+    # Create job
+    job_id = create_job_run(db_path, "scan", total_items=10)
+    assert job_id is not None
+    assert is_job_type_running(db_path, "scan")
+    assert not is_job_cancelled(db_path, job_id)
+
+    # Cancel job
+    cancel_job_run(db_path, job_id)
+
+    # Verify job is cancelled
+    assert is_job_cancelled(db_path, job_id)
+    assert not is_job_type_running(db_path, "scan")
+
+    # Verify it is not in active jobs
+    active = get_active_jobs(db_path)
+    assert len(active) == 0
+
+    # Verify status in recent jobs
+    recent = get_recent_jobs(db_path, limit=5)
+    assert len(recent) == 1
+    assert recent[0]["status"] == "cancelled"
+
+
+def test_cancel_non_running_job(test_env):
+    db_path = test_env["db_path"]
+
+    # Create job
+    job_id = create_job_run(db_path, "enrich", total_items=10)
+
+    # Complete job
+    complete_job_run(db_path, job_id, total_items=10)
+
+    # Attempt to cancel job
+    cancel_job_run(db_path, job_id)
+
+    # Verify status is still completed
+    recent = get_recent_jobs(db_path, limit=5)
+    assert len(recent) == 1
+    assert recent[0]["status"] == "completed"
+    assert not is_job_cancelled(db_path, job_id)

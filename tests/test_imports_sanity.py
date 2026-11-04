@@ -1,9 +1,8 @@
+import importlib
 import sys
 
 
 def test_imports_sanity():
-
-    assert "vibeplay.cli" in sys.modules
-    assert "vibeplay.player" in sys.modules
-    assert "vibeplay.desktop" in sys.modules
-    assert "vibeplay.web" in sys.modules
+    for module in ("vibeplay.cli", "vibeplay.player", "vibeplay.desktop", "vibeplay.web"):
+        importlib.import_module(module)
+        assert module in sys.modules
