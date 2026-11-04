@@ -1877,13 +1877,27 @@ def create_app(
         opened_items: list[dict[str, Any]] = []
         matched_track_ids: list[int] = []
 
-        def _find_track_id_by_path(file_path: Path) -> int | None:
+        def _find_track_ids_by_paths(file_paths: list[Path]) -> dict[str, int]:
+            resolved_paths = [str(p.resolve()) for p in file_paths]
+            if not resolved_paths:
+                return {}
+
+            chunk_size = 900
+            result = {}
             with get_connection(resolved_db_path) as conn:
-                row = conn.execute(
-                    "SELECT id FROM tracks WHERE path = ? AND status = 'active' LIMIT 1",
-                    (str(file_path.resolve()),),
-                ).fetchone()
-                return int(row["id"]) if row else None
+                for i in range(0, len(resolved_paths), chunk_size):
+                    chunk = resolved_paths[i : i + chunk_size]
+                    placeholders = ",".join("?" * len(chunk))
+                    rows = conn.execute(
+                        f"SELECT id, path FROM tracks WHERE path IN ({placeholders}) AND status = 'active'",
+                        chunk,
+                    ).fetchall()
+                    for r in rows:
+                        result[r["path"]] = int(r["id"])
+            return result
+
+        def _find_track_id_by_path(file_path: Path) -> int | None:
+            return _find_track_ids_by_paths([file_path]).get(str(file_path.resolve()))
 
         for raw in raw_uris:
             try:
@@ -1927,11 +1941,8 @@ def create_app(
                     item_info["track_id"] = tid
             elif target.target_type == "playlist" and target.exists:
                 pl_paths = parse_m3u_playlist(target.path)
-                pl_track_ids: list[int] = []
-                for p in pl_paths:
-                    tid = _find_track_id_by_path(p)
-                    if tid is not None:
-                        pl_track_ids.append(tid)
+                path_to_id = _find_track_ids_by_paths(pl_paths)
+                pl_track_ids = [path_to_id[str(p.resolve())] for p in pl_paths if str(p.resolve()) in path_to_id]
                 matched_track_ids.extend(pl_track_ids)
                 item_info["playlist_tracks"] = len(pl_paths)
                 item_info["matched_tracks"] = len(pl_track_ids)
