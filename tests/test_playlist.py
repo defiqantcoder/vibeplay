@@ -397,6 +397,48 @@ def test_generate_playlist_seed_mode(playlist_settings: Settings) -> None:
         assert stored_tracks[0]["track_id"] == 1
 
 
+def test_prompt_chill_uses_supported_moods(playlist_settings: Settings) -> None:
+    from vibeplay.playlist import MOOD_KEYS, VIBE_PRESETS, parse_prompt_to_plan
+
+    _seed_test_database(playlist_settings.db_path)
+    for preset in ("chill", "energetic", "deep_focus", "ambient", "lofi", "workout", "party"):
+        assert set(VIBE_PRESETS[preset].get("mood_min", {})) <= set(MOOD_KEYS)
+    plan = parse_prompt_to_plan("chill", playlist_settings.db_path)
+    playlist = generate_playlist(db_path=playlist_settings.db_path, rules=plan, settings=playlist_settings)
+    assert {track.track_id for track in playlist.tracks} == {2, 8}
+
+
+def test_prompt_genre_matching_and_exclusions(playlist_settings: Settings) -> None:
+    from vibeplay.playlist import parse_natural_language_prompt, parse_prompt_to_plan, query_tracks_by_prompt
+
+    db_path = playlist_settings.db_path
+    _seed_test_database(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute("UPDATE tracks SET genre = 'Hip-Hop' WHERE id = 1")
+        conn.execute("UPDATE tracks SET genre = 'Rock' WHERE id = 2")
+        conn.commit()
+
+    plan = parse_prompt_to_plan("hip hop without rock", db_path)
+    assert plan.genre_include == ["hip hop"]
+    assert plan.genre_exclude == ["rock"]
+    playlist = generate_playlist(db_path=db_path, rules=plan, settings=playlist_settings)
+    assert [track.track_id for track in playlist.tracks] == [1]
+    assert [track["track_id"] for track in query_tracks_by_prompt(db_path, "hip hop without rock")] == [1]
+
+    excluded = parse_prompt_to_plan("no rock", db_path)
+    assert excluded.genre_include == [] and excluded.genre_exclude == ["rock"]
+    playlist = generate_playlist(db_path=db_path, rules=excluded, settings=playlist_settings)
+    assert playlist.tracks and all(track.track_id not in {2, 3} for track in playlist.tracks)
+    assert all(track["track_id"] not in {2, 3} for track in query_tracks_by_prompt(db_path, "no rock"))
+    no_hip_hop = parse_prompt_to_plan("no hip-hop", db_path)
+    assert no_hip_hop.genre_exclude == ["hip hop"]
+    playlist = generate_playlist(db_path=db_path, rules=no_hip_hop, settings=playlist_settings)
+    assert playlist.tracks and all(track.track_id != 1 for track in playlist.tracks)
+    assert all(track["track_id"] != 1 for track in query_tracks_by_prompt(db_path, "no hip hop"))
+    assert parse_natural_language_prompt("no ambient").vibe is None
+    assert parse_natural_language_prompt("no rock or metal").genre_exclude == ["rock", "metal"]
+
+
 def test_max_artist_tracks_constraint(playlist_settings: Settings) -> None:
     """Verify max_artist_tracks constraint prevents artist over-representation."""
     _seed_test_database(playlist_settings.db_path)

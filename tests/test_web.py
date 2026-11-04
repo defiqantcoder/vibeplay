@@ -361,6 +361,15 @@ def test_track_detail_modal(
     assert response_404.status_code == 404
 
 
+def test_web_prompt_excludes_genre(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    _, _, client = test_environment
+    response = client.post("/api/playlist/generate", data={"prompt": "no rock"})
+    assert response.status_code == 200
+    track_ids = re.findall(r'data-track-id="(\d+)"', response.text)
+    assert track_ids
+    assert "3" not in track_ids
+
+
 def test_playlist_generation_reorder_and_export(
     test_environment: tuple[Path, Settings, TestClient],
 ) -> None:

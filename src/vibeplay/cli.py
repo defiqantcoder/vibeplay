@@ -428,9 +428,9 @@ def playlist(
         typer.Option(help="Energy trajectory arc (ramp_up, cooldown, peak, steady)"),
     ] = None,
     limit: Annotated[
-        int,
+        int | None,
         typer.Option(help="Maximum number of tracks in the playlist"),
-    ] = 25,
+    ] = None,
     minutes: Annotated[
         float | None,
         typer.Option(help="Target total duration in minutes"),
@@ -498,7 +498,7 @@ def playlist(
             mood_min=plan.mood_min,
             genre_include=plan.genre_include,
             genre_exclude=plan.genre_exclude,
-            limit=plan.limit if limit == 25 else limit,
+            limit=plan.limit if limit is None else limit,
             max_artist_tracks=max_artist_tracks,
         )
 
@@ -510,7 +510,7 @@ def playlist(
             cluster_id=cluster,
             vibe=vibe,
             arc=arc,
-            limit=limit,
+            limit=limit if limit is not None else 25,
             minutes=minutes,
             max_artist_tracks=max_artist_tracks,
             rules=custom_rules,

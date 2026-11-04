@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import json
+
 import pytest
 
 from vibe_dsp.ipc import (
@@ -80,12 +82,15 @@ def test_switch_audio_profile_bitperfect_writes_outputs_and_state(tmp_path: Path
     monkeypatch.setattr("vibe_dsp.ipc.set_spatial_virtualization_mode", lambda mode: None)
     configs = []
     monkeypatch.setattr("vibe_dsp.ipc.write_mpd_audio_outputs_config", configs.append)
+    (tmp_path / "state.json").write_text(json.dumps({"active_profile": "spatial-headphones", "spatial_mode": "3d_binaural"}))
 
     result = switch_audio_profile("pure-bitperfect")
     assert result["active_profile"] == "pure-bitperfect"
     assert 'device          "hw:1,0"' in configs[0]
     assert 'device          "hw:0,0"' in configs[0]
-    assert load_persistent_state()["spatial_mode"] == "stereo_direct"
+    persisted = json.loads((tmp_path / "state.json").read_text())
+    assert persisted["active_profile"] == "pure-bitperfect"
+    assert persisted["spatial_mode"] == "stereo_direct"
 
 
 def test_dsp_client_in_process_fallback(tmp_path: Path) -> None:
