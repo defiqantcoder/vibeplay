@@ -27,7 +27,7 @@ from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.exporter import export_playlist_to_file
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist, parse_prompt_to_plan
 from vibeplay.plugins.maintenance.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
 

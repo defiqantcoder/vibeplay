@@ -25,6 +25,7 @@ REQUIRED_TEMPLATE_FILES: tuple[str, ...] = (
 )
 
 REQUIRED_STATIC_FILES: tuple[str, ...] = (
+    "app.js",
     "style.css",
     "htmx.min.js",
 )

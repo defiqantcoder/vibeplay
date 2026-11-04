@@ -1040,6 +1040,35 @@ def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
     return query
 
 
+class PromptPlaylistPlan(PlaylistRuleConfig):
+    """Playlist rules and presentation derived from a local prompt."""
+
+    name: str = "Vibe Session"
+    description: str = "Default playlist session."
+
+
+def parse_prompt_to_plan(
+    prompt: str, db_path: Path, settings: Settings | None = None
+) -> PromptPlaylistPlan:
+    """Translate a CLI prompt locally into the playlist planner's rule format."""
+    query = parse_natural_language_prompt(prompt)
+    return PromptPlaylistPlan(
+        name="Vibe Selection" if query.raw_prompt else "Vibe Session",
+        description=f"Playlist inspired by: '{query.raw_prompt}'." if query.raw_prompt else "Default playlist session.",
+        mode="arc" if query.arc else "rules",
+        arc=query.arc,
+        vibe=query.vibe,
+        bpm_min=query.bpm_min,
+        bpm_max=query.bpm_max,
+        energy_min=query.energy_min,
+        energy_max=query.energy_max,
+        danceability_min=query.danceability_min,
+        danceability_max=query.danceability_max,
+        genre_include=[query.genre_like] if query.genre_like else [],
+        limit=query.limit,
+    )
+
+
 def query_tracks_by_prompt(
     db_path: Path,
     prompt: str,

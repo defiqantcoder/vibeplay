@@ -68,6 +68,26 @@ def test_switch_audio_profile_spatial(tmp_path: Path, monkeypatch: pytest.Monkey
         mock_mode.assert_called_with("3d_binaural")
 
 
+def test_switch_audio_profile_bitperfect_writes_outputs_and_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from vibe_dsp.models import AudioEndpoint, AuditReport, CardType
+
+    dac = AudioEndpoint(card_index=1, card_id="dac", card_name="USB DAC", driver="usb", device_name="dac", card_type=CardType.USB_DAC)
+    speakers = AudioEndpoint(card_index=0, card_id="speakers", card_name="Speakers", driver="alsa", device_name="speakers", card_type=CardType.SPEAKER_ANALOG)
+    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_STATE_FILE", tmp_path / "state.json")
+    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_IPC_DIR", tmp_path)
+    monkeypatch.setattr("vibe_dsp.ipc.scan_hardware", lambda: AuditReport(active_dac=dac, fallback_endpoint=speakers))
+    monkeypatch.setattr("vibe_dsp.ipc.apply_wpctl_sink_rate_override", lambda: None)
+    monkeypatch.setattr("vibe_dsp.ipc.set_spatial_virtualization_mode", lambda mode: None)
+    configs = []
+    monkeypatch.setattr("vibe_dsp.ipc.write_mpd_audio_outputs_config", configs.append)
+
+    result = switch_audio_profile("pure-bitperfect")
+    assert result["active_profile"] == "pure-bitperfect"
+    assert 'device          "hw:1,0"' in configs[0]
+    assert 'device          "hw:0,0"' in configs[0]
+    assert load_persistent_state()["spatial_mode"] == "stereo_direct"
+
+
 def test_dsp_client_in_process_fallback(tmp_path: Path) -> None:
     """Verify DSPClient handles commands gracefully even when UNIX socket is offline."""
     nonexistent_socket = tmp_path / "offline.sock"

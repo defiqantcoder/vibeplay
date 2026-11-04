@@ -695,7 +695,6 @@ def get_output_profile() -> str:
 
 def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
     """Toggle play/pause state in Music Player Daemon, auto-seeding if queue is empty."""
-    global _FALLBACK_PROC
     if _FALLBACK_PROC is not None:
         _stop_fallback_playback()
         return {"state": "pause"}

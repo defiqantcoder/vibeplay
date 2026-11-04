@@ -54,7 +54,6 @@ class LibrosaAnalyzer(BaseAnalyzer):
         audio: np.ndarray,
         track_id: int,
     ) -> AudioFeatures:
-        mono_audio = downmix_to_mono(audio)
         """Extract acoustic features and 128-dim embedding using librosa.
 
         Args:
@@ -64,6 +63,7 @@ class LibrosaAnalyzer(BaseAnalyzer):
         Returns:
             AudioFeatures: Extracted features.
         """
+        mono_audio = downmix_to_mono(audio)
         # Rhythm / BPM
         try:
             tempo, _ = librosa.beat.beat_track(y=mono_audio, sr=self._sample_rate)
