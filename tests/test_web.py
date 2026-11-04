@@ -624,3 +624,16 @@ def test_get_filtered_tracks(test_environment: tuple[Path, Settings, TestClient]
         # Test sort (id_desc)
         sorted_tracks = get_filtered_tracks(conn, sort="id_desc")
         assert [t["track_id"] for t in sorted_tracks] == list(range(10, 0, -1))
+
+
+def test_get_library_clusters(tmp_path: Path) -> None:
+    from vibeplay.web import get_library_clusters
+
+    db_file = tmp_path / "web_test.db"
+    settings = Settings(db_path=db_file)
+
+    # Test with settings
+    assert get_library_clusters(db_path=db_file, settings=settings) == []
+
+    # Test without settings
+    assert get_library_clusters(db_path=db_file) == []
