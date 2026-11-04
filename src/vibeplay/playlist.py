@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -78,12 +78,13 @@ MOOD_KEYS: tuple[str, ...] = (
 VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "chill": {
         "energy_max": 0.50,
-        "mood_min": {"relaxed": 0.35},
+        "mood_min": {"chill": 0.35, "relaxed": 0.35},
         "danceability_max": 0.65,
     },
     "energetic": {
         "energy_min": 0.65,
         "bpm_min": 115.0,
+        "mood_min": {"energetic": 0.45},
     },
     "workout": {
         "energy_min": 0.70,
@@ -100,7 +101,7 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "deep_focus": {
         "energy_max": 0.45,
         "danceability_max": 0.50,
-        "mood_min": {"relaxed": 0.30},
+        "mood_min": {"relaxed": 0.30, "focus": 0.45},
     },
     "dark_intense": {
         "mood_min": {"aggressive": 0.35, "dark": 0.45},
@@ -109,7 +110,7 @@ VIBE_PRESETS: dict[str, dict[str, Any]] = {
     "ambient": {
         "energy_max": 0.40,
         "danceability_max": 0.45,
-        "mood_min": {"acoustic": 0.35},
+        "mood_min": {"acoustic": 0.35, "ambient": 0.45},
     },
     "lofi": {
         "bpm_min": 70.0,
@@ -856,7 +857,6 @@ class NaturalLanguageQuery:
     vibe: str | None = None
     arc: str | None = None
     limit: int = 25
-    genre_exclude: list[str] = field(default_factory=list)
 
     def to_sqlite_where(self) -> tuple[str, dict[str, Any]]:
         """Generate a SQLite WHERE clause fragment and parameter bindings."""
@@ -887,15 +887,8 @@ class NaturalLanguageQuery:
             params["nl_bpm_max"] = self.bpm_max
 
         if self.genre_like:
-            clauses.append("(REPLACE(LOWER(COALESCE(v.genre, '')), '-', ' ') LIKE :nl_genre OR "
-                           "REPLACE(LOWER(COALESCE(v.enriched_genres, '')), '-', ' ') LIKE :nl_genre)")
-            params["nl_genre"] = f"%{self.genre_like.lower().replace('-', ' ')}%"
-        for index, genre in enumerate(self.genre_exclude):
-            key = f"nl_genre_exclude_{index}"
-            clauses.append(f"(REPLACE(LOWER(COALESCE(v.genre, '')), '-', ' ') NOT LIKE :{key} AND "
-                           f"REPLACE(LOWER(COALESCE(v.enriched_genres, '')), '-', ' ') NOT LIKE :{key} AND "
-                           f"REPLACE(LOWER(COALESCE(v.enriched_tags, '')), '-', ' ') NOT LIKE :{key})")
-            params[key] = f"%{genre.lower().replace('-', ' ')}%"
+            clauses.append("(v.genre LIKE :nl_genre OR v.enriched_genres LIKE :nl_genre)")
+            params["nl_genre"] = f"%{self.genre_like}%"
 
         where_sql = " AND ".join(clauses) if clauses else "1=1"
         return where_sql, params
@@ -913,31 +906,6 @@ def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
 
     p = prompt.strip().lower()
     query = NaturalLanguageQuery(raw_prompt=prompt.strip())
-
-    count_match = re.search(r"\b([1-9]\d*)\s+(?:tracks?|songs?)\b", p)
-    if count_match:
-        query.limit = int(count_match.group(1))
-
-    # Preserve positive genres while removing excluded genres from mood heuristics.
-    genre_pattern = r"\b(?:hip[ -]hop|pop|rock|jazz|electronic|techno|house|rap|ambient|metal|disco|indie|r&b|soul|funk|folk|classical|punk|reggae|blues|country|trance|synthwave)\b"
-    previous_end = 0
-    excluded = False
-    positive_prompt = list(p)
-    for match in re.finditer(genre_pattern, p):
-        prefix = p[previous_end:match.start()]
-        if re.search(r"\b(?:no|without|exclude|excluding)\s+(?:any\s+)?$", prefix):
-            excluded = True
-        elif not re.fullmatch(r"\s*(?:,\s*(?:(?:and|or)\s+)?|(?:and|or)\s+)", prefix):
-            excluded = False
-        genre = match.group().replace("-", " ")
-        if excluded:
-            if genre not in query.genre_exclude:
-                query.genre_exclude.append(genre)
-            positive_prompt[match.start():match.end()] = " " * (match.end() - match.start())
-        elif query.genre_like is None:
-            query.genre_like = genre
-        previous_end = match.end()
-    p = "".join(positive_prompt)
 
     # 1. BPM parsing
     range_match = re.search(r"(?:between|from)?\s*(\d+(?:\.\d+)?)\s*(?:-|to|and)\s*(\d+(?:\.\d+)?)\s*bpm", p)
@@ -1020,6 +988,39 @@ def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
         query.danceability_max = min(query.danceability_max or 1.0, 0.50)
         query.vibe = "deep_focus"
 
+    # 3. Genre Extraction
+    genre_keywords = [
+        "pop",
+        "rock",
+        "jazz",
+        "electronic",
+        "techno",
+        "house",
+        "hip hop",
+        "hip-hop",
+        "rap",
+        "ambient",
+        "metal",
+        "disco",
+        "indie",
+        "r&b",
+        "soul",
+        "funk",
+        "folk",
+        "classical",
+        "punk",
+        "reggae",
+        "blues",
+        "country",
+        "trance",
+        "synthwave",
+    ]
+    for g in genre_keywords:
+        pattern = r"\b" + re.escape(g) + r"\b"
+        if re.search(pattern, p):
+            query.genre_like = "hip hop" if "hip" in g else g
+            break
+
     # 4. Energy Arcs
     arc_keywords = {
         "ramp": "energy_ramp",
@@ -1037,36 +1038,6 @@ def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
             break
 
     return query
-
-
-class PromptPlaylistPlan(PlaylistRuleConfig):
-    """Playlist rules and presentation derived from a local prompt."""
-
-    name: str = "Vibe Session"
-    description: str = "Default playlist session."
-
-
-def parse_prompt_to_plan(
-    prompt: str, db_path: Path, settings: Settings | None = None
-) -> PromptPlaylistPlan:
-    """Translate a CLI prompt locally into the playlist planner's rule format."""
-    query = parse_natural_language_prompt(prompt)
-    return PromptPlaylistPlan(
-        name="Vibe Selection" if query.raw_prompt else "Vibe Session",
-        description=f"Playlist inspired by: '{query.raw_prompt}'." if query.raw_prompt else "Default playlist session.",
-        mode="arc" if query.arc else "rules",
-        arc=query.arc,
-        vibe=query.vibe,
-        bpm_min=query.bpm_min,
-        bpm_max=query.bpm_max,
-        energy_min=query.energy_min,
-        energy_max=query.energy_max,
-        danceability_min=query.danceability_min,
-        danceability_max=query.danceability_max,
-        genre_include=[query.genre_like] if query.genre_like else [],
-        genre_exclude=query.genre_exclude,
-        limit=query.limit,
-    )
 
 
 def query_tracks_by_prompt(
@@ -1106,10 +1077,8 @@ def query_tracks_by_prompt(
         rows = cursor.fetchall()
 
         if not rows:
-            fallback_where, fallback_params = NaturalLanguageQuery(raw_prompt="", genre_exclude=query.genre_exclude).to_sqlite_where()
-            fallback_params["limit"] = limit
             cursor.execute(
-                f"""
+                """
                 SELECT
                     v.track_id,
                     v.path,
@@ -1126,11 +1095,10 @@ def query_tracks_by_prompt(
                     f.loudness
                 FROM v_tracks_best_value v
                 JOIN features f ON v.track_id = f.track_id
-                WHERE {fallback_where}
                 ORDER BY f.energy DESC
                 LIMIT :limit
                 """,
-                fallback_params,
+                {"limit": limit},
             )
             rows = cursor.fetchall()
 
@@ -1436,10 +1404,6 @@ def generate_playlist(
     # Candidate Filtering based on mode
     candidate_ids: set[int] = set()
 
-    def is_excluded(meta: dict[str, Any]) -> bool:
-        text = f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}".lower().replace("-", " ")
-        return any(genre.lower().replace("-", " ") in text for genre in config_rules.genre_exclude)
-
     if mode == "cluster":
         candidate_ids = set(rich_tracks_by_id.keys())
     else:
@@ -1477,12 +1441,13 @@ def generate_playlist(
                 continue
 
             # Genre include / exclude
-            combined_genre_text = (f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}").lower().replace("-", " ")
+            combined_genre_text = (f"{meta.get('genre') or ''} {meta.get('enriched_genres') or ''} {meta.get('enriched_tags') or ''}").lower()
             if config_rules.genre_include:
-                if not any(gi.lower().replace("-", " ") in combined_genre_text for gi in config_rules.genre_include):
+                if not any(gi.lower() in combined_genre_text for gi in config_rules.genre_include):
                     continue
-            if is_excluded(meta):
-                continue
+            if config_rules.genre_exclude:
+                if any(ge.lower() in combined_genre_text for ge in config_rules.genre_exclude):
+                    continue
 
             # Mood minimums
             mood_scores = meta.get("mood_scores") or {}
@@ -1503,17 +1468,10 @@ def generate_playlist(
 
             candidate_ids.add(tid)
 
-    # Exclusions remain in force in every mode and when other filters are relaxed.
-    candidate_ids = {tid for tid in candidate_ids if not is_excluded(rich_tracks_by_id[tid])}
+    # Fallback if filters were too restrictive
     if len(candidate_ids) == 0:
-        logger.warning("Rules yielded 0 candidates; falling back to eligible library tracks.")
-        candidate_ids = {tid for tid, meta in rich_tracks_by_id.items() if not is_excluded(meta)}
-
-    if not candidate_ids:
-        desc = description or f"Generated by vibeplay ({mode} mode, 0 tracks)"
-        with get_connection(db_path) as conn:
-            playlist_id = create_playlist(conn, name, desc, config_rules.model_dump_json())
-        return GeneratedPlaylist(playlist_id, name, desc, mode, [], 0.0, 1.0)
+        logger.warning("Rules yielded 0 candidates; falling back to full library tracks.")
+        candidate_ids = set(rich_tracks_by_id.keys())
 
     # Build reference vibe vector
     if active_seeds:
@@ -1537,7 +1495,7 @@ def generate_playlist(
 
     # Select Starting Track
     start_track_id: int | None = None
-    if active_seeds and active_seeds[0] in rich_tracks_by_id and (not config_rules.genre_exclude or active_seeds[0] in candidate_ids):
+    if active_seeds and active_seeds[0] in rich_tracks_by_id:
         start_track_id = active_seeds[0]
     elif config_rules.arc:
         # Pick track closest to starting arc energy

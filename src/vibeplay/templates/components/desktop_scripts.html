@@ -285,7 +285,7 @@ function gatherSettingsFormPayload() {
     analyzer_backend: getVal('cfg-analyzer-backend', 'essentia'),
     analyzer_workers: parseInt(getVal('cfg-workers', '4'), 10),
     analyzer_window_seconds: parseFloat(getVal('cfg-window-sec', '60.0')),
-    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '0.5')),
+    mood_confidence_threshold: parseFloat(getVal('cfg-mood-threshold', '50')) / 100.0,
     theme_id: activeTheme,
     custom_accent_color: getVal('cfg-custom-accent', '#6874a6'),
     contrast_mode: getVal('cfg-contrast-mode', 'standard'),
@@ -525,7 +525,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Previous Track: F9, F8, MediaTrackPrevious, or Ctrl+ArrowLeft
-  if (e.key === 'F8' || e.code === 'F8' || e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft' && !isInputActive)) {
+  if (e.key === 'F8' || e.code === 'F8' || e.key === 'F9' || e.code === 'F9' || e.key === 'MediaTrackPrevious' || (e.ctrlKey && e.key === 'ArrowLeft')) {
     e.preventDefault();
     if (!throttleKey(150)) return;
     triggerPrevTrack();
@@ -541,7 +541,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   // Next Track: F11, MediaTrackNext, or Ctrl+ArrowRight
-  if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight' && !isInputActive)) {
+  if (e.key === 'F11' || e.code === 'F11' || e.key === 'MediaTrackNext' || (e.ctrlKey && e.key === 'ArrowRight')) {
     e.preventDefault();
     if (!throttleKey(150)) return;
     triggerNextTrack();
@@ -1772,22 +1772,20 @@ function closeOnboardingModal() {
   if (el) el.classList.add('hidden');
 }
 
-let onboardingFolderPath = null;
 function browseLibraryFolder() {
   fetch('/api/desktop/browse-folder', { method: 'POST' })
     .then(r => r.json())
     .then(data => {
-      if (!data.cancelled && data.path) {
-        onboardingFolderPath = data.path;
+      if (data.folder) {
         const lbl = document.getElementById('onboarding-folder-label');
-        if (lbl) lbl.textContent = 'Selected: ' + data.path;
+        if (lbl) lbl.textContent = 'Selected: ' + data.folder;
       }
     }).catch(() => {});
 }
 
 function completeOnboarding() {
   closeOnboardingModal();
-  triggerLibraryScan(onboardingFolderPath);
+  fetch('/api/library/scan', { method: 'POST' }).catch(() => {});
 }
 
 // 5. DAC Disconnected Alert & Recovery (Screen 11)

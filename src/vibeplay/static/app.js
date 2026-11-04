@@ -2,11 +2,10 @@
 
 // Tab Navigation
 function showTab(tabId) {
-  const tabs = ['library', 'clusters', 'builder'];
+  const tabs = ['library', 'builder'];
   tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const btn = document.getElementById(`nav-btn-${t}`);
-    const sideBtn = document.getElementById(`side-nav-${t}`);
     if (section) {
       if (t === tabId) {
         section.style.display = 'block';
@@ -20,9 +19,6 @@ function showTab(tabId) {
       } else {
         btn.classList.remove('active');
       }
-    }
-    if (sideBtn) {
-      sideBtn.classList.toggle('active', t === tabId);
     }
   });
 }
@@ -157,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Function Key (F5-F7 volume, F9-F11 play/skip) & Hardware Media Key Keyboard Bindings
 document.addEventListener('keydown', (event) => {
-  if (event.defaultPrevented) return;
   const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   const isInput = activeTag === 'input' || activeTag === 'textarea' || (document.activeElement && document.activeElement.isContentEditable);
 

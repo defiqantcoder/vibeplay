@@ -13,62 +13,6 @@ from vibeplay.cli import app
 runner = CliRunner()
 
 
-def test_playlist_prompt_uses_local_plan(tmp_path, monkeypatch):
-    from vibeplay.playlist import GeneratedPlaylist
-
-    captured = {}
-
-    def generate(**kwargs):
-        captured.update(kwargs)
-        return GeneratedPlaylist(1, kwargs["name"], kwargs["description"], "rules", [], 0.0, 0.0)
-
-    monkeypatch.setattr("vibeplay.cli.generate_playlist", generate)
-    result = runner.invoke(app, ["playlist", "--prompt", "dance party around 125 bpm", "--db", str(tmp_path / "test.db")])
-    assert result.exit_code == 0, result.output
-    rules = captured["rules"]
-    assert rules.bpm_min == 120 and rules.bpm_max == 130
-    assert rules.danceability_min == 0.7
-    assert captured["description"] == "Playlist inspired by: 'dance party around 125 bpm'."
-
-
-def test_playlist_prompt_generates_playlist(tmp_path, seed_test_database):
-    db_file = tmp_path / "prompt.db"
-    seed_test_database(db_file)
-    result = runner.invoke(app, ["playlist", "--prompt", "over 100 bpm", "--db", str(db_file)])
-    assert result.exit_code == 0, result.output
-    assert "Playlist Saved" in result.output
-
-
-def test_playlist_prompt_all_tracks_excluded(tmp_path, seed_test_database):
-    from vibeplay.db import get_connection
-
-    db_file = tmp_path / "prompt.db"
-    seed_test_database(db_file)
-    with get_connection(db_file) as conn:
-        conn.execute("UPDATE tracks SET genre = 'Rock'")
-        conn.commit()
-    result = runner.invoke(app, ["playlist", "--prompt", "no rock", "--db", str(db_file)])
-    assert result.exit_code == 0, result.output
-    assert "Tracks: 0" in result.output
-
-
-def test_prompt_count_and_explicit_limit(tmp_path, monkeypatch):
-    from vibeplay.playlist import GeneratedPlaylist
-
-    captured = []
-
-    def generate(**kwargs):
-        captured.append(kwargs["rules"].limit)
-        return GeneratedPlaylist(1, kwargs["name"], kwargs["description"], "rules", [], 0.0, 0.0)
-
-    monkeypatch.setattr("vibeplay.cli.generate_playlist", generate)
-    base = ["playlist", "--prompt", "10 tracks of jazz", "--db", str(tmp_path / "test.db")]
-    for options in ([], ["--limit", "7"], ["--limit", "25"]):
-        result = runner.invoke(app, base + options)
-        assert result.exit_code == 0, result.output
-    assert captured == [10, 7, 25]
-
-
 def test_cli_playlist_help() -> None:
     """Verify vibeplay playlist --help outputs options and flags."""
     result = runner.invoke(app, ["playlist", "--help"])

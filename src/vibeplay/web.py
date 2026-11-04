@@ -631,8 +631,7 @@ def create_app(
                     energy_max=nl_query.energy_max,
                     danceability_min=nl_query.danceability_min,
                     danceability_max=nl_query.danceability_max,
-                    genre_include=[nl_query.genre_like] if nl_query.genre_like else [],
-                    genre_exclude=nl_query.genre_exclude,
+                    genre_include=[nl_query.genre_like] if nl_query.genre_like else None,
                     limit=nl_query.limit or limit,
                     max_artist_tracks=max_artist_tracks,
                 )

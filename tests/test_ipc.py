@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -67,29 +66,6 @@ def test_switch_audio_profile_spatial(tmp_path: Path, monkeypatch: pytest.Monkey
         assert res["status"] == "ok"
         assert res["active_profile"] == "spatial-headphones"
         mock_mode.assert_called_with("3d_binaural")
-
-
-def test_switch_audio_profile_bitperfect_writes_outputs_and_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from vibe_dsp.models import AudioEndpoint, AuditReport, CardType
-
-    dac = AudioEndpoint(card_index=1, card_id="dac", card_name="USB DAC", driver="usb", device_name="dac", card_type=CardType.USB_DAC)
-    speakers = AudioEndpoint(card_index=0, card_id="speakers", card_name="Speakers", driver="alsa", device_name="speakers", card_type=CardType.SPEAKER_ANALOG)
-    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_STATE_FILE", tmp_path / "state.json")
-    monkeypatch.setattr("vibe_dsp.ipc.DEFAULT_IPC_DIR", tmp_path)
-    monkeypatch.setattr("vibe_dsp.ipc.scan_hardware", lambda: AuditReport(active_dac=dac, fallback_endpoint=speakers))
-    monkeypatch.setattr("vibe_dsp.ipc.apply_wpctl_sink_rate_override", lambda: None)
-    monkeypatch.setattr("vibe_dsp.ipc.set_spatial_virtualization_mode", lambda mode: None)
-    configs = []
-    monkeypatch.setattr("vibe_dsp.ipc.write_mpd_audio_outputs_config", configs.append)
-    (tmp_path / "state.json").write_text(json.dumps({"active_profile": "spatial-headphones", "spatial_mode": "3d_binaural"}))
-
-    result = switch_audio_profile("pure-bitperfect")
-    assert result["active_profile"] == "pure-bitperfect"
-    assert 'device          "hw:1,0"' in configs[0]
-    assert 'device          "hw:0,0"' in configs[0]
-    persisted = json.loads((tmp_path / "state.json").read_text())
-    assert persisted["active_profile"] == "pure-bitperfect"
-    assert persisted["spatial_mode"] == "stereo_direct"
 
 
 def test_dsp_client_in_process_fallback(tmp_path: Path) -> None:

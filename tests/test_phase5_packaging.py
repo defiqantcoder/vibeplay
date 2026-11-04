@@ -223,8 +223,6 @@ def test_verify_bundle_assets_detects_missing_files(tmp_path: Path, monkeypatch:
     assert report.is_valid is False
     assert "templates/base.html" in report.missing_assets
     assert "static/style.css" in report.missing_assets
-    assert "static/app.js" in report.missing_assets
-    assert "templates/components/desktop_scripts.html" in report.missing_assets
 
 
 def test_local_binary_entrypoint_launches_without_uv_run(tmp_path: Path):

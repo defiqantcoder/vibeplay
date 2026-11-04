@@ -27,7 +27,7 @@ from vibeplay.config import get_settings
 from vibeplay.db import get_connection, get_tracks_with_features
 from vibeplay.exporter import export_playlist_to_file
 from vibeplay.player import PlaybackError, play_playlist, play_seed
-from vibeplay.playlist import PlaylistRuleConfig, generate_playlist, parse_prompt_to_plan
+from vibeplay.playlist import PlaylistRuleConfig, generate_playlist
 from vibeplay.plugins.maintenance.enrichment import enrich_tracks, get_report_data
 from vibeplay.scanner import scan_directory
 
@@ -428,9 +428,9 @@ def playlist(
         typer.Option(help="Energy trajectory arc (ramp_up, cooldown, peak, steady)"),
     ] = None,
     limit: Annotated[
-        int | None,
+        int,
         typer.Option(help="Maximum number of tracks in the playlist"),
-    ] = None,
+    ] = 25,
     minutes: Annotated[
         float | None,
         typer.Option(help="Target total duration in minutes"),
@@ -498,7 +498,7 @@ def playlist(
             mood_min=plan.mood_min,
             genre_include=plan.genre_include,
             genre_exclude=plan.genre_exclude,
-            limit=plan.limit if limit is None else limit,
+            limit=plan.limit if limit == 25 else limit,
             max_artist_tracks=max_artist_tracks,
         )
 
@@ -510,7 +510,7 @@ def playlist(
             cluster_id=cluster,
             vibe=vibe,
             arc=arc,
-            limit=limit if limit is not None else 25,
+            limit=limit,
             minutes=minutes,
             max_artist_tracks=max_artist_tracks,
             rules=custom_rules,
