@@ -133,6 +133,10 @@
   {% include "components/track_context_menu.html" %}
 
   <!-- Inlined & Linked Client Scripts -->
+  <script>
+    {% include "components/scripts.html" %}
+    {% include "components/desktop_scripts.html" %}
+  </script>
   <script src="/static/app.js"></script>
   {% block scripts %}{% endblock %}
 </body>

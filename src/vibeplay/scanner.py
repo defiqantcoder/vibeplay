@@ -9,7 +9,6 @@ import json
 import logging
 import os
 import re
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -17,7 +16,6 @@ from typing import Any, Callable
 import mutagen
 
 from vibeplay.db import (
-    TrackRecord,
     get_connection,
     get_existing_tracks,
     init_db,
@@ -360,72 +358,6 @@ def find_audio_files(directory: Path) -> list[Path]:
     return audio_files
 
 
-def _sync_single_file(
-    conn: sqlite3.Connection,
-    file_path: Path,
-    path_str: str,
-    mtime: float,
-    size: int,
-    existing: TrackRecord | None,
-    summary: ScanSummary,
-) -> None:
-    try:
-        file_hash = compute_file_hash(file_path)
-        meta = extract_metadata(file_path)
-    except Exception as err:
-        logger.warning("Error reading metadata from %s: %s", file_path, err)
-        summary.errors += 1
-        return
-
-    with conn:
-        if existing is None:
-            insert_track(
-                conn=conn,
-                path=path_str,
-                mtime=mtime,
-                size=size,
-                file_hash=file_hash,
-                duration=meta.duration,
-                bitrate=meta.bitrate,
-                title=meta.title,
-                artist=meta.artist,
-                album_artist=meta.album_artist,
-                album=meta.album,
-                track_no=meta.track_no,
-                track_total=meta.track_total,
-                disc_no=meta.disc_no,
-                disc_total=meta.disc_total,
-                year=meta.year,
-                genre=meta.genre,
-                has_cover=meta.has_cover,
-                tags_json=meta.tags_json,
-            )
-            summary.new += 1
-        else:
-            update_track(
-                conn=conn,
-                track_id=existing.id,
-                mtime=mtime,
-                size=size,
-                file_hash=file_hash,
-                duration=meta.duration,
-                bitrate=meta.bitrate,
-                title=meta.title,
-                artist=meta.artist,
-                album_artist=meta.album_artist,
-                album=meta.album,
-                track_no=meta.track_no,
-                track_total=meta.track_total,
-                disc_no=meta.disc_no,
-                disc_total=meta.disc_total,
-                year=meta.year,
-                genre=meta.genre,
-                has_cover=meta.has_cover,
-                tags_json=meta.tags_json,
-            )
-            summary.updated += 1
-
-
 def scan_directory(
     library_path: Path,
     db_path: Path,
@@ -491,15 +423,61 @@ def scan_directory(
                 continue
 
             # File is either new, modified, or restored from missing
-            _sync_single_file(
-                conn=conn,
-                file_path=file_path,
-                path_str=path_str,
-                mtime=mtime,
-                size=size,
-                existing=existing,
-                summary=summary,
-            )
+            try:
+                file_hash = compute_file_hash(file_path)
+                meta = extract_metadata(file_path)
+            except Exception as err:
+                logger.warning("Error reading metadata from %s: %s", file_path, err)
+                summary.errors += 1
+                continue
+
+            with conn:
+                if existing is None:
+                    insert_track(
+                        conn=conn,
+                        path=path_str,
+                        mtime=mtime,
+                        size=size,
+                        file_hash=file_hash,
+                        duration=meta.duration,
+                        bitrate=meta.bitrate,
+                        title=meta.title,
+                        artist=meta.artist,
+                        album_artist=meta.album_artist,
+                        album=meta.album,
+                        track_no=meta.track_no,
+                        track_total=meta.track_total,
+                        disc_no=meta.disc_no,
+                        disc_total=meta.disc_total,
+                        year=meta.year,
+                        genre=meta.genre,
+                        has_cover=meta.has_cover,
+                        tags_json=meta.tags_json,
+                    )
+                    summary.new += 1
+                else:
+                    update_track(
+                        conn=conn,
+                        track_id=existing.id,
+                        mtime=mtime,
+                        size=size,
+                        file_hash=file_hash,
+                        duration=meta.duration,
+                        bitrate=meta.bitrate,
+                        title=meta.title,
+                        artist=meta.artist,
+                        album_artist=meta.album_artist,
+                        album=meta.album,
+                        track_no=meta.track_no,
+                        track_total=meta.track_total,
+                        disc_no=meta.disc_no,
+                        disc_total=meta.disc_total,
+                        year=meta.year,
+                        genre=meta.genre,
+                        has_cover=meta.has_cover,
+                        tags_json=meta.tags_json,
+                    )
+                    summary.updated += 1
 
         # Detect removed files: active tracks under canonical_library that were not found on disk
         missing_ids: list[int] = []

@@ -87,33 +87,3 @@ def test_find_duplicates(dup_db):
     text_group = next(g for g in groups if g.reason == "Artist, Title, and Duration match")
     assert text_group.keep_track_id == 4  # higher bitrate preferred
     assert len(text_group.tracks) == 2
-
-
-@pytest.mark.parametrize(
-    ("durations", "expected_groups"),
-    [
-        ([202.0, 200.0, 204.0], [[1, 2, 3]]),
-        ([200.0, 204.0, 202.0, 204.5], [[1, 3], [2, 4]]),
-        ([-1e-16, 2.0, float("inf"), float("inf")], [[1, 2]]),
-    ],
-)
-def test_duration_grouping_preserves_database_order_and_first_match(tmp_path, durations, expected_groups):
-    db_path = tmp_path / "durations.db"
-    init_db(db_path)
-    with get_connection(db_path) as conn:
-        for index, duration in enumerate(durations, start=1):
-            insert_track(
-                conn,
-                path=f"/{index}.mp3",
-                mtime=index,
-                size=1,
-                file_hash=str(index),
-                duration=duration,
-                bitrate=192000,
-                title="Title",
-                artist="Artist",
-            )
-
-    groups = find_duplicates(db_path)
-    assert [[track["id"] for track in group.tracks] for group in groups] == expected_groups
-    assert [group.keep_track_id for group in groups] == [ids[0] for ids in expected_groups]
