@@ -439,6 +439,54 @@ def test_prompt_genre_matching_and_exclusions(playlist_settings: Settings) -> No
     assert parse_natural_language_prompt("no rock or metal").genre_exclude == ["rock", "metal"]
 
 
+@pytest.mark.parametrize("prompt", ["without rock, metal, or pop", "no rock, metal and pop"])
+def test_prompt_comma_separated_exclusions(prompt: str) -> None:
+    from vibeplay.playlist import parse_natural_language_prompt
+
+    query = parse_natural_language_prompt(prompt)
+    assert query.genre_exclude == ["rock", "metal", "pop"]
+    assert query.genre_like is None
+    query = parse_natural_language_prompt("no rock, metal, but jazz")
+    assert query.genre_exclude == ["rock", "metal"]
+    assert query.genre_like == "jazz"
+
+
+def test_prompt_exclusions_apply_to_tags_and_fallback(playlist_settings: Settings) -> None:
+    from vibeplay.playlist import parse_prompt_to_plan, query_tracks_by_prompt
+
+    db_path = playlist_settings.db_path
+    _seed_test_database(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute("UPDATE tracks SET genre = 'Rock'")
+        conn.execute("UPDATE tracks SET genre = 'Jazz' WHERE id IN (1, 2)")
+        conn.execute("INSERT INTO enrichment (track_id, source, tags) VALUES (1, 'test', 'rock')")
+        conn.commit()
+
+    # A match in enriched tags excludes track 1, including when other filters fall back.
+    assert {t["track_id"] for t in query_tracks_by_prompt(db_path, "no rock")} == {2}
+    assert {t["track_id"] for t in query_tracks_by_prompt(db_path, "no rock above 999 bpm")} == {2}
+    rules = parse_prompt_to_plan("no rock above 999 bpm", db_path)
+    playlist = generate_playlist(db_path=db_path, rules=rules, seed_track_id=1, settings=playlist_settings)
+    assert [t.track_id for t in playlist.tracks] == [2]
+    rules.mode = "cluster"
+    playlist = generate_playlist(db_path=db_path, rules=rules, seed_track_id=1, settings=playlist_settings)
+    assert [t.track_id for t in playlist.tracks] == [2]
+
+    with get_connection(db_path) as conn:
+        conn.execute("UPDATE tracks SET genre = 'Rock'")
+        conn.commit()
+    assert query_tracks_by_prompt(db_path, "no rock") == []
+    playlist = generate_playlist(db_path=db_path, rules=rules, seed_track_id=1, settings=playlist_settings)
+    assert playlist.tracks == []
+    with get_connection(db_path) as conn:
+        assert get_playlist(conn, playlist.playlist_id) is not None
+        assert get_playlist_tracks(conn, playlist.playlist_id) == []
+    # Queries without exclusions retain their existing full-library fallback.
+    assert query_tracks_by_prompt(db_path, "jazz")
+    unrestricted = parse_prompt_to_plan("jazz", db_path)
+    assert generate_playlist(db_path=db_path, rules=unrestricted, settings=playlist_settings).tracks
+
+
 def test_max_artist_tracks_constraint(playlist_settings: Settings) -> None:
     """Verify max_artist_tracks constraint prevents artist over-representation."""
     _seed_test_database(playlist_settings.db_path)

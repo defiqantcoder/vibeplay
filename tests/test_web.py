@@ -370,6 +370,16 @@ def test_web_prompt_excludes_genre(test_environment: tuple[Path, Settings, TestC
     assert "3" not in track_ids
 
 
+def test_web_prompt_all_tracks_excluded(test_environment: tuple[Path, Settings, TestClient]) -> None:
+    db_file, _, client = test_environment
+    with get_connection(db_file) as conn:
+        conn.execute("UPDATE tracks SET genre = 'Rock'")
+        conn.commit()
+    response = client.post("/api/playlist/generate", data={"prompt": "no rock"})
+    assert response.status_code == 200
+    assert not re.findall(r'data-track-id="(\d+)"', response.text)
+
+
 def test_playlist_generation_reorder_and_export(
     test_environment: tuple[Path, Settings, TestClient],
 ) -> None:

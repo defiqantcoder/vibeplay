@@ -39,6 +39,19 @@ def test_playlist_prompt_generates_playlist(tmp_path, seed_test_database):
     assert "Playlist Saved" in result.output
 
 
+def test_playlist_prompt_all_tracks_excluded(tmp_path, seed_test_database):
+    from vibeplay.db import get_connection
+
+    db_file = tmp_path / "prompt.db"
+    seed_test_database(db_file)
+    with get_connection(db_file) as conn:
+        conn.execute("UPDATE tracks SET genre = 'Rock'")
+        conn.commit()
+    result = runner.invoke(app, ["playlist", "--prompt", "no rock", "--db", str(db_file)])
+    assert result.exit_code == 0, result.output
+    assert "Tracks: 0" in result.output
+
+
 def test_prompt_count_and_explicit_limit(tmp_path, monkeypatch):
     from vibeplay.playlist import GeneratedPlaylist
 
