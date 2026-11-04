@@ -312,3 +312,80 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM tracks")
         count = cursor.fetchone()[0]
         assert count == num_threads * tracks_per_thread
+
+
+def test_get_features_checksum(tmp_path: Path) -> None:
+    """Verify that get_features_checksum generates deterministic SHA-256 hashes."""
+    from vibeplay.db import get_features_checksum, insert_or_replace_features
+
+    db_file = tmp_path / "test_checksum.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        # Empty checksum should be reproducible
+        checksum_empty1 = get_features_checksum(conn)
+        checksum_empty2 = get_features_checksum(conn)
+        assert checksum_empty1 == checksum_empty2
+        assert len(checksum_empty1) == 64  # SHA-256 hex digest length
+
+        # Insert some tracks
+        id1 = insert_track(conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1")
+        id2 = insert_track(conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2")
+
+        # Insert feature for track 1
+        insert_or_replace_features(
+            conn=conn,
+            track_id=id1,
+            analyzer_version="1.0",
+            bpm=120.0,
+            key="C",
+            scale="major",
+            loudness=-10.5,
+            danceability=0.8,
+            energy=0.9,
+            mood_scores_json='{"happy": 0.9}',
+            embedding_blob=b"emb1",
+        )
+
+        checksum_1 = get_features_checksum(conn)
+        assert checksum_1 != checksum_empty1
+        assert checksum_1 == get_features_checksum(conn)
+
+        # Insert feature for track 2
+        insert_or_replace_features(
+            conn=conn,
+            track_id=id2,
+            analyzer_version="1.0",
+            bpm=130.0,
+            key="G",
+            scale="minor",
+            loudness=-8.5,
+            danceability=0.6,
+            energy=0.7,
+            mood_scores_json='{"sad": 0.8}',
+            embedding_blob=b"emb2",
+        )
+
+        checksum_2 = get_features_checksum(conn)
+        assert checksum_2 != checksum_1
+        assert checksum_2 == get_features_checksum(conn)
+
+        # Modify feature for track 1
+        insert_or_replace_features(
+            conn=conn,
+            track_id=id1,
+            analyzer_version="1.1",
+            bpm=122.0,
+            key="C",
+            scale="major",
+            loudness=-10.0,
+            danceability=0.81,
+            energy=0.91,
+            mood_scores_json='{"happy": 0.95}',
+            embedding_blob=b"emb1_new",
+        )
+
+        checksum_3 = get_features_checksum(conn)
+        assert checksum_3 != checksum_2
+        assert checksum_3 != checksum_1
+        assert checksum_3 == get_features_checksum(conn)
