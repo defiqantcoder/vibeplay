@@ -18,8 +18,6 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
-from urllib.error import URLError
-from urllib.request import urlopen
 
 import uvicorn
 
@@ -229,12 +227,9 @@ class DesktopRunner:
         # Wait until server port is listening
         deadline = time.time() + 5.0
         while time.time() < deadline:
-            try:
-                with urlopen(f"http://{self.host}:{self.port}/api/health", timeout=0.2) as resp:
-                    if resp.status == 200:
-                        break
-            except (URLError, OSError):
-                time.sleep(0.05)
+            if getattr(self.server, "started", False):
+                break
+            time.sleep(0.01)
 
     def start(self, headless: bool = False) -> None:
         """Start backend services and PyWebView GUI window."""
