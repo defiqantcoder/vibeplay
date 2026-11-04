@@ -585,3 +585,21 @@ def test_dsp_profile_web_endpoints(test_environment: tuple[Path, Settings, TestC
     form_res = client.post("/api/player/output", data={"profile": "7.1.4 Spatial Headphones (SOFA 3D)"})
     assert form_res.status_code == 200
     assert "transport-footer" in form_res.text
+
+
+def test_get_library_clusters(tmp_path: Path) -> None:
+    """Verify get_library_clusters always returns an empty list."""
+    from vibeplay.config import Settings
+    from vibeplay.web import get_library_clusters
+
+    db_file = tmp_path / "web_test.db"
+    settings = Settings(
+        database_url=f"sqlite:///{db_file}",
+        scanner_base_dir=str(tmp_path),
+    )
+
+    # Test with settings
+    assert get_library_clusters(db_path=db_file, settings=settings) == []
+
+    # Test without settings
+    assert get_library_clusters(db_path=db_file) == []
