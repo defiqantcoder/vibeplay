@@ -2,8 +2,13 @@ from pathlib import Path
 
 from vibeplay.db import (
     TrackRecord,
+    add_tracks_to_playlist,
+    create_playlist,
+    delete_playlist,
     get_connection,
     get_existing_tracks,
+    get_playlist,
+    get_playlist_tracks,
     init_db,
     insert_track,
     mark_tracks_missing,
@@ -312,3 +317,41 @@ def test_sqlite_concurrency_lock_retry(tmp_path: Path) -> None:
         cursor.execute("SELECT COUNT(*) FROM tracks")
         count = cursor.fetchone()[0]
         assert count == num_threads * tracks_per_thread
+
+
+def test_delete_playlist(tmp_path: Path) -> None:
+    """Verify that deleting a playlist also cascades to its tracks."""
+    db_file = tmp_path / "test_delete_playlist.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        # Create some tracks
+        insert_track(conn, "/path/1.mp3", 1.0, 10, "hash1")
+        insert_track(conn, "/path/2.mp3", 1.0, 10, "hash2")
+
+        # We need the track IDs to add them to the playlist
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM tracks ORDER BY id")
+        track_ids = [row[0] for row in cursor.fetchall()]
+
+        # Create a playlist
+        playlist_id = create_playlist(conn, "Test Playlist", "Description", "{}")
+
+        # Add tracks to it
+        add_tracks_to_playlist(conn, playlist_id, track_ids)
+
+        # Verify playlist and tracks exist
+        assert get_playlist(conn, playlist_id) is not None
+        assert len(get_playlist_tracks(conn, playlist_id)) == 2
+
+        # Delete playlist
+        assert delete_playlist(conn, playlist_id) is True
+
+        # Verify playlist is gone
+        assert get_playlist(conn, playlist_id) is None
+
+        # Verify tracks cascade deletion
+        assert len(get_playlist_tracks(conn, playlist_id)) == 0
+
+        # Delete again should return False
+        assert delete_playlist(conn, playlist_id) is False
