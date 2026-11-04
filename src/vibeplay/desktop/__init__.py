@@ -84,6 +84,10 @@ __all__ = [
     "ReleaseGateReport",
     "TrackNotificationDispatcher",
     "WINDOW_TITLE",
+    "setup_logging",
+    "setup_gtk",
+    "run_webview",
+    "secure_chmod",
     "choose_directory_dialog",
     "collect_pyinstaller_datas",
     "ensure_secure_directory",
@@ -108,3 +112,4 @@ __all__ = [
     "validate_loopback_host",
     "verify_bundle_assets",
 ]
+from vibeplay.desktop.app import run_webview, setup_gtk, setup_logging

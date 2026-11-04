@@ -1,7 +1,6 @@
-import pytest
-from unittest.mock import patch
 
 from vibeplay.hardware import discover_audio_endpoints
+
 
 def test_audio_endpoints_discovery(mocker):
     mocker.patch('vibeplay.hardware.Path.read_text', return_value="mock card")

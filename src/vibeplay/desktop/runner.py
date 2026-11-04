@@ -23,14 +23,10 @@ from urllib.request import urlopen
 
 import uvicorn
 
+from vibeplay.desktop.app import run_webview, setup_gtk
 from vibeplay.desktop.constants import (
     DEFAULT_BACKEND_HOST,
     DEFAULT_BACKEND_PORT,
-    DEFAULT_WINDOW_HEIGHT,
-    DEFAULT_WINDOW_MIN_HEIGHT,
-    DEFAULT_WINDOW_MIN_WIDTH,
-    DEFAULT_WINDOW_WIDTH,
-    WINDOW_TITLE,
 )
 from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
 from vibeplay.web import create_app
@@ -107,39 +103,6 @@ max_output_buffer_size "16384"
 
 {outputs}
 """
-
-
-def resolve_app_icon_path() -> Path | None:
-    """Locate the VibePlay application icon file for window decoration."""
-    import sys
-
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        meipass = Path(sys._MEIPASS)
-        for p in (
-            meipass / "packaging" / "icons" / "vibeplay.svg",
-            meipass / "vibeplay.svg",
-            meipass / "vibeplay" / "static" / "vibeplay.svg",
-        ):
-            if p.is_file():
-                return p
-
-    user_icon = Path("~/.local/share/icons/hicolor/scalable/apps/vibeplay.svg").expanduser()
-    if user_icon.is_file():
-        return user_icon
-
-    system_icon = Path("/usr/share/icons/hicolor/scalable/apps/vibeplay.svg")
-    if system_icon.is_file():
-        return system_icon
-
-    repo_icon = Path(__file__).resolve().parent.parent.parent.parent / "packaging" / "icons" / "vibeplay.svg"
-    if repo_icon.is_file():
-        return repo_icon
-
-    pkg_icon = Path(__file__).resolve().parent.parent / "static" / "vibeplay.svg"
-    if pkg_icon.is_file():
-        return pkg_icon
-
-    return None
 
 
 class DesktopRunner:
@@ -254,39 +217,10 @@ class DesktopRunner:
             return
 
         # Setup GTK application name, WM_CLASS, and window icon
-        try:
-            import gi
-
-            gi.require_version("Gtk", "3.0")
-            from gi.repository import GLib, Gtk
-
-            GLib.set_prgname("vibeplay")
-            GLib.set_application_name("VibePlay")
-            icon_file = resolve_app_icon_path()
-            if icon_file and icon_file.is_file():
-                try:
-                    Gtk.Window.set_default_icon_from_file(str(icon_file))
-                except Exception:
-                    pass
-            Gtk.Window.set_default_icon_name("vibeplay")
-        except Exception as err:
-            logger.debug("Could not apply GTK app icon attributes: %s", err)
+        setup_gtk()
 
         try:
-            import webview
-
-            url = f"http://{self.host}:{self.port}/"
-            self.window = webview.create_window(
-                title=WINDOW_TITLE,
-                url=url,
-                width=DEFAULT_WINDOW_WIDTH,
-                height=DEFAULT_WINDOW_HEIGHT,
-                min_size=(DEFAULT_WINDOW_MIN_WIDTH, DEFAULT_WINDOW_MIN_HEIGHT),
-                text_select=True,
-            )
-            webview.start()
-        except Exception as err:
-            logger.error("PyWebView GUI failure: %s", err)
+            self.window = run_webview(self.host, self.port)
         finally:
             self.stop()
 

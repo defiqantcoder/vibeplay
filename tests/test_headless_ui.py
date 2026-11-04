@@ -1,10 +1,10 @@
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 
-from vibeplay.web import create_app
 from vibeplay.db import init_db
-import contextlib
+from vibeplay.web import create_app
+
 
 @pytest.fixture
 def test_client(tmp_path):

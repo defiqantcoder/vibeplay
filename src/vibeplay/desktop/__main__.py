@@ -12,8 +12,9 @@ from pathlib import Path
 warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
-from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT
-from vibeplay.desktop.runner import DesktopRunner
+from vibeplay.desktop.app import setup_logging  # noqa: E402
+from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT  # noqa: E402
+from vibeplay.desktop.runner import DesktopRunner  # noqa: E402
 
 # Backwards-compatibility alias for DesktopSupervisor
 DesktopSupervisor = DesktopRunner
@@ -130,11 +131,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[{tag}] {check.name}: {check.detail}")
         return 0 if report.passed else 1
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    setup_logging(args.debug)
 
     if args.uris:
         from vibeplay.desktop.mime import forward_uris_to_running_instance
