@@ -10,6 +10,8 @@ import pytest
 
 from vibeplay.config import Settings
 from vibeplay.db import (
+    add_tracks_to_playlist,
+    create_playlist,
     get_connection,
     get_playlist,
     get_playlist_tracks,
@@ -27,6 +29,7 @@ from vibeplay.playlist import (
     generate_playlist,
     key_to_camelot,
 )
+from vibeplay.web import load_saved_playlist
 
 
 @pytest.fixture
@@ -553,3 +556,70 @@ def test_generate_playlist_cluster_mode(playlist_settings: Settings) -> None:
 
     playlist = generate_playlist(db_path=playlist_settings.db_path, name="Cluster Based", cluster_id=0, limit=5, settings=playlist_settings)
     assert playlist.playlist_id > 0
+
+
+def test_load_saved_playlist(playlist_settings: Settings) -> None:
+    """Verify loading a saved playlist reconstructs tracks and transitions."""
+    _seed_test_database(playlist_settings.db_path)
+
+    # 1. Edge Case: Playlist does not exist
+    assert load_saved_playlist(playlist_settings.db_path, 999) is None
+
+    # Create a playlist but add no tracks
+    with get_connection(playlist_settings.db_path) as conn:
+        empty_pl_id = create_playlist(conn, "Empty Playlist")
+
+    # 2. Edge Case: Playlist exists but has no tracks
+    assert load_saved_playlist(playlist_settings.db_path, empty_pl_id) is None
+
+    # Create a valid playlist with some tracks
+    with get_connection(playlist_settings.db_path) as conn:
+        pl_id = create_playlist(conn, "Saved Lounge", "A saved test playlist")
+        # Let's add tracks 1, 2, 3 (already seeded)
+        add_tracks_to_playlist(conn, pl_id, [1, 2, 3])
+
+    # 3. Happy Path: Load saved playlist and verify contents
+    loaded_playlist = load_saved_playlist(playlist_settings.db_path, pl_id)
+    assert loaded_playlist is not None
+    assert loaded_playlist.playlist_id == pl_id
+    assert loaded_playlist.name == "Saved Lounge"
+    assert loaded_playlist.description == "A saved test playlist"
+    assert loaded_playlist.mode == "saved"
+
+    assert len(loaded_playlist.tracks) == 3
+
+    # Verify tracks metadata and ordering
+    track1 = loaded_playlist.tracks[0]
+    assert track1.track_id == 1
+    assert track1.position == 1
+    assert track1.title == "Summer Breeze"
+    assert track1.artist == "Solaris"
+    assert track1.bpm == 120.0
+
+    track2 = loaded_playlist.tracks[1]
+    assert track2.track_id == 2
+    assert track2.position == 2
+    assert track2.title == "Sunset Chill"
+    assert track2.bpm == 122.0
+
+    # Verify transitions are calculated
+    assert track1.transition is None  # First track has no transition
+
+    assert track2.transition is not None
+    assert track2.transition.from_track_id == 1
+    assert track2.transition.to_track_id == 2
+    assert 0.0 <= track2.transition.total_score <= 1.0
+    assert track2.transition.bpm_score > 0
+    assert track2.transition.vibe_similarity > 0
+
+    track3 = loaded_playlist.tracks[2]
+    assert track3.transition is not None
+    assert track3.transition.from_track_id == 2
+    assert track3.transition.to_track_id == 3
+
+    # Verify duration and average transition score
+    expected_duration = track1.duration + track2.duration + track3.duration
+    assert abs(loaded_playlist.total_duration - expected_duration) < 0.1
+
+    avg_score = (track2.transition.total_score + track3.transition.total_score) / 2.0
+    assert abs(loaded_playlist.avg_transition_score - avg_score) < 0.001
