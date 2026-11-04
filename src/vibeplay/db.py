@@ -240,6 +240,19 @@ MIGRATIONS: list[tuple[int, str, str]] = [
         CREATE INDEX IF NOT EXISTS idx_job_runs_type ON job_runs(job_type);
         """,
     ),
+    (
+        5,
+        "005_saved_playlists",
+        """
+        CREATE TABLE IF NOT EXISTS saved_playlists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            vibe_arc TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    ),
 ]
 
 
@@ -1192,6 +1205,84 @@ def get_playlist_tracks(
     cursor.execute(query, (playlist_id,))
     return cursor.fetchall()
 
+
+
+@retry_db_locked()
+def save_playlist(
+    conn: sqlite3.Connection,
+    name: str,
+    vibe_arc: str | None,
+    track_ids: list[int],
+) -> int:
+    """Save a user playlist.
+
+    Args:
+        conn: Open SQLite connection.
+        name: Name of the playlist.
+        vibe_arc: Optional vibe arc description.
+        track_ids: Ordered list of track IDs to add (1-indexed position).
+
+    Returns:
+        int: The newly created playlist ID.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO saved_playlists (name, vibe_arc, created_at, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """,
+        (name, vibe_arc),
+    )
+    playlist_id = cursor.lastrowid or 0
+
+    if track_ids:
+        # Create a stub record in `playlists` so we satisfy the foreign key constraint from playlist_tracks.
+        cursor.execute(
+            """
+            INSERT INTO playlists (id, name, created_at, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (playlist_id, name)
+        )
+        items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
+        cursor.executemany(
+            """
+            INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, position, added_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            items,
+        )
+
+    return playlist_id
+
+def get_saved_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """List all saved playlists with track counts and total durations."""
+    cursor = conn.cursor()
+    query = """
+        SELECT
+            sp.id,
+            sp.name,
+            sp.vibe_arc,
+            sp.created_at,
+            COUNT(pt.track_id) AS track_count,
+            COALESCE(SUM(t.duration), 0.0) AS total_duration
+        FROM saved_playlists sp
+        LEFT JOIN playlist_tracks pt ON sp.id = pt.playlist_id
+        LEFT JOIN tracks t ON pt.track_id = t.id
+        GROUP BY sp.id
+        ORDER BY sp.id DESC
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
+
+@retry_db_locked()
+def delete_saved_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
+    """Delete a saved playlist and its tracks."""
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM saved_playlists WHERE id = ?", (playlist_id,))
+    deleted = cursor.rowcount
+    cursor.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
+    return deleted > 0
 
 def list_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """List all saved playlists with track counts and total durations.

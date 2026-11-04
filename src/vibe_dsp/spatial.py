@@ -222,7 +222,6 @@ def generate_pipewire_spatial_filter_chain_config(
 
     # Build filter-chain node matrix
     nodes_config: list[str] = []
-    links_config: list[str] = []
     inputs_config: list[str] = []
 
     # Digital Preamp / Attenuation node to eliminate inter-sample clipping

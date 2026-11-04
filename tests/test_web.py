@@ -396,7 +396,7 @@ def test_playlist_generation_reorder_and_export(
     initial_ids = [int(x) for x in track_matches]
 
     # Export M3U8 file
-    export_res = client.get(f"/api/playlist/{playlist_id}/export-m3u8")
+    export_res = client.get(f"/api/playlist/{playlist_id}/export")
     assert export_res.status_code == 200
     assert export_res.headers["content-type"].startswith("audio/x-mpegurl")
     assert "#EXTM3U" in export_res.text
