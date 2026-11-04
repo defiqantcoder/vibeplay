@@ -189,3 +189,30 @@ def test_custom_audio_output_dropdown_rendered(test_env):
     assert res_post.status_code == 200
     assert "audio-output-dropdown-container" in res_post.text
     assert "PipeWire Sound Server" in res_post.text
+
+
+def test_is_job_cancelled(test_env):
+    db_path = test_env["db_path"]
+
+    # 1. Non-existent job
+    from vibeplay.jobs import cancel_job_run, is_job_cancelled
+
+    assert is_job_cancelled(db_path, "does-not-exist") is False
+
+    # 2. Running job is not cancelled
+    job_id1 = create_job_run(db_path, "scan", total_items=10)
+    assert is_job_cancelled(db_path, job_id1) is False
+
+    # 3. Cancel the job
+    cancel_job_run(db_path, job_id1)
+    assert is_job_cancelled(db_path, job_id1) is True
+
+    # 4. Completed job is not cancelled
+    job_id2 = create_job_run(db_path, "enrich", total_items=5)
+    complete_job_run(db_path, job_id2, total_items=5)
+    assert is_job_cancelled(db_path, job_id2) is False
+
+    # 5. Failed job is not cancelled
+    job_id3 = create_job_run(db_path, "analyze", total_items=5)
+    fail_job_run(db_path, job_id3, "Test error")
+    assert is_job_cancelled(db_path, job_id3) is False
