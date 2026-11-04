@@ -955,6 +955,150 @@ def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
         return {"volume": target_vol, "error": str(err)}
 
 
+def _fetch_track_metadata(
+    file_path: str, cur: dict[str, Any], db_path: Path | None
+) -> tuple[int | None, str, str, str, int | None, int | None, int | None]:
+    track_db_id = None
+    cur_title = cur.get("title") or (Path(file_path).stem if file_path else "vibeplay Ready")
+    cur_artist = cur.get("artist") or "Audiophile Precision"
+    cur_album = cur.get("album") or "Studio Master"
+
+    native_rate_hz: int | None = None
+    native_depth_bits: int | None = None
+    native_channels: int | None = None
+
+    if file_path:
+        try:
+            tech_info = _extract_audio_file_technical_info(file_path)
+            native_channels = tech_info.get("channels")
+            native_depth_bits = tech_info.get("bits_per_sample")
+            native_rate_hz = tech_info.get("sample_rate")
+        except Exception:
+            pass
+
+    if file_path and db_path and db_path.exists():
+        try:
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    """
+                    SELECT t.id, t.title, t.artist, t.album, t.sample_rate, t.bit_depth
+                    FROM tracks t
+                    WHERE t.path = ? OR t.path LIKE ?
+                    LIMIT 1
+                    """,
+                    (file_path, f"%{Path(file_path).name}"),
+                ).fetchone()
+                if row:
+                    track_db_id = row[0]
+                    if row[1]:
+                        cur_title = row[1]
+                    if row[2]:
+                        cur_artist = row[2]
+                    if row[3]:
+                        cur_album = row[3]
+                    if row[4]:
+                        native_rate_hz = int(row[4])
+                    if row[5]:
+                        native_depth_bits = int(row[5])
+        except Exception:
+            pass
+
+    return track_db_id, cur_title, cur_artist, cur_album, native_rate_hz, native_depth_bits, native_channels
+
+
+def _parse_playback_audio_format(
+    is_active: bool,
+    audio_spec: str | None,
+    native_rate_hz: int | None,
+    native_depth_bits: int | None,
+    native_channels: int | None,
+) -> tuple[int | None, int | None, int | None, str, str, str]:
+    output_channels = None
+    if is_active and audio_spec and ":" in audio_spec:
+        parts = audio_spec.split(":")
+        rate_hz = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else (native_rate_hz or 44100)
+        depth_bits = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (native_depth_bits or 16)
+        output_channels = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else (native_channels or 2)
+        sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
+        bit_depth_str = f"{depth_bits}-bit"
+    elif is_active and native_rate_hz:
+        rate_hz = native_rate_hz
+        depth_bits = native_depth_bits or 16
+        output_channels = native_channels or 2
+        sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
+        bit_depth_str = f"{depth_bits}-bit"
+        audio_spec = f"{rate_hz}:{depth_bits}:{output_channels}"
+    else:
+        rate_hz = None
+        depth_bits = None
+        output_channels = None
+        sample_rate_str = "--"
+        bit_depth_str = "--"
+        audio_spec = "--"
+
+    return rate_hz, depth_bits, output_channels, sample_rate_str, bit_depth_str, audio_spec or "--"
+
+
+def _calculate_volume_state(st_vol: str, is_muted: bool, last_nonzero_vol: int) -> tuple[int, str, bool, bool]:
+    is_hardware_lineout = st_vol == "-1"
+    if is_hardware_lineout:
+        vol = 100
+        volume_db = "0.0 dB (Hardware Line-Out)"
+    elif is_muted:
+        vol = 0
+        volume_db = "-inf dB (Muted)"
+    else:
+        vol = last_nonzero_vol
+        if st_vol and st_vol not in ("-1", "0"):
+            try:
+                vol = int(st_vol)
+            except ValueError:
+                vol = last_nonzero_vol
+        volume_db = f"{round((vol - 100) * 0.5, 1)} dB" if vol < 100 else "0.0 dB (Hardware Line-Out)"
+
+    volume_attenuated = vol < 100 and not is_hardware_lineout
+    return vol, volume_db, is_hardware_lineout, volume_attenuated
+
+
+def _evaluate_bit_perfect_status(
+    is_active: bool,
+    is_lossless: bool,
+    rate_hz: int | None,
+    native_rate_hz: int | None,
+    depth_bits: int | None,
+    native_depth_bits: int | None,
+    output_channels: int | None,
+    native_channels: int | None,
+    volume_attenuated: bool,
+) -> tuple[bool, str]:
+    resampling_applied = False
+    if rate_hz is not None and native_rate_hz is not None:
+        if rate_hz != native_rate_hz:
+            resampling_applied = True
+
+    bit_depth_mismatch = False
+    if depth_bits is not None and native_depth_bits is not None:
+        if depth_bits != native_depth_bits:
+            bit_depth_mismatch = True
+
+    channels_mismatch = False
+    if output_channels is not None and native_channels is not None:
+        if output_channels != native_channels:
+            channels_mismatch = True
+
+    if is_active and is_lossless and not resampling_applied and not bit_depth_mismatch and not channels_mismatch and not volume_attenuated:
+        bit_perfect = True
+        buffer_health = "100% Bit-Perfect Locked"
+    elif is_active:
+        bit_perfect = False
+        buffer_health = "DSP / Processed"
+    else:
+        bit_perfect = False
+        buffer_health = "Standby (Direct ALSA Ready)"
+
+    return bit_perfect, buffer_health
+
+
 def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
     """Retrieve real-time player telemetry, DAC buffer health, and active track."""
     cfg = settings or get_settings()
@@ -969,128 +1113,45 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
             duration = float(duration_str) if duration_str else 0.0
 
             file_path = cur.get("file", "")
-            track_db_id = None
-            cur_title = cur.get("title") or (Path(file_path).stem if file_path else "vibeplay Ready")
-            cur_artist = cur.get("artist") or "Audiophile Precision"
-            cur_album = cur.get("album") or "Studio Master"
 
-            native_rate_hz: int | None = None
-            native_depth_bits: int | None = None
-            native_channels: int | None = None
-
-            if file_path:
-                try:
-                    tech_info = _extract_audio_file_technical_info(file_path)
-                    native_channels = tech_info.get("channels")
-                    native_depth_bits = tech_info.get("bits_per_sample")
-                    native_rate_hz = tech_info.get("sample_rate")
-                except Exception:
-                    pass
-
-            if file_path and db_path and db_path.exists():
-                try:
-                    with get_connection(db_path) as conn:
-                        row = conn.execute(
-                            """
-                            SELECT t.id, t.title, t.artist, t.album, t.sample_rate, t.bit_depth
-                            FROM tracks t
-                            WHERE t.path = ? OR t.path LIKE ?
-                            LIMIT 1
-                            """,
-                            (file_path, f"%{Path(file_path).name}"),
-                        ).fetchone()
-                        if row:
-                            track_db_id = row[0]
-                            if row[1]:
-                                cur_title = row[1]
-                            if row[2]:
-                                cur_artist = row[2]
-                            if row[3]:
-                                cur_album = row[3]
-                            if row[4]:
-                                native_rate_hz = int(row[4])
-                            if row[5]:
-                                native_depth_bits = int(row[5])
-                except Exception:
-                    pass
+            (
+                track_db_id,
+                cur_title,
+                cur_artist,
+                cur_album,
+                native_rate_hz,
+                native_depth_bits,
+                native_channels,
+            ) = _fetch_track_metadata(file_path, cur, db_path)
 
             audio_spec = st.get("audio")
             is_active = state in ("play", "pause") and bool(file_path)
 
-            output_channels = None
-            if is_active and audio_spec and ":" in audio_spec:
-                parts = audio_spec.split(":")
-                rate_hz = int(parts[0]) if len(parts) > 0 and parts[0].isdigit() else (native_rate_hz or 44100)
-                depth_bits = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else (native_depth_bits or 16)
-                output_channels = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else (native_channels or 2)
-                sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
-                bit_depth_str = f"{depth_bits}-bit"
-            elif is_active and native_rate_hz:
-                rate_hz = native_rate_hz
-                depth_bits = native_depth_bits or 16
-                output_channels = native_channels or 2
-                sample_rate_str = f"{rate_hz / 1000:.1f}kHz" if rate_hz >= 1000 else f"{rate_hz}Hz"
-                bit_depth_str = f"{depth_bits}-bit"
-                audio_spec = f"{rate_hz}:{depth_bits}:{output_channels}"
-            else:
-                rate_hz = None
-                depth_bits = None
-                output_channels = None
-                sample_rate_str = "--"
-                bit_depth_str = "--"
-                audio_spec = "--"
+            (
+                rate_hz,
+                depth_bits,
+                output_channels,
+                sample_rate_str,
+                bit_depth_str,
+                audio_spec,
+            ) = _parse_playback_audio_format(is_active, audio_spec, native_rate_hz, native_depth_bits, native_channels)
 
             st_vol = st.get("volume", "80")
-            is_hardware_lineout = st_vol == "-1"
-            if is_hardware_lineout:
-                vol = 100
-                volume_db = "0.0 dB (Hardware Line-Out)"
-            elif _IS_MUTED:
-                vol = 0
-                volume_db = "-inf dB (Muted)"
-            else:
-                vol = _LAST_NONZERO_VOLUME
-                if st_vol and st_vol not in ("-1", "0"):
-                    try:
-                        vol = int(st_vol)
-                    except ValueError:
-                        vol = _LAST_NONZERO_VOLUME
-                volume_db = f"{round((vol - 100) * 0.5, 1)} dB" if vol < 100 else "0.0 dB (Hardware Line-Out)"
+            vol, volume_db, is_hardware_lineout, volume_attenuated = _calculate_volume_state(st_vol, _IS_MUTED, _LAST_NONZERO_VOLUME)
 
             detected_codec, is_lossless = _detect_codec_from_path(file_path)
 
-            # Bit-perfect criteria:
-            # 1. Active file is a lossless container
-            # 2. Output sample rate matches native track rate (no resampling)
-            # 3. Output bit depth matches native bit depth
-            # 4. Output channels matches native channels
-            # 5. Volume is unattenuated (100% / 0 dB or hardware line-out)
-            resampling_applied = False
-            if rate_hz is not None and native_rate_hz is not None:
-                if rate_hz != native_rate_hz:
-                    resampling_applied = True
-
-            bit_depth_mismatch = False
-            if depth_bits is not None and native_depth_bits is not None:
-                if depth_bits != native_depth_bits:
-                    bit_depth_mismatch = True
-
-            channels_mismatch = False
-            if output_channels is not None and native_channels is not None:
-                if output_channels != native_channels:
-                    channels_mismatch = True
-
-            volume_attenuated = vol < 100 and not is_hardware_lineout
-
-            if is_active and is_lossless and not resampling_applied and not bit_depth_mismatch and not channels_mismatch and not volume_attenuated:
-                bit_perfect = True
-                buffer_health = "100% Bit-Perfect Locked"
-            elif is_active:
-                bit_perfect = False
-                buffer_health = "DSP / Processed"
-            else:
-                bit_perfect = False
-                buffer_health = "Standby (Direct ALSA Ready)"
+            bit_perfect, buffer_health = _evaluate_bit_perfect_status(
+                is_active,
+                is_lossless,
+                rate_hz,
+                native_rate_hz,
+                depth_bits,
+                native_depth_bits,
+                output_channels,
+                native_channels,
+                volume_attenuated,
+            )
 
             return {
                 "state": state,
