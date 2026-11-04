@@ -1,15 +1,10 @@
-import ast
+import re
 
 with open("src/vibeplay/desktop/runner.py", "r") as f:
     content = f.read()
 
 # Add imports from vibeplay.desktop.app
-imports = [node for node in ast.parse(content).body if isinstance(node, ast.ImportFrom) and node.module == "vibeplay.desktop.app"]
-existing = {alias.name for node in imports for alias in node.names if alias.asname in (None, alias.name)}
-missing = [name for name in ("setup_gtk", "run_webview") if name not in existing]
-if missing:
-    anchor = "from vibeplay.desktop.security import is_loopback_host, validate_loopback_host"
-    content = content.replace(anchor, f"from vibeplay.desktop.app import {', '.join(missing)}\n" + anchor)
+content = content.replace("from vibeplay.desktop.security import is_loopback_host, validate_loopback_host", "from vibeplay.desktop.app import setup_gtk, run_webview\nfrom vibeplay.desktop.security import is_loopback_host, validate_loopback_host")
 
 # Replace gtk setup and webview setup block inside `start`
 old_gtk_block = """        # Setup GTK application name, WM_CLASS, and window icon
