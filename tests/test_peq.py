@@ -275,33 +275,6 @@ def test_peq_cli_generate_json() -> None:
     assert "peak_positive_gain" in data
 
 
-@pytest.mark.parametrize(
-    ("options", "lookup_name", "message"),
-    [
-        (["--model", "Missing Model"], "Missing Model", "Could not locate AutoEq profile for model 'Missing Model'."),
-        ([], "Moondrop Blessing 2", "Must provide either --input or --model."),
-    ],
-)
-def test_peq_cli_generate_unavailable_profile(options: list[str], lookup_name: str, message: str) -> None:
-    """Unavailable explicit and default profiles produce a concise CLI error."""
-    with patch("vibe_dsp.peq.lookup_autoeq_model", return_value=None) as lookup:
-        res = runner.invoke(app, ["peq", "generate", *options])
-
-    lookup.assert_called_once_with(lookup_name)
-    assert res.exit_code == 1
-    assert f"Error: {message}" in res.stdout
-    assert "Traceback" not in res.output
-
-
-def test_peq_cli_generate_does_not_catch_other_errors() -> None:
-    """Unexpected errors retain their original handling."""
-    with patch("vibe_dsp.cli.generate_peq_profile", side_effect=RuntimeError("unexpected")):
-        res = runner.invoke(app, ["peq", "generate"])
-
-    assert isinstance(res.exception, RuntimeError)
-    assert str(res.exception) == "unexpected"
-
-
 def test_peq_cli_list_and_show() -> None:
     """Verify vibe-dsp peq list and vibe-dsp peq show CLI commands."""
     res_list = runner.invoke(app, ["peq", "list", "--json"])

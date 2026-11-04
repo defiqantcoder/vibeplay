@@ -445,25 +445,16 @@ def peq_generate(
     backup: Annotated[bool, typer.Option("--backup/--no-backup", help="Generate automatic backup and rollback script before writing preset.")] = True,
     json_output: Annotated[bool, typer.Option("--json", help="Output generated profile and gain staging in JSON format.")] = False,
 ) -> None:
-    """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging.
-
-    Print the profile as JSON or a formatted report, and optionally export an
-    EasyEffects preset. ValueErrors are reported with exit code 1; other
-    generation errors propagate to the caller.
-    """
-    try:
-        profile, preset_path, rollback_script = generate_peq_profile(
-            input_source=input_source,
-            model=model,
-            name=name,
-            safety_margin=safety_margin,
-            export_easyeffects=export_easyeffects,
-            output_dir=output_dir,
-            backup=backup,
-        )
-    except ValueError as err:
-        console.print(f"[bold red]Error:[/bold red] {err}")
-        raise typer.Exit(code=1) from err
+    """Generate calibrated parametric EQ profile with inter-sample anti-clipping gain staging."""
+    profile, preset_path, rollback_script = generate_peq_profile(
+        input_source=input_source,
+        model=model,
+        name=name,
+        safety_margin=safety_margin,
+        export_easyeffects=export_easyeffects,
+        output_dir=output_dir,
+        backup=backup,
+    )
     if json_output:
         out_dict = profile.model_dump()
         if preset_path:
@@ -559,7 +550,7 @@ def peq_show(
     profile: Annotated[str, typer.Argument(help="Name, model, or file path of PEQ profile to inspect.")] = "moondrop_blessing_2",
     json_output: Annotated[bool, typer.Option("--json", help="Output profile in JSON format.")] = False,
 ) -> None:
-    """Inspect the filter biquad parameters and headroom of a profile."""
+    """Inspect the frequency curves, filter biquad parameters, and headroom of a profile."""
     prof = lookup_autoeq_model(profile)
     if not prof:
         prof = ingest_peq_source(profile)

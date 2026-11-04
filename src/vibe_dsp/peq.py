@@ -815,34 +815,7 @@ def generate_peq_profile(
     output_dir: Path | None = None,
     backup: bool = True,
 ) -> tuple[PEQProfile, Path | None, Path | None]:
-    """Generate and optionally export a calibrated PEQ profile.
-
-    A nonempty input source takes precedence over the model. If neither is
-    supplied, look up Moondrop Blessing 2. Model lookup may access the network
-    and cache a downloaded profile.
-
-    Args:
-        input_source: File path, raw JSON, or AutoEq text. A nonexistent path
-            is treated as text.
-        model: Headphone or IEM model to look up when no input is supplied.
-        name: Name for the input or model profile. A JSON object's own name
-            takes precedence; this argument is ignored for the default model.
-        safety_margin: Headroom in dB added to a positive peak boost when
-            calculating the preamp. With no positive boost, the preamp is zero.
-        export_easyeffects: Write an EasyEffects output preset when true.
-        output_dir: Preset directory, defaulting to
-            ~/.local/share/easyeffects/output.
-        backup: Create a backup and rollback script before exporting.
-
-    Returns:
-        The profile, preset path, and rollback script path. Both paths are
-        None without export; the rollback path is also None without backup.
-
-    Raises:
-        ValueError: If the requested or default model cannot be found, or if
-            input parsing or filter validation fails.
-        OSError: If reading local input or writing the preset or backup fails.
-    """
+    """Generate and optionally export a calibrated PEQ profile."""
     profile: PEQProfile | None = None
 
     if input_source:
