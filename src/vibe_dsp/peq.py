@@ -472,6 +472,32 @@ def ingest_peq_source(source: str | Path, name: str | None = None) -> PEQProfile
     return parse_autoeq_text(raw_str, name=prof_name)
 
 
+class PEQProfileNotFoundError(LookupError):
+    """A requested or default AutoEq profile could not be located."""
+
+
+def generate_peq_profile(
+    input_source: str | None = None,
+    model: str | None = None,
+    name: str | None = None,
+    safety_margin_db: float = 0.3,
+) -> PEQProfile:
+    """Generate a profile from input, a model, or the bundled default.
+
+    Raises PEQProfileNotFoundError when the selected model is unavailable.
+    """
+    if input_source:
+        profile = ingest_peq_source(input_source, name=name)
+    else:
+        profile = lookup_autoeq_model(model or "Moondrop Blessing 2")
+        if profile is None:
+            raise PEQProfileNotFoundError(model or "Moondrop Blessing 2")
+        if model and name:
+            profile.name = name
+
+    return apply_headroom_calculation(profile, safety_margin_db=safety_margin_db)
+
+
 def generate_easyeffects_preset(profile: PEQProfile) -> dict[str, Any]:
     """Build a complete EasyEffects output preset dictionary from a PEQ profile.
 
