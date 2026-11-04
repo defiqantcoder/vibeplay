@@ -14,12 +14,9 @@ from rich.panel import Panel
 from rich.table import Table
 
 from vibe_dsp.alsa_reservation import (
-    DEFAULT_MPD_CONF_DIR,
-    check_alsa_device_status,
-    generate_mpd_audio_outputs,
-    write_mpd_audio_outputs_config,
+    setup_bitperfect_routing,
 )
-from vibe_dsp.backup import create_backup, execute_rollback, find_latest_backup
+from vibe_dsp.backup import execute_rollback, find_latest_backup
 from vibe_dsp.hardware import scan_hardware
 from vibe_dsp.ipc import (
     AVAILABLE_PROFILES,
@@ -48,9 +45,7 @@ from vibe_dsp.peq import (
 )
 from vibe_dsp.pipewire import (
     DEFAULT_PIPEWIRE_CONF_DIR,
-    generate_pipewire_dropin_config,
     reload_pipewire_daemons,
-    write_pipewire_dropin,
 )
 from vibe_dsp.spatial import (
     DEFAULT_SPATIAL_CONF_FILE,
@@ -270,55 +265,30 @@ def route_bitperfect(
         )
     )
 
-    # Generate configurations
-    pipewire_cfg = generate_pipewire_dropin_config(
+    result = setup_bitperfect_routing(
+        target_ep=target_ep,
+        fallback_ep=report.fallback_endpoint,
         unlocked_rates=report.unlocked_rates,
-        node_pattern="~alsa_output.usb-.*",
+        output_pw=output_pipewire,
+        output_mpd=output_mpd,
+        no_reload=no_reload,
+        dry_run=dry_run,
     )
-
-    mpd_cfg = generate_mpd_audio_outputs(
-        primary_endpoint=target_ep,
-        fallback_endpoint=report.fallback_endpoint,
-    )
-
-    target_pw_file = output_pipewire or (DEFAULT_PIPEWIRE_CONF_DIR / "99-bitperfect.conf")
-    target_mpd_file = output_mpd or (DEFAULT_MPD_CONF_DIR / "bitperfect.conf")
 
     if dry_run:
         console.print("[bold yellow][DRY RUN MODE][/bold yellow] Previewing generated configurations:")
-        console.print(f"\n[bold cyan]--- {target_pw_file} ---[/bold cyan]")
-        console.print(pipewire_cfg)
-        console.print(f"\n[bold cyan]--- {target_mpd_file} ---[/bold cyan]")
-        console.print(mpd_cfg)
+        console.print(f"\n[bold cyan]--- {result.target_pw_file} ---[/bold cyan]")
+        console.print(result.pipewire_cfg)
+        console.print(f"\n[bold cyan]--- {result.target_mpd_file} ---[/bold cyan]")
+        console.print(result.mpd_cfg)
         console.print("\n[yellow]Dry run completed. No files modified.[/yellow]")
         return
 
-    # Safety: Create backup and rollback script before writing any file
-    backup_dir, rollback_script = create_backup(targets=[target_pw_file, target_mpd_file])
-
-    # Write configs
-    write_pipewire_dropin(
-        content=pipewire_cfg,
-        conf_dir=target_pw_file.parent,
-        filename=target_pw_file.name,
-    )
-
-    write_mpd_audio_outputs_config(
-        content=mpd_cfg,
-        output_path=target_mpd_file,
-    )
-
-    # Reload daemons unless suppressed
-    reload_msg = "Skipped (--no-reload)"
-    if not no_reload:
-        success, reload_msg = reload_pipewire_daemons()
-        if success:
-            console.print(f"[bold green]Daemon Reload:[/bold green] {reload_msg}")
-        else:
-            console.print(f"[bold yellow]Daemon Notice:[/bold yellow] {reload_msg}")
-
-    # Inspect device status
-    status = check_alsa_device_status(target_ep.card_index, target_ep.device_index)
+    # Present results
+    if result.reload_success:
+        console.print(f"[bold green]Daemon Reload:[/bold green] {result.reload_msg}")
+    else:
+        console.print(f"[bold yellow]Daemon Notice:[/bold yellow] {result.reload_msg}")
 
     summary_table = Table(title="Bit-Perfect Transport Status", show_header=False)
     summary_table.add_column("Key", style="bold")
@@ -326,24 +296,24 @@ def route_bitperfect(
 
     summary_table.add_row(
         "Primary Output",
-        f"[green]{target_ep.hw_device}[/green] ({target_ep.card_name})",
+        f"[green]{result.target_ep.hw_device}[/green] ({result.target_ep.card_name})",
     )
     summary_table.add_row(
         "Fallback Driver",
-        f"[yellow]{target_ep.plughw_device}[/yellow] (transparent format plug)",
+        f"[yellow]{result.target_ep.plughw_device}[/yellow] (transparent format plug)",
     )
     summary_table.add_row("PipeWire Sinks", "resample.disable = true (*.usb-*)")
     summary_table.add_row("Unlocked Rates", "44.1, 48, 88.2, 96, 176.4, 192, 352.8, 384 kHz")
-    summary_table.add_row("Device State", f"[cyan]{status}[/cyan]")
-    summary_table.add_row("PipeWire Drop-in", str(target_pw_file))
-    summary_table.add_row("MPD Output Conf", str(target_mpd_file))
-    summary_table.add_row("Backup Directory", str(backup_dir))
-    summary_table.add_row("Rollback Script", f"[bold red]{rollback_script}[/bold red]")
+    summary_table.add_row("Device State", f"[cyan]{result.device_status}[/cyan]")
+    summary_table.add_row("PipeWire Drop-in", str(result.target_pw_file))
+    summary_table.add_row("MPD Output Conf", str(result.target_mpd_file))
+    summary_table.add_row("Backup Directory", str(result.backup_dir))
+    summary_table.add_row("Rollback Script", f"[bold red]{result.rollback_script}[/bold red]")
 
     console.print(summary_table)
     console.print(
-        f"\n[bold green]Success:[/bold green] Bit-perfect routing engaged. "
-        f"To revert anytime, run: [bold]vibe-dsp rollback[/bold] or [bold]bash {rollback_script}[/bold]"
+        f"\n[bold green]Success:[/bold green] Bit-perfect routing engaged. \n"
+        f"To revert anytime, run: [bold]vibe-dsp rollback[/bold] or [bold]bash {result.rollback_script}[/bold]"
     )
     console.print()
 
