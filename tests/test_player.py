@@ -400,3 +400,50 @@ def test_fallback_player_lifecycle_and_lock() -> None:
     mock_proc.terminate.assert_called_once()
     mock_proc.kill.assert_called_once()
     assert player_mod._FALLBACK_PROC is None
+
+
+def test_seek_playback() -> None:
+    """Verify seek_playback correctly sends seekcur to MPD and clamps negative values."""
+    from unittest.mock import MagicMock, patch
+
+    from vibeplay.player import seek_playback
+
+    # 1. Happy path: MPD is playing
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "play"}
+
+        res = seek_playback(15.5)
+        assert res == {"state": "play"}
+        mock_client.seekcur.assert_called_once_with(15.5)
+
+    # 2. Happy path: clamping negative time
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "pause"}
+
+        res = seek_playback(-5.0)
+        assert res == {"state": "pause"}
+        mock_client.seekcur.assert_called_once_with(0.0)
+
+    # 3. No-op path: MPD is stopped
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.return_value = {"state": "stop"}
+
+        res = seek_playback(10.0)
+        assert res == {"state": "stop"}
+        mock_client.seekcur.assert_not_called()
+
+    # 4. Exception handling
+    with patch("vibeplay.player.MPDClient") as mock_mpd_cls:
+        mock_client = MagicMock()
+        mock_mpd_cls.return_value = mock_client
+        mock_client.status.side_effect = Exception("MPD connection lost")
+
+        res = seek_playback(10.0)
+        assert res["state"] == "stopped"
+        assert "MPD connection lost" in res["error"]
