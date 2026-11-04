@@ -1213,7 +1213,10 @@ def save_playlist(
     vibe_arc: str | None,
     track_ids: list[int],
 ) -> int:
-    """Save a user playlist.
+    """Save a user playlist without committing or rolling back the connection.
+
+    An empty track list creates a saved playlist without a corresponding entry
+    in the playlists table. Failed inserts can leave earlier writes pending.
 
     Args:
         conn: Open SQLite connection.
@@ -1222,7 +1225,10 @@ def save_playlist(
         track_ids: Ordered list of track IDs to add (1-indexed position).
 
     Returns:
-        int: The newly created playlist ID.
+        int: The newly created playlist ID, or 0 if no row ID is available.
+
+    Raises:
+        sqlite3.Error: If a database operation fails, including after lock retries.
     """
     cursor = conn.cursor()
     cursor.execute(
