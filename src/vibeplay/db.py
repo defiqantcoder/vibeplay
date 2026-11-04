@@ -359,6 +359,8 @@ def get_existing_tracks(conn: sqlite3.Connection) -> dict[str, TrackRecord]:
         dict[str, TrackRecord]: Mapping of path -> TrackRecord.
     """
     cursor = conn.cursor()
+    old_row_factory = cursor.row_factory
+    cursor.row_factory = None
     cursor.execute(
         """
         SELECT
@@ -368,30 +370,12 @@ def get_existing_tracks(conn: sqlite3.Connection) -> dict[str, TrackRecord]:
         FROM tracks
         """
     )
-    tracks: dict[str, TrackRecord] = {}
-    for row in cursor:
-        tracks[row["path"]] = TrackRecord(
-            id=row["id"],
-            path=row["path"],
-            mtime=row["mtime"],
-            size=row["size"],
-            hash=row["hash"],
-            status=row["status"],
-            duration=row["duration"],
-            bitrate=row["bitrate"],
-            title=row["title"],
-            artist=row["artist"],
-            album_artist=row["album_artist"],
-            album=row["album"],
-            track_no=row["track_no"],
-            track_total=row["track_total"],
-            disc_no=row["disc_no"],
-            disc_total=row["disc_total"],
-            year=row["year"],
-            genre=row["genre"],
-            has_cover=bool(row["has_cover"]),
-            tags=row["tags"],
-        )
+    # Stream over cursor directly avoiding transient full-list allocation (CodeRabbit suggestion on PR #108)
+    tracks: dict[str, TrackRecord] = {
+        row[1]: TrackRecord(*row[:18], bool(row[18]), row[19])
+        for row in cursor
+    }
+    cursor.row_factory = old_row_factory
     return tracks
 
 
@@ -1078,11 +1062,11 @@ def get_features_checksum(conn: sqlite3.Connection) -> str:
         ORDER BY track_id ASC
         """
     )
-    rows = cursor.fetchall()
     hasher = hashlib.sha256()
-    for row in rows:
-        row_str = "|".join(str(val) if val is not None else "" for val in row)
-        hasher.update(row_str.encode("utf-8"))
+    while chunk := cursor.fetchmany(10000):
+        for row in chunk:
+            row_str = "|".join(str(val) if val is not None else "" for val in row)
+            hasher.update(row_str.encode("utf-8"))
     return hasher.hexdigest()
 
 
@@ -1488,3 +1472,86 @@ def update_track_vibe_tags(
         "UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (combined_tags_json, track_id),
     )
+
+
+@retry_db_locked()
+def bulk_update_track_vibe_tags(
+    conn: sqlite3.Connection,
+    updates: list[tuple[int, list[str], list[str]]],
+) -> None:
+    """Persist generated mood and genre tags for multiple tracks in bulk.
+
+    Args:
+        conn: Open SQLite connection.
+        updates: List of tuples (track_id, mood_tags, genre_tags).
+    """
+    if not updates:
+        return
+
+    # Deduplicate updates by track ID retaining last tag values (CodeRabbit suggestion on PR #126)
+    deduped_dict: dict[int, tuple[list[str], list[str]]] = {}
+    for track_id, mood_tags, genre_tags in updates:
+        deduped_dict[track_id] = (mood_tags, genre_tags)
+
+    deduped_updates = [(tid, moods, genres) for tid, (moods, genres) in deduped_dict.items()]
+
+    cursor = conn.cursor()
+    chunk_size = 900  # Safe limit below SQLite 999 variable limit
+
+    for i in range(0, len(deduped_updates), chunk_size):
+        chunk = deduped_updates[i : i + chunk_size]
+        track_ids = [u[0] for u in chunk]
+        placeholders = ",".join("?" for _ in track_ids)
+
+        cursor.execute(
+            f"SELECT track_id FROM enrichment WHERE track_id IN ({placeholders})",
+            track_ids,
+        )
+        existing_ids = set()
+        for row in cursor.fetchall():
+            try:
+                existing_ids.add(row["track_id"])
+            except (TypeError, KeyError):
+                existing_ids.add(row[0])
+
+        updates_to_do = []
+        inserts_to_do = []
+        track_updates_to_do = []
+
+        for track_id, mood_tags, genre_tags in chunk:
+            combined_tags_json = json.dumps(mood_tags)
+            combined_genres_json = json.dumps(genre_tags)
+
+            if track_id in existing_ids:
+                updates_to_do.append((combined_tags_json, combined_genres_json, track_id))
+            else:
+                inserts_to_do.append((track_id, combined_tags_json, combined_genres_json))
+
+            track_updates_to_do.append((combined_tags_json, track_id))
+
+        if updates_to_do:
+            cursor.executemany(
+                """
+                UPDATE enrichment
+                SET tags = ?, genres = ?, fetched_at = CURRENT_TIMESTAMP
+                WHERE track_id = ?
+                """,
+                updates_to_do,
+            )
+
+        if inserts_to_do:
+            cursor.executemany(
+                """
+                INSERT INTO enrichment (track_id, source, tags, genres, status, confidence, fetched_at)
+                VALUES (?, 'llm', ?, ?, 'matched', 1.0, CURRENT_TIMESTAMP)
+                """,
+                inserts_to_do,
+            )
+
+        if track_updates_to_do:
+            cursor.executemany(
+                """
+                UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                """,
+                track_updates_to_do,
+            )

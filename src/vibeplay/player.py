@@ -539,7 +539,7 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
         if audit.active_dac:
             dac_name = audit.active_dac.card_name
             dac_label = f"USB DAC Bit-Perfect ({dac_name})"
-            if dac_label not in profiles and not any("letshuoer" in p.lower() for p in profiles):
+            if dac_label not in profiles and "letshuoer" not in "".join(profiles).lower():
                 profiles.insert(0, dac_label)
         if audit.fallback_endpoint:
             fb_label = f"Speakers / Analog ({audit.fallback_endpoint.card_name})"
@@ -559,7 +559,7 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
             best_dac = get_active_or_best_dac(endpoints)
             if best_dac:
                 dac_label = f"USB DAC Bit-Perfect ({best_dac.card_name})"
-                if dac_label not in profiles and not any("letshuoer" in p.lower() for p in profiles):
+                if dac_label not in profiles and "letshuoer" not in "".join(profiles).lower():
                     profiles.insert(0, dac_label)
         except Exception:
             pass

@@ -328,7 +328,11 @@ def parse_autoeq_text(text: str, name: str = "AutoEq Profile") -> PEQProfile:
             try:
                 explicit_preamp = float(p_match.group(1))
             except ValueError:
-                pass
+                logger.warning(
+                    "Failed to parse preamp value '%s' for profile '%s'.",
+                    p_match.group(1),
+                    name,
+                )
             continue
 
         f_match = filter_pattern.search(line_clean)
@@ -391,7 +395,11 @@ def parse_json_filters(
             try:
                 explicit_preamp = float(parsed["preamp"])
             except (ValueError, TypeError):
-                pass
+                logger.warning(
+                    "Failed to parse preamp value '%s' for profile '%s'.",
+                    parsed["preamp"],
+                    profile_name,
+                )
 
         # Check for EasyEffects preset structure
         if "output" in parsed and "equalizer#0" in parsed["output"]:

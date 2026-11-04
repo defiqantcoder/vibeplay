@@ -570,3 +570,56 @@ def test_generate_vibe_playlist_precedence(playlist_settings: Settings) -> None:
     result = generate_vibe_playlist(req, settings=playlist_settings)
     assert result.name == "Chill Lofi Study Vibes"
     assert len(result.tracks) <= 2
+
+
+def test_load_saved_playlist(playlist_settings: Settings) -> None:
+    """Verify loading a saved playlist reconstructs tracks and transitions (PR #121)."""
+    from vibeplay.db import add_tracks_to_playlist, create_playlist, get_connection
+    from vibeplay.web import load_saved_playlist
+
+    _seed_test_database(playlist_settings.db_path)
+
+    # 1. Edge Case: Playlist does not exist
+    assert load_saved_playlist(playlist_settings.db_path, 999) is None
+
+    # Create a playlist but add no tracks
+    with get_connection(playlist_settings.db_path) as conn:
+        empty_pl_id = create_playlist(conn, "Empty Playlist")
+
+    # 2. Edge Case: Playlist exists but has no tracks
+    assert load_saved_playlist(playlist_settings.db_path, empty_pl_id) is None
+
+    # Create a valid playlist with some tracks
+    with get_connection(playlist_settings.db_path) as conn:
+        pl_id = create_playlist(conn, "Saved Lounge", "A saved test playlist")
+        add_tracks_to_playlist(conn, pl_id, [1, 2, 3])
+
+    # 3. Happy Path: Load saved playlist and verify contents
+    loaded_playlist = load_saved_playlist(playlist_settings.db_path, pl_id)
+    assert loaded_playlist is not None
+    assert loaded_playlist.playlist_id == pl_id
+    assert loaded_playlist.name == "Saved Lounge"
+    assert loaded_playlist.description == "A saved test playlist"
+    assert loaded_playlist.mode == "saved"
+    assert len(loaded_playlist.tracks) == 3
+
+    track1 = loaded_playlist.tracks[0]
+    assert track1.track_id == 1
+    assert track1.position == 1
+    assert track1.title == "Summer Breeze"
+    assert track1.bpm == 120.0
+
+    track2 = loaded_playlist.tracks[1]
+    assert track2.track_id == 2
+    assert track2.position == 2
+    assert track2.bpm == 122.0
+    assert track1.transition is None
+    assert track2.transition is not None
+    assert track2.transition.from_track_id == 1
+    assert track2.transition.to_track_id == 2
+    assert 0.0 <= track2.transition.total_score <= 1.0
+
+    track3 = loaded_playlist.tracks[2]
+    assert track3.transition is not None
+    assert track3.transition.from_track_id == 2
+    assert track3.transition.to_track_id == 3

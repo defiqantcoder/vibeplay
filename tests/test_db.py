@@ -1,12 +1,24 @@
+import json
 from pathlib import Path
 
 from vibeplay.db import (
     TrackRecord,
+    add_tracks_to_playlist,
+    bulk_update_track_vibe_tags,
+    create_playlist,
+    delete_playlist,
     get_connection,
     get_existing_tracks,
+    get_features_checksum,
+    get_playlist,
+    get_playlist_tracks,
     get_total_active_tracks_count,
+    get_unenriched_tracks,
     init_db,
+    insert_or_replace_enrichment,
+    insert_or_replace_features,
     insert_track,
+    list_playlists,
     mark_tracks_missing,
     update_track,
 )
@@ -331,3 +343,191 @@ def test_get_total_active_tracks_count(tmp_path: Path):
         mark_tracks_missing(conn, [id1, id2])
 
         assert get_total_active_tracks_count(conn) == 1
+
+
+def test_get_features_checksum(tmp_path: Path) -> None:
+    """Verify that get_features_checksum generates deterministic SHA-256 hashes (PR #112)."""
+    db_file = tmp_path / "test_checksum.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        checksum_empty1 = get_features_checksum(conn)
+        checksum_empty2 = get_features_checksum(conn)
+        assert checksum_empty1 == checksum_empty2
+        assert len(checksum_empty1) == 64
+
+        id1 = insert_track(conn=conn, path="/path/1.mp3", mtime=100, size=1000, file_hash="h1")
+        id2 = insert_track(conn=conn, path="/path/2.mp3", mtime=200, size=2000, file_hash="h2")
+
+        insert_or_replace_features(
+            conn=conn,
+            track_id=id1,
+            analyzer_version="1.0",
+            bpm=120.0,
+            key="C",
+            scale="major",
+            loudness=-10.5,
+            danceability=0.8,
+            energy=0.9,
+            mood_scores_json='{"happy": 0.9}',
+            embedding_blob=b"emb1",
+        )
+
+        checksum_1 = get_features_checksum(conn)
+        assert checksum_1 != checksum_empty1
+        assert checksum_1 == get_features_checksum(conn)
+
+        insert_or_replace_features(
+            conn=conn,
+            track_id=id2,
+            analyzer_version="1.0",
+            bpm=130.0,
+            key="G",
+            scale="minor",
+            loudness=-8.5,
+            danceability=0.6,
+            energy=0.7,
+            mood_scores_json='{"sad": 0.8}',
+            embedding_blob=b"emb2",
+        )
+
+        checksum_2 = get_features_checksum(conn)
+        assert checksum_2 != checksum_1
+        assert checksum_2 == get_features_checksum(conn)
+
+
+def test_get_unenriched_tracks_suite(tmp_path: Path) -> None:
+    """Verify get_unenriched_tracks behavior (PR #115)."""
+    db_file = tmp_path / "test_unenriched.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        id1 = insert_track(conn, path="1.mp3", mtime=1, size=1, file_hash="h1", title="T1")
+        id2 = insert_track(conn, path="2.mp3", mtime=1, size=1, file_hash="h2", title="T2")
+        id3 = insert_track(conn, path="3.mp3", mtime=1, size=1, file_hash="h3", title="T3")
+
+        insert_or_replace_enrichment(
+            conn,
+            track_id=id2,
+            mb_recording_id=None,
+            mb_release_id=None,
+            mb_artist_id=None,
+            canonical_title="T2",
+            canonical_artist=None,
+            canonical_album_artist=None,
+            canonical_album=None,
+            canonical_year=None,
+            canonical_track_no=None,
+            canonical_track_total=None,
+            canonical_disc_no=None,
+            canonical_disc_total=None,
+            genres=None,
+            tags=None,
+            confidence=1.0,
+            status="matched",
+            source="test",
+            raw_metadata="{}",
+        )
+
+        tracks = get_unenriched_tracks(conn)
+        assert len(tracks) == 2
+        ids = [t["id"] for t in tracks]
+        assert id1 in ids and id3 in ids and id2 not in ids
+
+        # Test force=True
+        assert len(get_unenriched_tracks(conn, force=False)) == 2
+        assert len(get_unenriched_tracks(conn, force=True)) == 3
+
+
+def test_delete_playlist(tmp_path: Path) -> None:
+    """Verify that deleting a playlist cascades to tracks (PR #122)."""
+    db_file = tmp_path / "test_delete_playlist.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        insert_track(conn, "/path/1.mp3", 1.0, 10, "hash1")
+        insert_track(conn, "/path/2.mp3", 1.0, 10, "hash2")
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM tracks ORDER BY id")
+        track_ids = [row[0] for row in cursor.fetchall()]
+
+        playlist_id = create_playlist(conn, "Test Playlist", "Description", "{}")
+        add_tracks_to_playlist(conn, playlist_id, track_ids)
+
+        assert get_playlist(conn, playlist_id) is not None
+        assert len(get_playlist_tracks(conn, playlist_id)) == 2
+
+        assert delete_playlist(conn, playlist_id) is True
+        assert get_playlist(conn, playlist_id) is None
+        assert len(get_playlist_tracks(conn, playlist_id)) == 0
+        assert delete_playlist(conn, playlist_id) is False
+
+
+def test_list_playlists(tmp_path: Path) -> None:
+    """Verify list_playlists queries (PR #125)."""
+    db_file = tmp_path / "test_list_playlists.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        assert len(list_playlists(conn)) == 0
+
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO tracks (path, mtime, size, hash, status, duration)
+            VALUES
+                ('/path/to/song1.mp3', 1.0, 100, 'hash1', 'active', 120.0),
+                ('/path/to/song2.mp3', 1.0, 100, 'hash2', 'active', 180.0)
+        """)
+        cursor.execute("""
+            INSERT INTO playlists (name, description)
+            VALUES
+                ('Playlist 1', 'Desc 1'),
+                ('Playlist 2', 'Desc 2')
+        """)
+        cursor.execute("""
+            INSERT INTO playlist_tracks (playlist_id, track_id, position)
+            VALUES
+                (1, 1, 1),
+                (1, 2, 2),
+                (2, 1, 1)
+        """)
+        conn.commit()
+
+        playlists = list_playlists(conn)
+        assert len(playlists) == 2
+        assert playlists[0]["name"] == "Playlist 2"
+        assert playlists[0]["track_count"] == 1
+        assert playlists[0]["total_duration"] == 120.0
+
+
+def test_bulk_update_track_vibe_tags(tmp_path: Path) -> None:
+    """Verify bulk_update_track_vibe_tags with exact JSON parsing (PR #126 + CodeRabbit)."""
+    db_file = tmp_path / "test_bulk_vibe.db"
+    init_db(db_file)
+
+    with get_connection(db_file) as conn:
+        t1 = insert_track(conn, "/path/1.mp3", 1.0, 100, "h1")
+        t2 = insert_track(conn, "/path/2.mp3", 1.0, 100, "h2")
+
+        # Test with duplicate track ID to verify deduplication
+        updates = [
+            (t1, ["initial_mood"], ["initial_genre"]),
+            (t1, ["chill", "ambient"], ["electronic"]),
+            (t2, ["energetic"], ["rock"]),
+        ]
+        bulk_update_track_vibe_tags(conn, updates)
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT track_id, tags, genres FROM enrichment ORDER BY track_id")
+        rows = cursor.fetchall()
+        assert len(rows) == 2
+
+        # Verify t1 has the deduplicated last tag values (exact JSON comparison)
+        assert rows[0][0] == t1
+        assert json.loads(rows[0][1]) == ["chill", "ambient"]
+        assert json.loads(rows[0][2]) == ["electronic"]
+
+        assert rows[1][0] == t2
+        assert json.loads(rows[1][1]) == ["energetic"]
+        assert json.loads(rows[1][2]) == ["rock"]
