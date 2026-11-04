@@ -14,7 +14,6 @@ REQUIRED_TEMPLATE_FILES: tuple[str, ...] = (
     "base.html",
     "index.html",
     "components/desktop_chrome.html",
-    "components/desktop_scripts.html",
     "components/library_table.html",
     "components/playlist_builder.html",
     "components/playlist_seed_results.html",
