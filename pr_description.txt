@@ -1,9 +1,0 @@
-🧹 Add logging to silent exception in MIME parser
-
-🎯 **What:** The `parse_m3u_playlist` function in `src/vibeplay/desktop/mime.py` previously had a silent `except ValueError: continue` block when parsing URIs containing '://'. This commit changes it to capture the exception as `err` and uses `logger.warning` to log the failure.
-
-💡 **Why:** This improves maintainability because swallowing exceptions makes debugging desktop integration failures harder. By logging the failing URI and the error message, developers and users can see exactly why a specific track in a playlist was rejected, aiding diagnosis.
-
-✅ **Verification:** Ran `uv run ruff format` and `uv run ruff check` to verify code health rules. I added necessary dependencies alongside `pytest-mock` to correctly execute the full `uv run pytest` suite, passing all tests.
-
-✨ **Result:** The code health issue of a silent exception has been resolved, providing meaningful logging on failures while maintaining the expected failure-skip behaviour.

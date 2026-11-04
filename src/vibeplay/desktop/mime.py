@@ -212,7 +212,8 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
         if "://" in entry:
             try:
                 track_path = parse_desktop_uri(entry)
-            except ValueError:
+            except ValueError as err:
+                logger.warning("Failed to parse URI %r in playlist: %s", entry, err)
                 continue
         else:
             candidate = Path(entry).expanduser()
