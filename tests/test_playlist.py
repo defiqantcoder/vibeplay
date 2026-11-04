@@ -557,20 +557,3 @@ def test_generate_playlist_cluster_mode(playlist_settings: Settings) -> None:
 
     playlist = generate_playlist(db_path=playlist_settings.db_path, name="Cluster Based", cluster_id=0, limit=5, settings=playlist_settings)
     assert playlist.playlist_id > 0
-
-
-def test_generate_vibe_playlist_precedence(playlist_settings: Settings) -> None:
-    _seed_test_database(playlist_settings.db_path)
-    from vibeplay.playlist import PlaylistRequest, generate_vibe_playlist
-
-    req = PlaylistRequest(
-        name="Vibe Playlist",
-        prompt="chill lofi study vibes",
-        vibe="party",
-        arc="energy_ramp",
-        limit=2,
-        db=playlist_settings.db_path,
-    )
-    result = generate_vibe_playlist(req, settings=playlist_settings)
-    assert result.name == "Chill Lofi Study Vibes"
-    assert len(result.tracks) <= 2

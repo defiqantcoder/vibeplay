@@ -372,10 +372,6 @@ class TransitionContext:
 
 
 def _evaluate_camelot(c1: str, c2: str) -> dict[str, Any]:
-    """Classify two uppercase Camelot codes and return harmonic scores and labels.
-
-    Missing or invalid codes return an unknown relation with a neutral score of 70.
-    """
     if not c1 or not c2 or len(c1) < 2 or len(c2) < 2:
         return {
             "harmonic_type": "unknown",
@@ -459,12 +455,6 @@ def _evaluate_camelot(c1: str, c2: str) -> dict[str, Any]:
 
 
 def _evaluate_bpm(ctx: TransitionContext) -> dict[str, Any]:
-    """Return tempo deltas, status, badge, score, and octave-jump flag.
-
-    Deltas use folded tempos in BPM and as a percentage of the folded starting tempo.
-    Missing or nonpositive tempos produce zero deltas and a neutral score of 70.
-    A raw tempo ratio of at least 1.65 is flagged as a half-time/double-time jump.
-    """
     if ctx.from_bpm is not None and ctx.to_bpm is not None and ctx.from_bpm > 0 and ctx.to_bpm > 0:
         ratio = max(float(ctx.from_bpm), float(ctx.to_bpm)) / min(float(ctx.from_bpm), float(ctx.to_bpm))
         is_octave_fold = ratio >= 1.65
@@ -517,11 +507,6 @@ def _evaluate_bpm(ctx: TransitionContext) -> dict[str, Any]:
 
 
 def _compute_overall_quality(total_score: float) -> tuple[str, str]:
-    """Return the quality label and badge class for a score on the 100-point scale.
-
-    Thresholds of 85, 70, and 50 are inclusive for Seamless, Harmonic, and
-    Acceptable, respectively; lower scores are Harmonic Clash.
-    """
     if total_score >= 85.0:
         return "Seamless", "score-high"
     elif total_score >= 70.0:
@@ -538,19 +523,6 @@ def evaluate_harmonic_transition(ctx: TransitionContext) -> dict[str, Any]:
     Handles Camelot wheel notation ([1-12][A-B]), detecting exact harmonic matches,
     relative major/minor matches, +1 energy boosts, -1 energy drops, and harmonic clashes.
     Also calculates folded tempo delta and provides color-coded badge classes.
-
-    Args:
-        ctx: Track keys, scales, Camelot codes, tempos in BPM, and optional energy
-            values. A supplied Camelot code takes precedence over key and scale.
-            allow_half_double_time permits octave jumps without the usual penalty.
-
-    Returns:
-        A dictionary of track details, harmonic and tempo metrics, and overall
-        quality. The total score weights harmonic compatibility at 60% and tempo
-        at 40%; normalized_score is the total divided by 100.
-
-    Missing or invalid keys use a neutral harmonic score. Missing or nonpositive
-    tempos use a neutral BPM score and zero deltas.
     """
     c1 = (ctx.from_camelot or key_to_camelot(ctx.from_key, ctx.from_scale) or "").strip().upper()
     c2 = (ctx.to_camelot or key_to_camelot(ctx.to_key, ctx.to_scale) or "").strip().upper()
@@ -764,25 +736,6 @@ class PlaylistRuleConfig(BaseModel):
     minutes: float | None = None
     max_artist_tracks: int = 2
     allow_half_double_time: bool = False
-
-
-class PlaylistRequest(BaseModel):
-    """Request object for generating a playlist, encapsulating CLI or API parameters."""
-
-    name: str = "Vibe Playlist"
-    prompt: str | None = None
-    seed: str | None = None
-    cluster: int | None = None
-    vibe: str | None = None
-    arc: str | None = None
-    limit: int = 25
-    minutes: float | None = None
-    max_artist_tracks: int = 2
-    export_m3u8: Path | None = None
-    relative: bool = False
-    play: bool = False
-    db: Path | None = None
-
 
 
 def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
@@ -1775,62 +1728,3 @@ def generate_playlist(
         total_duration=round(current_duration, 2),
         avg_transition_score=round(avg_trans_score, 4),
     )
-
-
-def generate_vibe_playlist(request: PlaylistRequest, settings: Settings | None = None) -> GeneratedPlaylist:
-    """Process a PlaylistRequest and generate a GeneratedPlaylist."""
-    cfg = settings or get_settings()
-    db_path = request.db.expanduser().resolve() if request.db else cfg.db_path.expanduser().resolve()
-
-    seed_ids: list[int] = []
-    if request.seed:
-        try:
-            seed_ids = [int(s.strip()) for s in request.seed.split(",") if s.strip()]
-        except ValueError:
-            raise ValueError(f"Invalid seed track ID format: '{request.seed}'. Expected integer(s).")
-
-    description: str | None = None
-    custom_rules: PlaylistRuleConfig | None = None
-    name = request.name
-
-    if request.prompt and request.prompt.strip():
-        nl_query = parse_natural_language_prompt(request.prompt.strip())
-        vibe = request.vibe or nl_query.vibe
-        arc = request.arc or nl_query.arc
-
-        if name == "Vibe Playlist":
-            name = request.prompt.strip().title()
-
-        description = f"Smart playlist for '{request.prompt.strip()}'"
-
-        custom_rules = PlaylistRuleConfig(
-            mode="rules",
-            arc=arc,
-            vibe=vibe,
-            bpm_min=nl_query.bpm_min,
-            bpm_max=nl_query.bpm_max,
-            energy_min=nl_query.energy_min,
-            energy_max=nl_query.energy_max,
-            danceability_min=nl_query.danceability_min,
-            danceability_max=nl_query.danceability_max,
-            genre_include=[nl_query.genre_like] if nl_query.genre_like else [],
-            limit=request.limit,
-            max_artist_tracks=request.max_artist_tracks,
-        )
-
-    gen = generate_playlist(
-        db_path=db_path,
-        name=name,
-        seed_track_ids=seed_ids,
-        cluster_id=request.cluster,
-        vibe=request.vibe if custom_rules is None else custom_rules.vibe,
-        arc=request.arc if custom_rules is None else custom_rules.arc,
-        limit=request.limit if custom_rules is None else custom_rules.limit,
-        minutes=request.minutes,
-        max_artist_tracks=request.max_artist_tracks,
-        rules=custom_rules,
-        description=description,
-        settings=cfg,
-    )
-
-    return gen

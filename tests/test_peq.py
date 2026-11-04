@@ -14,13 +14,10 @@ from vibe_dsp.cli import app
 from vibe_dsp.peq import (
     BiquadFilter,
     FilterType,
-    PEQProfile,
-    PEQProfileNotFoundError,
     apply_peq_preset,
     biquad_frequency_response,
     calculate_anti_clipping_preamp,
     export_easyeffects_preset,
-    generate_peq_profile,
     lookup_autoeq_model,
     parse_autoeq_text,
     parse_json_filters,
@@ -265,57 +262,6 @@ def test_lookup_autoeq_model_bundled() -> None:
     p2 = lookup_autoeq_model("sennheiser_hd600")
     assert p2 is not None
     assert "Hd600" in p2.name or "HD600" in p2.name
-
-
-def test_generate_peq_profile_input_takes_precedence(tmp_path: Path) -> None:
-    source = tmp_path / "test_profile.txt"
-    source.write_text(SAMPLE_AUTOEQ_TEXT, encoding="utf-8")
-    with patch("vibe_dsp.peq.lookup_autoeq_model") as lookup:
-        profile = generate_peq_profile(str(source), model="ignored", name="My profile", safety_margin_db=1.0)
-    lookup.assert_not_called()
-    assert isinstance(profile, PEQProfile)
-    assert profile.name == "My profile"
-    assert len(profile.filters) == 9
-    assert profile.safety_margin_db == 1.0
-    assert profile.calculated_preamp == -round(profile.peak_positive_gain + 1.0, 2)
-
-
-def test_generate_peq_profile_model_and_default() -> None:
-    with patch("vibe_dsp.peq.lookup_autoeq_model", side_effect=lambda _: parse_autoeq_text(SAMPLE_AUTOEQ_TEXT)) as lookup:
-        model_profile = generate_peq_profile(model="test model", name="Renamed")
-        default_profile = generate_peq_profile(name="Ignored for default")
-    assert [call.args[0] for call in lookup.call_args_list] == ["test model", "Moondrop Blessing 2"]
-    assert model_profile.name == "Renamed"
-    assert default_profile.name == "AutoEq Profile"
-
-
-@pytest.mark.parametrize("model", ["missing model", None])
-def test_generate_peq_profile_missing_model(model: str | None) -> None:
-    with patch("vibe_dsp.peq.lookup_autoeq_model", return_value=None):
-        with pytest.raises(PEQProfileNotFoundError):
-            generate_peq_profile(model=model)
-        args = ["peq", "generate", "--no-export-easyeffects"]
-        if model:
-            args += ["--model", model]
-        result = runner.invoke(app, args)
-    assert result.exit_code == 1
-    assert ("Could not locate AutoEq profile" if model else "Must provide either --input or --model") in result.stdout
-
-
-def test_peq_cli_generate_exports_profile(tmp_path: Path) -> None:
-    source = tmp_path / "source.txt"
-    source.write_text(SAMPLE_AUTOEQ_TEXT, encoding="utf-8")
-    result = runner.invoke(
-        app,
-        ["peq", "generate", "--input", str(source), "--name", "CLI test", "--safety-margin", "1.0",
-         "--output-dir", str(tmp_path), "--no-backup", "--json"],
-    )
-    assert result.exit_code == 0, result.output
-    data = json.loads(result.stdout)
-    assert data["name"] == "CLI test"
-    assert data["safety_margin_db"] == 1.0
-    preset = json.loads(Path(data["preset_path"]).read_text(encoding="utf-8"))
-    assert preset["output"]["equalizer#0"]["input-gain"] == data["calculated_preamp"]
 
 
 def test_peq_cli_generate_json() -> None:

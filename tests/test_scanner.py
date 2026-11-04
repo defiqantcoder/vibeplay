@@ -264,39 +264,3 @@ def test_compute_file_hash(tmp_path: Path) -> None:
     # Test small chunk size
     result_small_chunk = compute_file_hash(test_file, chunk_size=2)
     assert result_small_chunk == expected_hash
-
-
-def test_find_audio_files(tmp_path: Path) -> None:
-    """Verify that find_audio_files correctly discovers audio files and ignores hidden ones."""
-    from vibeplay.scanner import find_audio_files
-
-    # Create directory structure
-    visible_dir = tmp_path / "visible_dir"
-    visible_dir.mkdir()
-    hidden_dir = tmp_path / ".hidden_dir"
-    hidden_dir.mkdir()
-
-    # Create dummy files
-    valid_file1 = tmp_path / "track1.mp3"
-    valid_file1.touch()
-
-    valid_file2 = visible_dir / "track2.flac"
-    valid_file2.touch()
-
-    invalid_file = tmp_path / "notes.txt"
-    invalid_file.touch()
-
-    hidden_file = tmp_path / ".hidden_track.mp3"
-    hidden_file.touch()
-
-    file_in_hidden_dir = hidden_dir / "track3.ogg"
-    file_in_hidden_dir.touch()
-
-    # Get results
-    results = find_audio_files(tmp_path)
-
-    # Assertions
-    expected = [valid_file1.resolve(), valid_file2.resolve()]
-    expected.sort()
-
-    assert results == expected

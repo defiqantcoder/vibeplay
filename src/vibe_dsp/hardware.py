@@ -176,34 +176,61 @@ def parse_usb_stream_capabilities(stream_content: str) -> dict[str, Any]:
     }
 
 
-def parse_endpoints(
-    parsed_cards: list[dict[str, Any]], pcm_devices: list[dict[str, Any]], card_details: dict[int, dict[str, Any]]
-) -> list[AudioEndpoint]:
-    """Parse raw ALSA hardware data into AudioEndpoints.
+def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
+    """Dynamically scan ALSA procfs and hardware endpoints.
+
+    Prioritizes connected USB Audio Class 1.0/2.0 DACs, identifies HDMI and
+    speaker fallback endpoints, and gathers native hardware sample rate capabilities.
 
     Args:
-        parsed_cards: Parsed metadata dictionaries from /proc/asound/cards.
-        pcm_devices: Parsed playback device definitions from /proc/asound/pcm.
-        card_details: Mapping of card_index to card specifics (usbid, usbbus, stream texts).
+        procfs_root: Path to procfs asound directory (defaults to /proc/asound).
 
     Returns:
-        list[AudioEndpoint]: Audited audio hardware endpoints.
+        AuditReport: Complete hardware inventory and recommended bit-perfect endpoint.
     """
+    resolved_root = procfs_root or Path("/proc/asound")
     endpoints: list[AudioEndpoint] = []
+    cards_file = resolved_root / "cards"
+    pcm_file = resolved_root / "pcm"
+
+    if not cards_file.exists():
+        logger.warning(
+            "Procfs path '%s' not accessible; returning empty audit report",
+            cards_file,
+        )
+        return AuditReport()
+
+    try:
+        cards_content = cards_file.read_text(encoding="utf-8", errors="replace")
+    except Exception as err:
+        logger.error("Failed to read %s: %s", cards_file, err)
+        return AuditReport()
+
+    parsed_cards = parse_proc_asound_cards(cards_content)
+
+    pcm_devices: list[dict[str, Any]] = []
+    if pcm_file.exists():
+        try:
+            pcm_content = pcm_file.read_text(encoding="utf-8", errors="replace")
+            pcm_devices = parse_proc_asound_pcm(pcm_content)
+        except Exception as err:
+            logger.warning("Could not read %s: %s", pcm_file, err)
 
     for card in parsed_cards:
         c_idx = card["card_index"]
         c_id = card["card_id"]
         c_driver = card["driver"]
         c_name = card["card_name"]
+        card_dir = resolved_root / f"card{c_idx}"
 
         c_lower = c_name.lower()
         extra_lower = card["extra_info"].lower()
 
-        details = card_details.get(c_idx, {})
-        usb_id = details.get("usbid")
-        usb_bus = details.get("usbbus")
-        stream_texts = details.get("stream_texts", [])
+        # Probe USB identifiers
+        usb_id_file = card_dir / "usbid"
+        usb_bus_file = card_dir / "usbbus"
+        usb_id = usb_id_file.read_text().strip() if usb_id_file.exists() else None
+        usb_bus = usb_bus_file.read_text().strip() if usb_bus_file.exists() else None
 
         uid_lower = usb_id.lower() if usb_id else ""
 
@@ -238,9 +265,12 @@ def parse_endpoints(
             if is_letshuoer:
                 is_usb_class = True
             if is_usb_class:
-                if stream_texts:
+                # Check stream0, stream1, etc.
+                stream_files = sorted(card_dir.glob("stream*"))
+                if stream_files:
                     try:
-                        caps = parse_usb_stream_capabilities(stream_texts[0])
+                        stream_text = stream_files[0].read_text(encoding="utf-8", errors="replace")
+                        caps = parse_usb_stream_capabilities(stream_text)
                         rates = caps["rates"]
                         formats = caps["formats"]
                         bit_depths = caps["bit_depths"]
@@ -309,82 +339,6 @@ def parse_endpoints(
                 pipewire_node_name=node_name,
             )
             endpoints.append(endpoint)
-
-    return endpoints
-
-
-def scan_hardware(procfs_root: Path | None = None) -> AuditReport:
-    """Dynamically scan ALSA procfs and hardware endpoints.
-
-    Prioritizes connected USB Audio Class 1.0/2.0 DACs, identifies HDMI and
-    speaker fallback endpoints, and gathers native hardware sample rate capabilities.
-
-    Args:
-        procfs_root: Path to procfs asound directory (defaults to /proc/asound).
-
-    Returns:
-        AuditReport: Complete hardware inventory and recommended bit-perfect endpoint.
-    """
-    resolved_root = procfs_root or Path("/proc/asound")
-    cards_file = resolved_root / "cards"
-    pcm_file = resolved_root / "pcm"
-
-    if not cards_file.exists():
-        logger.warning(
-            "Procfs path '%s' not accessible; returning empty audit report",
-            cards_file,
-        )
-        return AuditReport()
-
-    try:
-        cards_content = cards_file.read_text(encoding="utf-8", errors="replace")
-    except Exception as err:
-        logger.error("Failed to read %s: %s", cards_file, err)
-        return AuditReport()
-
-    parsed_cards = parse_proc_asound_cards(cards_content)
-
-    pcm_devices: list[dict[str, Any]] = []
-    if pcm_file.exists():
-        try:
-            pcm_content = pcm_file.read_text(encoding="utf-8", errors="replace")
-            pcm_devices = parse_proc_asound_pcm(pcm_content)
-        except Exception as err:
-            logger.warning("Could not read %s: %s", pcm_file, err)
-
-    card_details: dict[int, dict[str, Any]] = {}
-    for card in parsed_cards:
-        c_idx = card["card_index"]
-        card_dir = resolved_root / f"card{c_idx}"
-
-        details = {}
-        usb_id_file = card_dir / "usbid"
-        usb_bus_file = card_dir / "usbbus"
-
-        if usb_id_file.exists():
-            try:
-                details["usbid"] = usb_id_file.read_text().strip()
-            except Exception:
-                pass
-
-        if usb_bus_file.exists():
-            try:
-                details["usbbus"] = usb_bus_file.read_text().strip()
-            except Exception:
-                pass
-
-        stream_files = sorted(card_dir.glob("stream*"))
-        stream_texts = []
-        for sf in stream_files:
-            try:
-                stream_texts.append(sf.read_text(encoding="utf-8", errors="replace"))
-            except Exception:
-                pass
-        details["stream_texts"] = stream_texts
-
-        card_details[c_idx] = details
-
-    endpoints = parse_endpoints(parsed_cards, pcm_devices, card_details)
 
     # Sort endpoints by priority descending
     endpoints.sort(key=lambda ep: ep.priority_score, reverse=True)

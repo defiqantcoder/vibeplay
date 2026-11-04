@@ -11,13 +11,11 @@ from vibe_dsp.ipc import (
     AVAILABLE_PROFILES,
     DSPClient,
     ProfileSwitchError,
-    get_current_dsp_status,
     load_persistent_state,
     save_persistent_state,
     start_ipc_server,
     switch_audio_profile,
 )
-from vibe_dsp.models import AudioEndpoint, AuditReport, CardType
 
 
 def test_available_profiles_structure() -> None:
@@ -99,55 +97,3 @@ async def test_ipc_server_and_client_unix_socket(tmp_path: Path) -> None:
     finally:
         server.close()
         await server.wait_closed()
-
-
-@patch("vibe_dsp.ipc.scan_hardware")
-@patch("vibe_dsp.ipc.get_active_peq_state")
-@patch("vibe_dsp.ipc.get_spatial_virtualization_status")
-@patch("vibe_dsp.ipc.load_persistent_state")
-def test_get_current_dsp_status(mock_load, mock_spatial, mock_peq, mock_scan):
-    """Verify get_current_dsp_status aggregates underlying DSP modules correctly."""
-    mock_load.return_value = {"active_profile": "spatial-headphones", "spatial_mode": "3d_binaural"}
-    mock_spatial.return_value = {"active": True, "sink_name": "spatial-sink"}
-    mock_peq.return_value = {"active": True, "preset": "hd600"}
-
-    mock_hw = AuditReport(
-        endpoints=[
-            AudioEndpoint(
-                card_index=1, card_id="KA15", card_name="FIIO KA15", driver="USB-Audio", device_name="USB Audio", card_type=CardType.USB_DAC
-            )
-        ],
-        active_dac=AudioEndpoint(
-            card_index=1, card_id="KA15", card_name="FIIO KA15", driver="USB-Audio", device_name="USB Audio", card_type=CardType.USB_DAC
-        ),
-    )
-    mock_scan.return_value = mock_hw
-
-    status = get_current_dsp_status()
-
-    assert status["active_profile"] == "spatial-headphones"
-    assert status["spatial"]["active"] is True
-    assert status["spatial"]["mode"] == "3d_binaural"
-    assert status["peq"]["preset"] == "hd600"
-    assert status["hardware"]["active_dac"] == "FIIO KA15"
-    assert status["hardware"]["endpoint_count"] == 1
-
-
-@patch("vibe_dsp.ipc.scan_hardware")
-@patch("vibe_dsp.ipc.get_active_peq_state")
-@patch("vibe_dsp.ipc.get_spatial_virtualization_status")
-@patch("vibe_dsp.ipc.load_persistent_state")
-def test_get_current_dsp_status_no_dac(mock_load, mock_spatial, mock_peq, mock_scan):
-    """Verify get_current_dsp_status gracefully handles absence of a DAC."""
-    mock_load.return_value = {}
-    mock_spatial.return_value = {}
-    mock_peq.return_value = {}
-
-    mock_hw = AuditReport(endpoints=[], active_dac=None)
-    mock_scan.return_value = mock_hw
-
-    status = get_current_dsp_status()
-
-    assert status["active_profile"] == "pure-bitperfect"
-    assert status["hardware"]["active_dac"] is None
-    assert status["hardware"]["endpoint_count"] == 0

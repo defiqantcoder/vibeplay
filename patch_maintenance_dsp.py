@@ -2,11 +2,6 @@ import sys
 
 
 def patch_file(filepath):
-    """Replace a maintenance or DSP plugin file based on its path.
-
-    Paths containing neither name are rewritten with their original content.
-    File access and encoding errors propagate to the caller.
-    """
     with open(filepath, "r") as f:
         content = f.read()
 

@@ -3,10 +3,6 @@ import re
 
 
 def patch_file(filepath):
-    """Update toybox toggle calls and add a script when no script tag exists.
-
-    The file is overwritten in place. File access and encoding errors propagate.
-    """
     with open(filepath, "r") as f:
         content = f.read()
 
