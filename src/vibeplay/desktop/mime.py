@@ -9,21 +9,19 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.error import URLError
 from urllib.parse import unquote, urlparse
-from urllib.request import Request as UrlRequest
-from urllib.request import urlopen
 
-logger = logging.getLogger(__name__)
-
-DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser()
-
+import httpx
 
 from vibeplay.desktop.security import (
     ensure_secure_directory,
     secure_chmod,
     validate_loopback_host,
 )
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser()
 
 
 def write_ipc_state(
@@ -222,7 +220,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
     return tracks
 
 
-def forward_uris_to_running_instance(
+async def forward_uris_to_running_instance(
     uris: list[str],
     host: str = "127.0.0.1",
     port: int = 8765,
@@ -233,6 +231,7 @@ def forward_uris_to_running_instance(
     """Forward file/URI arguments to an already-running local VibePlay instance.
 
     Enforces loopback host validation before opening any HTTP connection.
+    Executes asynchronously to prevent blocking the event loop.
 
     Returns:
         bool: True if the running instance accepted the payload, False if unreachable.
@@ -256,7 +255,7 @@ def forward_uris_to_running_instance(
 
     url_host = f"[{safe_host}]" if ":" in safe_host else safe_host
     url = f"http://{url_host}:{effective_port}/api/desktop/open"
-    body = json.dumps({"uris": list(uris)}).encode("utf-8")
+    body = {"uris": list(uris)}
     headers: dict[str, str] = {
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -264,11 +263,11 @@ def forward_uris_to_running_instance(
     if effective_token:
         headers["X-API-Key"] = effective_token
 
-    req = UrlRequest(url, data=body, headers=headers, method="POST")
     try:
-        with urlopen(req, timeout=timeout) as resp:
-            return int(resp.status) == 200
-    except (URLError, OSError, ValueError) as err:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(url, json=body, headers=headers)
+            return resp.status_code == 200
+    except (httpx.RequestError, ValueError) as err:
         logger.debug(
             "No running instance responded on %s:%d (%s)",
             safe_host,

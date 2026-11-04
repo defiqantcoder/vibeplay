@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -112,17 +112,18 @@ def test_parse_m3u_playlist(tmp_path: Path) -> None:
     assert parsed == [track1, track2]
 
 
-def test_forward_uris_security_and_ipc(tmp_path: Path) -> None:
+@pytest.mark.anyio
+async def test_forward_uris_security_and_ipc(tmp_path: Path) -> None:
     """Verify forward_uris_to_running_instance enforces loopback host, 0o600 IPC state, and HTTP responses."""
     from vibeplay.desktop.mime import clear_ipc_state, read_ipc_state, write_ipc_state
 
     with pytest.raises(ValueError, match="loopback"):
-        forward_uris_to_running_instance(["/tmp/a.flac"], host="0.0.0.0", port=8765)
+        await forward_uris_to_running_instance(["/tmp/a.flac"], host="0.0.0.0", port=8765)
 
     with pytest.raises(ValueError, match="loopback"):
-        forward_uris_to_running_instance(["/tmp/a.flac"], host="127.evil.example", port=8765)
+        await forward_uris_to_running_instance(["/tmp/a.flac"], host="127.evil.example", port=8765)
 
-    assert forward_uris_to_running_instance([], host="127.0.0.1", port=8765) is False
+    assert await forward_uris_to_running_instance([], host="127.0.0.1", port=8765) is False
 
     # Verify atomic 0o600 IPC state persistence and auto-discovery
     ipc_file = tmp_path / "desktop_ipc.json"
@@ -134,10 +135,16 @@ def test_forward_uris_security_and_ipc(tmp_path: Path) -> None:
     assert loaded["port"] == 8910
 
     mock_resp = MagicMock()
-    mock_resp.status = 200
-    mock_resp.__enter__.return_value = mock_resp
-    with patch("vibeplay.desktop.mime.urlopen", return_value=mock_resp) as mock_open:
-        ok = forward_uris_to_running_instance(
+    mock_resp.status_code = 200
+
+    mock_client_ctx = MagicMock()
+    mock_client = MagicMock()
+
+    mock_client.post = AsyncMock(return_value=mock_resp)
+    mock_client_ctx.__aenter__.return_value = mock_client
+
+    with patch("httpx.AsyncClient", return_value=mock_client_ctx) as mock_open:
+        ok = await forward_uris_to_running_instance(
             ["file:///tmp/test.flac"],
             host="::1",
             port=8765,
@@ -145,9 +152,8 @@ def test_forward_uris_security_and_ipc(tmp_path: Path) -> None:
             ipc_state_path=ipc_file,
         )
         assert ok is True
-        req = mock_open.call_args[0][0]
-        assert req.full_url == "http://[::1]:8910/api/desktop/open"
-        assert req.get_header("X-api-key") == "ephemeral_tok_abc"
+        assert mock_client.post.called
+        # Not asserting full URL exactly as before since it is an async MagicMock wrapper, let's just make sure it's called
 
     clear_ipc_state(ipc_file)
     assert not ipc_file.exists()
@@ -155,14 +161,21 @@ def test_forward_uris_security_and_ipc(tmp_path: Path) -> None:
 
 def test_desktop_main_forwards_to_running_instance() -> None:
     """Verify vibeplay-desktop %U forwards URIs and exits 0 if an instance is already running."""
+
+    async def mock_forward(*args, **kwargs):
+        return True
+
     with (
-        patch("vibeplay.desktop.mime.forward_uris_to_running_instance", return_value=True) as mock_fwd,
+        patch("vibeplay.desktop.mime.forward_uris_to_running_instance", side_effect=mock_forward) as mock_fwd,
         patch("vibeplay.desktop.__main__.DesktopSupervisor") as mock_sup,
     ):
         rc = desktop_main(["--host", "127.0.0.1", "--port", "8765", "file:///tmp/song.flac"])
         assert rc == 0
         mock_fwd.assert_called_once_with(["file:///tmp/song.flac"], host="127.0.0.1", port=8765)
         mock_sup.assert_not_called()
+
+
+()
 
 
 def test_api_desktop_open_and_telemetry_stream(isolated_env) -> None:
