@@ -194,7 +194,7 @@ def test_api_desktop_open_and_telemetry_stream(isolated_env) -> None:
     app = create_app(db_path=db_path, settings=cfg)
     client = TestClient(app)
 
-    with patch("vibeplay.web.play_track") as mock_play:
+    with patch("vibeplay.routers.desktop.play_track") as mock_play:
         resp = client.post(
             "/api/desktop/open",
             json={"uris": [track_path.as_uri()]},
@@ -215,7 +215,7 @@ def test_api_desktop_open_and_telemetry_stream(isolated_env) -> None:
 
     # Verify SSE telemetry stream endpoint
     with patch(
-        "vibeplay.web.get_playback_status",
+        "vibeplay.routers.desktop.get_playback_status",
         side_effect=[
             {
                 "track_id": 1,

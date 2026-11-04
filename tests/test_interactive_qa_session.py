@@ -611,7 +611,7 @@ def test_flow_2e_sse_telemetry_stream(qa_env):
 
     for i in range(iterations):
         with patch(
-            "vibeplay.web.get_playback_status",
+            "vibeplay.routers.desktop.get_playback_status",
             return_value={
                 "state": "play" if i % 2 == 0 else "pause",
                 "track_id": (i % 8) + 1,

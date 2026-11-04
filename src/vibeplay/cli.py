@@ -392,7 +392,7 @@ def clusters(
 
     console.print(f"[bold]Target database:[/bold] [cyan]{db_path}[/cyan]")
     console.print(
-        "[cyan]VibePlay has been refactored into a lean audiophile core. Use natural language prompts (e.g. 'high energy workout', 'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]"
+        "[cyan]VibePlay has been refactored into a lean audiophile core. Use natural language prompts (e.g. 'high energy workout', 'chill')"
     )
 
 

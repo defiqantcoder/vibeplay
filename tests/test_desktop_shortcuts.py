@@ -31,7 +31,7 @@ def test_client(tmp_path: Path):
 
 def test_api_player_toggle_latency(test_client: TestClient) -> None:
     """Ensure the /api/player/toggle endpoint returns in <50ms without blocking on MPD."""
-    with patch("vibeplay.web.toggle_pause") as mock_toggle, patch("vibeplay.web.get_playback_status") as mock_status:
+    with patch("vibeplay.routers.player.toggle_pause") as mock_toggle, patch("vibeplay.routers.player.get_playback_status") as mock_status:
 
         def slow_toggle(*args, **kwargs):
             time.sleep(0.3)  # Simulate slow MPD connection
@@ -50,7 +50,7 @@ def test_api_player_toggle_latency(test_client: TestClient) -> None:
 
 def test_api_player_next_latency(test_client: TestClient) -> None:
     """Ensure the /api/player/next endpoint returns in <50ms without blocking on MPD."""
-    with patch("vibeplay.web.next_song") as mock_next, patch("vibeplay.web.get_playback_status") as mock_status:
+    with patch("vibeplay.routers.player.next_song") as mock_next, patch("vibeplay.routers.player.get_playback_status") as mock_status:
 
         def slow_next(*args, **kwargs):
             time.sleep(0.3)
@@ -68,7 +68,7 @@ def test_api_player_next_latency(test_client: TestClient) -> None:
 
 def test_api_player_prev_latency(test_client: TestClient) -> None:
     """Ensure the /api/player/prev endpoint returns in <50ms without blocking on MPD."""
-    with patch("vibeplay.web.previous_song") as mock_prev, patch("vibeplay.web.get_playback_status") as mock_status:
+    with patch("vibeplay.routers.player.previous_song") as mock_prev, patch("vibeplay.routers.player.get_playback_status") as mock_status:
 
         def slow_prev(*args, **kwargs):
             time.sleep(0.3)
