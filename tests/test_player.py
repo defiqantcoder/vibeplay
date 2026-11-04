@@ -400,3 +400,9 @@ def test_fallback_player_lifecycle_and_lock() -> None:
     mock_proc.terminate.assert_called_once()
     mock_proc.kill.assert_called_once()
     assert player_mod._FALLBACK_PROC is None
+
+def test_get_output_profile() -> None:
+    """Test get_output_profile returns the currently active output profile."""
+    from vibeplay.player import get_output_profile
+    with patch("vibeplay.player.ACTIVE_OUTPUT_PROFILE", "Mocked Profile"):
+        assert get_output_profile() == "Mocked Profile"
