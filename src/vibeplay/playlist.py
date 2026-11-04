@@ -1729,8 +1729,8 @@ def generate_vibe_playlist(request: PlaylistRequest, settings: Settings | None =
 
     if request.prompt and request.prompt.strip():
         nl_query = parse_natural_language_prompt(request.prompt.strip())
-        vibe = nl_query.vibe or request.vibe
-        arc = nl_query.arc or request.arc
+        vibe = request.vibe or nl_query.vibe
+        arc = request.arc or nl_query.arc
 
         if name == "Vibe Playlist":
             name = request.prompt.strip().title()
@@ -1748,7 +1748,7 @@ def generate_vibe_playlist(request: PlaylistRequest, settings: Settings | None =
             danceability_min=nl_query.danceability_min,
             danceability_max=nl_query.danceability_max,
             genre_include=[nl_query.genre_like] if nl_query.genre_like else [],
-            limit=nl_query.limit or request.limit,
+            limit=request.limit,
             max_artist_tracks=request.max_artist_tracks,
         )
 

@@ -1,1 +1,0 @@
-print("Pre-commit passed.")
