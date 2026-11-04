@@ -305,23 +305,63 @@ function toggleMenu(menuName) {
     closeAllMenus();
     dropdown.classList.add('open');
     activeOpenMenu = menuName;
+    const btn = dropdown.parentElement ? dropdown.parentElement.querySelector('.menu-btn') : null;
+    if (btn) btn.setAttribute('aria-expanded', 'true');
   }
 }
+window.toggleMenu = toggleMenu;
 
 function closeAllMenus() {
   document.querySelectorAll('.menu-dropdown.open').forEach(el => {
     el.classList.remove('open');
   });
+  document.querySelectorAll('.menu-btn[aria-expanded="true"]').forEach(btn => {
+    btn.setAttribute('aria-expanded', 'false');
+  });
   activeOpenMenu = null;
 }
+window.closeAllMenus = closeAllMenus;
 
-// Close menus when clicking outside
+function handleMenuHover(menuName) {
+  if (activeOpenMenu && activeOpenMenu !== menuName) {
+    toggleMenu(menuName);
+  }
+}
+window.handleMenuHover = handleMenuHover;
+
+// Native-like menubar hover switching when a menu is open
+document.addEventListener('mouseover', (e) => {
+  if (!activeOpenMenu) return;
+  const wrapper = e.target.closest('.menu-item-wrapper');
+  if (wrapper && wrapper.dataset && wrapper.dataset.menu) {
+    const menuName = wrapper.dataset.menu;
+    if (menuName && menuName !== activeOpenMenu) {
+      toggleMenu(menuName);
+    }
+  }
+});
+
+// Close menus when clicking outside or clicking an action row
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.menu-item-wrapper')) {
+  const menuWrapper = e.target.closest('.menu-item-wrapper');
+  if (!menuWrapper) {
     closeAllMenus();
+  } else {
+    const row = e.target.closest('.menu-row');
+    if (row && !row.classList.contains('has-submenu')) {
+      closeAllMenus();
+    }
   }
   if (!e.target.closest('.audio-output-dropdown-container')) {
     closeAudioOutputDropdown();
+  }
+});
+
+// Escape key to dismiss open menu
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && activeOpenMenu) {
+    closeAllMenus();
+    e.stopPropagation();
   }
 });
 
