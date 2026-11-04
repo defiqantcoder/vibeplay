@@ -102,11 +102,6 @@ def _stop_fallback_playback() -> None:
             _FALLBACK_PROC = None
 
 
-@lru_cache(maxsize=32)
-def _cached_resolve_dir(path: Path) -> Path:
-    return path.resolve()
-
-
 def _ensure_mpd_symlink(
     track_path: Path,
     music_dir: Path | None = None,
@@ -135,9 +130,8 @@ def _ensure_mpd_symlink(
     resolved = track_path.resolve()
     for mdir in candidates_dirs:
         if mdir.exists() and mdir.is_dir():
-            mdir_resolved = _cached_resolve_dir(mdir)
             try:
-                rel = str(resolved.relative_to(mdir_resolved))
+                rel = str(resolved.relative_to(mdir.resolve()))
                 return rel
             except ValueError:
                 pass
