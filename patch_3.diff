@@ -1,0 +1,10 @@
+--- src/vibe_dsp/peq.py
++++ src/vibe_dsp/peq.py
+@@ -331,7 +331,7 @@
+                 logger.warning(
+                     "Failed to parse preamp value '%s' for profile '%s'.",
+                     p_match.group(1),
+-                    profile_name,
++                    name,
+                 )
+             continue
