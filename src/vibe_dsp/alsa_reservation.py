@@ -9,7 +9,14 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from vibe_dsp.models import AudioEndpoint
+from vibe_dsp.backup import create_backup
+from vibe_dsp.models import AudioEndpoint, BitPerfectRoutingResult
+from vibe_dsp.pipewire import (
+    DEFAULT_PIPEWIRE_CONF_DIR,
+    generate_pipewire_dropin_config,
+    reload_pipewire_daemons,
+    write_pipewire_dropin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -156,3 +163,101 @@ def write_mpd_audio_outputs_config(
     target.write_text(content, encoding="utf-8")
     logger.info("Wrote MPD bit-perfect audio outputs config to %s", target)
     return target
+
+
+def setup_bitperfect_routing(
+    target_ep: AudioEndpoint,
+    fallback_ep: AudioEndpoint | None,
+    unlocked_rates: list[int],
+    output_pw: Path | None = None,
+    output_mpd: Path | None = None,
+    no_reload: bool = False,
+    dry_run: bool = False,
+) -> BitPerfectRoutingResult:
+    """Execute bit-perfect routing logic and configuration generation.
+
+    Args:
+        target_ep: Primary target endpoint.
+        fallback_ep: Fallback endpoint.
+        unlocked_rates: Master list of rates to unlock in PipeWire.
+        output_pw: Custom destination for PipeWire drop-in configuration.
+        output_mpd: Custom destination for MPD configuration snippet.
+        no_reload: Skip restarting PipeWire daemon.
+        dry_run: Preview configuration changes without modifying files.
+
+    Returns:
+        BitPerfectRoutingResult: The results of the routing execution.
+    """
+    pipewire_cfg = generate_pipewire_dropin_config(
+        unlocked_rates=unlocked_rates,
+        node_pattern="~alsa_output.usb-.*",
+    )
+
+    mpd_cfg = generate_mpd_audio_outputs(
+        primary_endpoint=target_ep,
+        fallback_endpoint=fallback_ep,
+    )
+
+    target_pw_file = output_pw or (DEFAULT_PIPEWIRE_CONF_DIR / "99-bitperfect.conf")
+    target_mpd_file = output_mpd or (DEFAULT_MPD_CONF_DIR / "bitperfect.conf")
+
+    backup_dir = None
+    rollback_script = None
+    reload_msg = "Skipped (--dry-run)"
+    reload_success = True
+    status = "unknown"
+
+    if dry_run:
+        return BitPerfectRoutingResult(
+            target_ep=target_ep,
+            fallback_ep=fallback_ep,
+            pipewire_cfg=pipewire_cfg,
+            mpd_cfg=mpd_cfg,
+            target_pw_file=str(target_pw_file),
+            target_mpd_file=str(target_mpd_file),
+            backup_dir=backup_dir,
+            rollback_script=rollback_script,
+            reload_msg=reload_msg,
+            device_status=status,
+            reload_success=reload_success,
+        )
+
+    # Safety: Create backup and rollback script before writing any file
+    backup_path, rollback_path = create_backup(targets=[target_pw_file, target_mpd_file])
+    backup_dir = str(backup_path)
+    rollback_script = str(rollback_path)
+
+    # Write configs
+    write_pipewire_dropin(
+        content=pipewire_cfg,
+        conf_dir=target_pw_file.parent,
+        filename=target_pw_file.name,
+    )
+
+    write_mpd_audio_outputs_config(
+        content=mpd_cfg,
+        output_path=target_mpd_file,
+    )
+
+    # Reload daemons unless suppressed
+    reload_msg = "Skipped (--no-reload)"
+    reload_success = True
+    if not no_reload:
+        reload_success, reload_msg = reload_pipewire_daemons()
+
+    # Inspect device status
+    status = check_alsa_device_status(target_ep.card_index, target_ep.device_index)
+
+    return BitPerfectRoutingResult(
+        target_ep=target_ep,
+        fallback_ep=fallback_ep,
+        pipewire_cfg=pipewire_cfg,
+        mpd_cfg=mpd_cfg,
+        target_pw_file=str(target_pw_file),
+        target_mpd_file=str(target_mpd_file),
+        backup_dir=backup_dir,
+        rollback_script=rollback_script,
+        reload_msg=reload_msg,
+        device_status=status,
+            reload_success=reload_success,
+    )
