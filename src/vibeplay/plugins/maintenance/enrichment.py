@@ -340,6 +340,140 @@ def _extract_tags_and_genres(
     return json.dumps(genres, ensure_ascii=False), json.dumps(tags, ensure_ascii=False)
 
 
+def _resolve_local_tags_fallback(track: Any, track_path: Path, track_id: Any) -> EnrichmentResult:
+    """Fallback to local embedded tags when AcoustID API key is not configured."""
+    local_title = track["title"] or track_path.stem
+    local_artist = track["artist"] or "Unknown Artist"
+    local_album = track["album"]
+    local_year = track["year"] if "year" in track.keys() else None
+    local_genre = track["genre"] if "genre" in track.keys() else None
+    genres_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
+    tags_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
+    return EnrichmentResult(
+        track_id=track_id,
+        mb_recording_id=None,
+        mb_release_id=None,
+        mb_artist_id=None,
+        canonical_title=local_title,
+        canonical_artist=local_artist,
+        canonical_album_artist=local_artist,
+        canonical_album=local_album,
+        canonical_year=local_year,
+        canonical_track_no=track["track_no"] if "track_no" in track.keys() else None,
+        canonical_track_total=None,
+        canonical_disc_no=None,
+        canonical_disc_total=None,
+        genres_json=genres_json,
+        tags_json=tags_json,
+        confidence=0.85 if local_title and local_artist != "Unknown Artist" else 0.50,
+        status="matched" if local_title and local_artist != "Unknown Artist" else "needs_review",
+        source="local_tags",
+        raw_metadata_json=json.dumps({"source": "local_tags_fallback"}),
+    )
+
+
+def _resolve_musicbrainz_enrichment(
+    conn: Any,
+    track: Any,
+    track_id: Any,
+    mb_recording_id: str,
+    best_recording: dict,
+    best_result: dict,
+    best_score: float,
+    confidence_threshold: float,
+) -> EnrichmentResult:
+    """Query MusicBrainz for recording details and construct the final EnrichmentResult."""
+    mb_data = cached_musicbrainz_recording(conn=conn, mb_recording_id=mb_recording_id)
+    rec_obj = mb_data.get("recording", {}) if mb_data else best_recording
+
+    canonical_title = rec_obj.get("title") or best_recording.get("title")
+
+    # Artist credits
+    canonical_artist = rec_obj.get("artist-credit-phrase")
+    mb_artist_id = None
+    artist_credit = rec_obj.get("artist-credit", [])
+    if not canonical_artist and artist_credit:
+        first_ac = artist_credit[0]
+        if isinstance(first_ac, dict) and "artist" in first_ac:
+            canonical_artist = first_ac["artist"].get("name")
+            mb_artist_id = first_ac["artist"].get("id")
+    elif artist_credit:
+        first_ac = artist_credit[0]
+        if isinstance(first_ac, dict) and "artist" in first_ac:
+            mb_artist_id = first_ac["artist"].get("id")
+
+    if not canonical_artist and best_recording.get("artists"):
+        first_art = best_recording["artists"][0]
+        canonical_artist = first_art.get("name")
+        mb_artist_id = first_art.get("id")
+
+    # Release resolution
+    releases = rec_obj.get("release-list") or best_recording.get("releases", [])
+    chosen_release = _pick_best_release(releases, preferred_album=track["album"])
+
+    canonical_album = None
+    canonical_album_artist = None
+    canonical_year = None
+    mb_release_id = None
+    canonical_track_no = None
+    canonical_track_total = None
+    canonical_disc_no = None
+    canonical_disc_total = None
+
+    if chosen_release:
+        mb_release_id = chosen_release.get("id")
+        canonical_album = chosen_release.get("title")
+        canonical_album_artist = chosen_release.get("artist-credit-phrase") or canonical_artist
+        raw_date = chosen_release.get("date")
+        if isinstance(raw_date, dict):
+            canonical_year = raw_date.get("year")
+        else:
+            canonical_year = _parse_year(raw_date)
+
+        # Inspect mediums for track/disc position
+        for medium in chosen_release.get("mediums", []):
+            canonical_disc_no = medium.get("position")
+            canonical_track_total = medium.get("track_count")
+            for t_item in medium.get("tracks", []):
+                if t_item.get("title", "").strip().lower() == str(canonical_title).strip().lower():
+                    canonical_track_no = t_item.get("position")
+                    break
+
+    # Genres and tags
+    genres_json, tags_json = _extract_tags_and_genres(rec_obj, chosen_release)
+
+    # Determine status by confidence threshold
+    confidence = round(best_score, 4)
+    status = "matched" if confidence >= confidence_threshold else "needs_review"
+
+    raw_combined = {
+        "acoustid_result": best_result,
+        "musicbrainz_recording": mb_data,
+    }
+
+    return EnrichmentResult(
+        track_id=track_id,
+        mb_recording_id=mb_recording_id,
+        mb_release_id=mb_release_id,
+        mb_artist_id=mb_artist_id,
+        canonical_title=canonical_title,
+        canonical_artist=canonical_artist,
+        canonical_album_artist=canonical_album_artist,
+        canonical_album=canonical_album,
+        canonical_year=canonical_year,
+        canonical_track_no=canonical_track_no,
+        canonical_track_total=canonical_track_total,
+        canonical_disc_no=canonical_disc_no,
+        canonical_disc_total=canonical_disc_total,
+        genres_json=genres_json,
+        tags_json=tags_json,
+        confidence=confidence,
+        status=status,
+        source="acoustid_musicbrainz",
+        raw_metadata_json=json.dumps(raw_combined, ensure_ascii=False),
+    )
+
+
 def resolve_track_enrichment(
     conn: Any,
     track: Any,
@@ -361,35 +495,7 @@ def resolve_track_enrichment(
     track_id = track["id"]
 
     if not acoustid_api_key or not str(acoustid_api_key).strip():
-        # Fallback to local embedded tags when AcoustID API key is not configured
-        local_title = track["title"] or track_path.stem
-        local_artist = track["artist"] or "Unknown Artist"
-        local_album = track["album"]
-        local_year = track["year"] if "year" in track.keys() else None
-        local_genre = track["genre"] if "genre" in track.keys() else None
-        genres_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
-        tags_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
-        return EnrichmentResult(
-            track_id=track_id,
-            mb_recording_id=None,
-            mb_release_id=None,
-            mb_artist_id=None,
-            canonical_title=local_title,
-            canonical_artist=local_artist,
-            canonical_album_artist=local_artist,
-            canonical_album=local_album,
-            canonical_year=local_year,
-            canonical_track_no=track["track_no"] if "track_no" in track.keys() else None,
-            canonical_track_total=None,
-            canonical_disc_no=None,
-            canonical_disc_total=None,
-            genres_json=genres_json,
-            tags_json=tags_json,
-            confidence=0.85 if local_title and local_artist != "Unknown Artist" else 0.50,
-            status="matched" if local_title and local_artist != "Unknown Artist" else "needs_review",
-            source="local_tags",
-            raw_metadata_json=json.dumps({"source": "local_tags_fallback"}),
-        )
+        return _resolve_local_tags_fallback(track, track_path, track_id)
 
     # Step 1: Generate Chromaprint fingerprint
     try:
@@ -489,94 +595,15 @@ def resolve_track_enrichment(
     mb_recording_id = best_recording["id"]
 
     # Step 4: Query MusicBrainz for recording details
-    mb_data = cached_musicbrainz_recording(conn=conn, mb_recording_id=mb_recording_id)
-    rec_obj = mb_data.get("recording", {}) if mb_data else best_recording
-
-    canonical_title = rec_obj.get("title") or best_recording.get("title")
-
-    # Artist credits
-    canonical_artist = rec_obj.get("artist-credit-phrase")
-    mb_artist_id = None
-    artist_credit = rec_obj.get("artist-credit", [])
-    if not canonical_artist and artist_credit:
-        first_ac = artist_credit[0]
-        if isinstance(first_ac, dict) and "artist" in first_ac:
-            canonical_artist = first_ac["artist"].get("name")
-            mb_artist_id = first_ac["artist"].get("id")
-    elif artist_credit:
-        first_ac = artist_credit[0]
-        if isinstance(first_ac, dict) and "artist" in first_ac:
-            mb_artist_id = first_ac["artist"].get("id")
-
-    if not canonical_artist and best_recording.get("artists"):
-        first_art = best_recording["artists"][0]
-        canonical_artist = first_art.get("name")
-        mb_artist_id = first_art.get("id")
-
-    # Release resolution
-    releases = rec_obj.get("release-list") or best_recording.get("releases", [])
-    chosen_release = _pick_best_release(releases, preferred_album=track["album"])
-
-    canonical_album = None
-    canonical_album_artist = None
-    canonical_year = None
-    mb_release_id = None
-    canonical_track_no = None
-    canonical_track_total = None
-    canonical_disc_no = None
-    canonical_disc_total = None
-
-    if chosen_release:
-        mb_release_id = chosen_release.get("id")
-        canonical_album = chosen_release.get("title")
-        canonical_album_artist = chosen_release.get("artist-credit-phrase") or canonical_artist
-        raw_date = chosen_release.get("date")
-        if isinstance(raw_date, dict):
-            canonical_year = raw_date.get("year")
-        else:
-            canonical_year = _parse_year(raw_date)
-
-        # Inspect mediums for track/disc position
-        for medium in chosen_release.get("mediums", []):
-            canonical_disc_no = medium.get("position")
-            canonical_track_total = medium.get("track_count")
-            for t_item in medium.get("tracks", []):
-                if t_item.get("title", "").strip().lower() == str(canonical_title).strip().lower():
-                    canonical_track_no = t_item.get("position")
-                    break
-
-    # Genres and tags
-    genres_json, tags_json = _extract_tags_and_genres(rec_obj, chosen_release)
-
-    # Determine status by confidence threshold
-    confidence = round(best_score, 4)
-    status = "matched" if confidence >= confidence_threshold else "needs_review"
-
-    raw_combined = {
-        "acoustid_result": best_result,
-        "musicbrainz_recording": mb_data,
-    }
-
-    return EnrichmentResult(
+    return _resolve_musicbrainz_enrichment(
+        conn=conn,
+        track=track,
         track_id=track_id,
         mb_recording_id=mb_recording_id,
-        mb_release_id=mb_release_id,
-        mb_artist_id=mb_artist_id,
-        canonical_title=canonical_title,
-        canonical_artist=canonical_artist,
-        canonical_album_artist=canonical_album_artist,
-        canonical_album=canonical_album,
-        canonical_year=canonical_year,
-        canonical_track_no=canonical_track_no,
-        canonical_track_total=canonical_track_total,
-        canonical_disc_no=canonical_disc_no,
-        canonical_disc_total=canonical_disc_total,
-        genres_json=genres_json,
-        tags_json=tags_json,
-        confidence=confidence,
-        status=status,
-        source="acoustid_musicbrainz",
-        raw_metadata_json=json.dumps(raw_combined, ensure_ascii=False),
+        best_recording=best_recording,
+        best_result=best_result,
+        best_score=best_score,
+        confidence_threshold=confidence_threshold,
     )
 
 
