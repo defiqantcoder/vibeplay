@@ -340,122 +340,97 @@ def _extract_tags_and_genres(
     return json.dumps(genres, ensure_ascii=False), json.dumps(tags, ensure_ascii=False)
 
 
-def resolve_track_enrichment(
-    conn: Any,
-    track: Any,
-    acoustid_api_key: str,
-    confidence_threshold: float = 0.8,
-) -> EnrichmentResult:
-    """Fingerprint an audio track, query AcoustID and MusicBrainz, and produce enrichment.
+def _resolve_local_tags(track: Any, track_path: Path, track_id: int) -> EnrichmentResult:
+    local_title = track["title"] or track_path.stem
+    local_artist = track["artist"] or "Unknown Artist"
+    local_album = track["album"]
+    local_year = track["year"] if "year" in track.keys() else None
+    local_genre = track["genre"] if "genre" in track.keys() else None
 
-    Args:
-        conn: Open SQLite connection.
-        track: Track record (sqlite3.Row or TrackRecord).
-        acoustid_api_key: AcoustID API key.
-        confidence_threshold: Threshold below which match is marked 'needs_review'.
+    genres_list = [local_genre] if local_genre else []
+    genres_json = json.dumps(genres_list, ensure_ascii=False)
+    tags_json = json.dumps(genres_list, ensure_ascii=False)
 
-    Returns:
-        EnrichmentResult: Resolved canonical metadata and match confidence.
-    """
-    track_path = Path(track["path"])
-    track_id = track["id"]
+    confidence = 0.85 if local_title and local_artist != "Unknown Artist" else 0.50
+    status = "matched" if local_title and local_artist != "Unknown Artist" else "needs_review"
 
-    if not acoustid_api_key or not str(acoustid_api_key).strip():
-        # Fallback to local embedded tags when AcoustID API key is not configured
-        local_title = track["title"] or track_path.stem
-        local_artist = track["artist"] or "Unknown Artist"
-        local_album = track["album"]
-        local_year = track["year"] if "year" in track.keys() else None
-        local_genre = track["genre"] if "genre" in track.keys() else None
-        genres_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
-        tags_json = json.dumps([local_genre] if local_genre else [], ensure_ascii=False)
-        return EnrichmentResult(
-            track_id=track_id,
-            mb_recording_id=None,
-            mb_release_id=None,
-            mb_artist_id=None,
-            canonical_title=local_title,
-            canonical_artist=local_artist,
-            canonical_album_artist=local_artist,
-            canonical_album=local_album,
-            canonical_year=local_year,
-            canonical_track_no=track["track_no"] if "track_no" in track.keys() else None,
-            canonical_track_total=None,
-            canonical_disc_no=None,
-            canonical_disc_total=None,
-            genres_json=genres_json,
-            tags_json=tags_json,
-            confidence=0.85 if local_title and local_artist != "Unknown Artist" else 0.50,
-            status="matched" if local_title and local_artist != "Unknown Artist" else "needs_review",
-            source="local_tags",
-            raw_metadata_json=json.dumps({"source": "local_tags_fallback"}),
-        )
-
-    # Step 1: Generate Chromaprint fingerprint
-    try:
-        duration, fingerprint = acoustid.fingerprint_file(str(track_path))
-    except Exception as err:
-        logger.warning("Fingerprint generation failed for %s: %s", track_path, err)
-        return EnrichmentResult(
-            track_id=track_id,
-            mb_recording_id=None,
-            mb_release_id=None,
-            mb_artist_id=None,
-            canonical_title=None,
-            canonical_artist=None,
-            canonical_album_artist=None,
-            canonical_album=None,
-            canonical_year=None,
-            canonical_track_no=None,
-            canonical_track_total=None,
-            canonical_disc_no=None,
-            canonical_disc_total=None,
-            genres_json=None,
-            tags_json=None,
-            confidence=0.0,
-            status="error",
-            source="acoustid",
-            raw_metadata_json=json.dumps({"error": str(err)}),
-        )
-
-    # Step 2: Query AcoustID API
-    acoustid_resp = cached_acoustid_lookup(
-        conn=conn,
-        api_key=acoustid_api_key,
-        fingerprint=fingerprint,
-        duration=duration,
+    return EnrichmentResult(
+        track_id=track_id,
+        mb_recording_id=None,
+        mb_release_id=None,
+        mb_artist_id=None,
+        canonical_title=local_title,
+        canonical_artist=local_artist,
+        canonical_album_artist=local_artist,
+        canonical_album=local_album,
+        canonical_year=local_year,
+        canonical_track_no=track["track_no"] if "track_no" in track.keys() else None,
+        canonical_track_total=None,
+        canonical_disc_no=None,
+        canonical_disc_total=None,
+        genres_json=genres_json,
+        tags_json=tags_json,
+        confidence=confidence,
+        status=status,
+        source="local_tags",
+        raw_metadata_json=json.dumps({"source": "local_tags_fallback"}),
     )
 
-    if not acoustid_resp or not acoustid_resp.get("results"):
-        logger.info("No AcoustID match found for %s", track_path.name)
-        return EnrichmentResult(
-            track_id=track_id,
-            mb_recording_id=None,
-            mb_release_id=None,
-            mb_artist_id=None,
-            canonical_title=None,
-            canonical_artist=None,
-            canonical_album_artist=None,
-            canonical_album=None,
-            canonical_year=None,
-            canonical_track_no=None,
-            canonical_track_total=None,
-            canonical_disc_no=None,
-            canonical_disc_total=None,
-            genres_json=None,
-            tags_json=None,
-            confidence=0.0,
-            status="unmatched",
-            source="acoustid",
-            raw_metadata_json=json.dumps(acoustid_resp or {}),
-        )
 
-    # Step 3: Pick best AcoustID result and MusicBrainz recording ID
+def _create_error_result(track_id: int, err: Exception) -> EnrichmentResult:
+    return EnrichmentResult(
+        track_id=track_id,
+        mb_recording_id=None,
+        mb_release_id=None,
+        mb_artist_id=None,
+        canonical_title=None,
+        canonical_artist=None,
+        canonical_album_artist=None,
+        canonical_album=None,
+        canonical_year=None,
+        canonical_track_no=None,
+        canonical_track_total=None,
+        canonical_disc_no=None,
+        canonical_disc_total=None,
+        genres_json=None,
+        tags_json=None,
+        confidence=0.0,
+        status="error",
+        source="acoustid",
+        raw_metadata_json=json.dumps({"error": str(err)}),
+    )
+
+
+def _create_unmatched_result(track_id: int, raw_metadata: dict[str, Any], confidence: float = 0.0) -> EnrichmentResult:
+    return EnrichmentResult(
+        track_id=track_id,
+        mb_recording_id=None,
+        mb_release_id=None,
+        mb_artist_id=None,
+        canonical_title=None,
+        canonical_artist=None,
+        canonical_album_artist=None,
+        canonical_album=None,
+        canonical_year=None,
+        canonical_track_no=None,
+        canonical_track_total=None,
+        canonical_disc_no=None,
+        canonical_disc_total=None,
+        genres_json=None,
+        tags_json=None,
+        confidence=confidence,
+        status="unmatched",
+        source="acoustid",
+        raw_metadata_json=json.dumps(raw_metadata or {}),
+    )
+
+
+def _pick_best_acoustid_result(acoustid_resp: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None, float]:
     best_result = None
     best_recording = None
     best_score = 0.0
 
-    for result in acoustid_resp["results"]:
+    for result in acoustid_resp.get("results", []):
         score = float(result.get("score", 0.0))
         recordings = result.get("recordings", [])
         if recordings and score > best_score:
@@ -463,33 +438,19 @@ def resolve_track_enrichment(
             best_result = result
             best_recording = recordings[0]
 
-    if not best_recording or "id" not in best_recording:
-        return EnrichmentResult(
-            track_id=track_id,
-            mb_recording_id=None,
-            mb_release_id=None,
-            mb_artist_id=None,
-            canonical_title=None,
-            canonical_artist=None,
-            canonical_album_artist=None,
-            canonical_album=None,
-            canonical_year=None,
-            canonical_track_no=None,
-            canonical_track_total=None,
-            canonical_disc_no=None,
-            canonical_disc_total=None,
-            genres_json=None,
-            tags_json=None,
-            confidence=best_score,
-            status="unmatched",
-            source="acoustid",
-            raw_metadata_json=json.dumps(best_result or {}),
-        )
+    return best_result, best_recording, best_score
 
+
+def _process_musicbrainz_metadata(
+    track_id: int,
+    track: Any,
+    best_score: float,
+    best_result: dict[str, Any],
+    best_recording: dict[str, Any],
+    mb_data: dict[str, Any] | None,
+    confidence_threshold: float,
+) -> EnrichmentResult:
     mb_recording_id = best_recording["id"]
-
-    # Step 4: Query MusicBrainz for recording details
-    mb_data = cached_musicbrainz_recording(conn=conn, mb_recording_id=mb_recording_id)
     rec_obj = mb_data.get("recording", {}) if mb_data else best_recording
 
     canonical_title = rec_obj.get("title") or best_recording.get("title")
@@ -577,6 +538,70 @@ def resolve_track_enrichment(
         status=status,
         source="acoustid_musicbrainz",
         raw_metadata_json=json.dumps(raw_combined, ensure_ascii=False),
+    )
+
+
+def resolve_track_enrichment(
+    conn: Any,
+    track: Any,
+    acoustid_api_key: str,
+    confidence_threshold: float = 0.8,
+) -> EnrichmentResult:
+    """Fingerprint an audio track, query AcoustID and MusicBrainz, and produce enrichment.
+
+    Args:
+        conn: Open SQLite connection.
+        track: Track record (sqlite3.Row or TrackRecord).
+        acoustid_api_key: AcoustID API key.
+        confidence_threshold: Threshold below which match is marked 'needs_review'.
+
+    Returns:
+        EnrichmentResult: Resolved canonical metadata and match confidence.
+    """
+    track_path = Path(track["path"])
+    track_id = track["id"]
+
+    if not acoustid_api_key or not str(acoustid_api_key).strip():
+        return _resolve_local_tags(track, track_path, track_id)
+
+    # Step 1: Generate Chromaprint fingerprint
+    try:
+        duration, fingerprint = acoustid.fingerprint_file(str(track_path))
+    except Exception as err:
+        logger.warning("Fingerprint generation failed for %s: %s", track_path, err)
+        return _create_error_result(track_id, err)
+
+    # Step 2: Query AcoustID API
+    acoustid_resp = cached_acoustid_lookup(
+        conn=conn,
+        api_key=acoustid_api_key,
+        fingerprint=fingerprint,
+        duration=duration,
+    )
+
+    if not acoustid_resp or not acoustid_resp.get("results"):
+        logger.info("No AcoustID match found for %s", track_path.name)
+        return _create_unmatched_result(track_id, acoustid_resp or {})
+
+    # Step 3: Pick best AcoustID result and MusicBrainz recording ID
+    best_result, best_recording, best_score = _pick_best_acoustid_result(acoustid_resp)
+
+    if not best_recording or "id" not in best_recording:
+        return _create_unmatched_result(track_id, best_result or {}, best_score)
+
+    mb_recording_id = best_recording["id"]
+
+    # Step 4: Query MusicBrainz for recording details
+    mb_data = cached_musicbrainz_recording(conn=conn, mb_recording_id=mb_recording_id)
+
+    return _process_musicbrainz_metadata(
+        track_id=track_id,
+        track=track,
+        best_score=best_score,
+        best_result=best_result,
+        best_recording=best_recording,
+        mb_data=mb_data,
+        confidence_threshold=confidence_threshold,
     )
 
 
