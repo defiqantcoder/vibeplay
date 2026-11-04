@@ -1,0 +1,15 @@
+--- src/vibe_dsp/peq.py
++++ src/vibe_dsp/peq.py
+@@ -328,7 +328,11 @@
+             try:
+                 explicit_preamp = float(p_match.group(1))
+             except ValueError:
+-                pass
++                logger.warning(
++                    "Failed to parse preamp value '%s' for profile '%s'.",
++                    p_match.group(1),
++                    profile_name,
++                )
+             continue
+
+         f_match = filter_pattern.search(line_clean)
