@@ -6,12 +6,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Form, Request, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from vibeplay.config import Settings, get_settings
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -179,9 +178,8 @@ async def api_save_gemini_key(request: Request) -> JSONResponse:
             }
         )
     except Exception as err:
-        logger.warning("Could not persist Gemini API key: %s", err)
         logger.error("Request failed: %s", err, exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
+        return JSONResponse(status_code=500, content={"status": "error"})
 
 
 @router.post("/api/settings")
@@ -199,7 +197,7 @@ async def api_update_settings(request: Request) -> JSONResponse:
                     content={"detail": "Settings payload must be a JSON object."},
                 )
             payload = raw_body
-        except Exception as err:
+        except Exception:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Invalid JSON body."},
@@ -255,7 +253,14 @@ async def api_update_settings(request: Request) -> JSONResponse:
             except Exception:
                 validated.peq_preamp_db = -5.5
 
-    save_desktop_settings(validated)
+    try:
+        save_desktop_settings(validated)
+    except OSError as err:
+        logger.warning("Could not persist partial settings: %s", err)
+        return JSONResponse(status_code=500, content={"status": "error"})
+    except Exception as err:
+        logger.error("Unexpected error saving settings: %s", err, exc_info=True)
+        return JSONResponse(status_code=500, content={"status": "error"})
 
     return JSONResponse(
         content={

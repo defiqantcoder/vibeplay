@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import html
 import logging
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -64,85 +62,92 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
     if not target_profile:
         target_profile = "pure-bitperfect"
 
-    # Commit hardware sink routing
-    set_output_profile(str(target_profile), settings=cfg)
-
-    # Dispatch to DSP IPC if applicable
-    p_low = str(target_profile).lower()
     try:
-        from vibe_dsp.ipc import DSPClient
+        # Commit hardware sink routing
+        set_output_profile(str(target_profile), settings=cfg)
 
-        prof_map = {
-            "pure-bitperfect": "pure-bitperfect",
-            "pure bit-perfect (direct alsa)": "pure-bitperfect",
-            "spatial-headphones": "spatial-headphones",
-            "7.1.4 spatial headphones (sofa 3d)": "spatial-headphones",
-            "receiver-passthrough": "receiver-passthrough",
-            "av receiver passthrough (hdmi)": "receiver-passthrough",
-            "pipewire sound server": "pure-bitperfect",
-        }
-        target_id = prof_map.get(p_low, str(target_profile))
-        DSPClient().set_profile(target_id)
-    except Exception as err:
-        logger.debug("Could not dispatch profile to vibe-dsp IPC: %s", err)
-
-    # Synchronize desktop settings
-    if "spatial" in p_low:
+        # Dispatch to DSP IPC if applicable
+        p_low = str(target_profile).lower()
         try:
-            from vibe_dsp.spatial import set_spatial_virtualization_mode
-            set_spatial_virtualization_mode("spatial_binaural")
-            update_desktop_settings({"spatial_enabled": True, "spatial_mode": "3d_binaural", "dsp_profile": "spatial-headphones"})
-        except Exception:
-            pass
-    elif "receiver" in p_low or "hdmi" in p_low:
-        try:
-            update_desktop_settings({"dsp_profile": "receiver-passthrough"})
-        except Exception:
-            pass
-    elif "bit-perfect" in p_low or "pure" in p_low or "letshuoer" in p_low or "fiio" in p_low:
-        try:
-            from vibe_dsp.spatial import set_spatial_virtualization_mode
-            set_spatial_virtualization_mode("stereo_direct")
-            update_desktop_settings({"spatial_enabled": False, "spatial_mode": "stereo_direct", "dsp_profile": "pure-bitperfect"})
-        except Exception:
-            pass
+            from vibe_dsp.ipc import DSPClient
 
-    # Retrieve live playback status with the newly activated profile
-    playback = get_playback_status(cfg.db_path, cfg)
-    playback["active_profile"] = target_profile
-    playback["output_profile"] = target_profile
-    playback["output_profiles"] = get_output_profiles(cfg)
-
-    accept_header = request.headers.get("accept", "")
-    if "application/json" in accept_header or request.query_params.get("format") == "json":
-        return JSONResponse(
-            content={
-                "status": "ok",
-                "active_profile": target_profile,
-                "playback": playback,
+            prof_map = {
+                "pure-bitperfect": "pure-bitperfect",
+                "pure bit-perfect (direct alsa)": "pure-bitperfect",
+                "spatial-headphones": "spatial-headphones",
+                "7.1.4 spatial headphones (sofa 3d)": "spatial-headphones",
+                "receiver-passthrough": "receiver-passthrough",
+                "av receiver passthrough (hdmi)": "receiver-passthrough",
+                "pipewire sound server": "pure-bitperfect",
             }
+            target_id = prof_map.get(p_low, str(target_profile))
+            DSPClient().set_profile(target_id)
+        except Exception as err:
+            logger.debug("Could not dispatch profile to vibe-dsp IPC: %s", err)
+
+        # Synchronize desktop settings
+        if "spatial" in p_low:
+            try:
+                from vibe_dsp.spatial import set_spatial_virtualization_mode
+                set_spatial_virtualization_mode("spatial_binaural")
+                update_desktop_settings({"spatial_enabled": True, "spatial_mode": "3d_binaural", "dsp_profile": "spatial-headphones"})
+            except Exception:
+                pass
+        elif "receiver" in p_low or "hdmi" in p_low:
+            try:
+                update_desktop_settings({"dsp_profile": "receiver-passthrough"})
+            except Exception:
+                pass
+        elif "bit-perfect" in p_low or "pure" in p_low or "letshuoer" in p_low or "fiio" in p_low:
+            try:
+                from vibe_dsp.spatial import set_spatial_virtualization_mode
+                set_spatial_virtualization_mode("stereo_direct")
+                update_desktop_settings({"spatial_enabled": False, "spatial_mode": "stereo_direct", "dsp_profile": "pure-bitperfect"})
+            except Exception:
+                pass
+
+        # Retrieve live playback status with the newly activated profile
+        playback = get_playback_status(cfg.db_path, cfg)
+        playback["active_profile"] = target_profile
+        playback["output_profile"] = target_profile
+        playback["output_profiles"] = get_output_profiles(cfg)
+
+        accept_header = request.headers.get("accept", "")
+        if "application/json" in accept_header or request.query_params.get("format") == "json":
+            return JSONResponse(
+                content={
+                    "status": "ok",
+                    "active_profile": target_profile,
+                    "playback": playback,
+                }
+            )
+
+        # Render updated output_switcher.html snippet with active checkmark class
+        output_switcher_html = templates.get_template("components/output_switcher.html").render(
+            request=request,
+            playback=playback,
+            popover_open=True,
+        )
+        transport_bar_html = templates.get_template("components/transport_bar.html").render(
+            request=request,
+            playback=playback,
         )
 
-    # Render updated output_switcher.html snippet with active checkmark class
-    output_switcher_html = templates.get_template("components/output_switcher.html").render(
-        request=request,
-        playback=playback,
-        popover_open=True,
-    )
-    transport_bar_html = templates.get_template("components/transport_bar.html").render(
-        request=request,
-        playback=playback,
-    )
-
-    return templates.TemplateResponse(
-        request=request,
-        name="components/output_switcher_response.html",
-        context={
-            "output_switcher_html": output_switcher_html,
-            "transport_bar_html": transport_bar_html,
-            "active_profile": str(target_profile),
-        },
-    )
+        return templates.TemplateResponse(
+            request=request,
+            name="components/output_switcher_response.html",
+            context={
+                "output_switcher_html": output_switcher_html,
+                "transport_bar_html": transport_bar_html,
+                "active_profile": str(target_profile),
+            },
+        )
+    except Exception as err:
+        logger.error("Failed to set output profile %s: %s", target_profile, err, exc_info=True)
+        accept_header = request.headers.get("accept", "")
+        if "application/json" in accept_header or request.query_params.get("format") == "json":
+            return JSONResponse(status_code=500, content={"status": "error", "message": "Failed to set output profile"})
+        return HTMLResponse(status_code=500, content="<div class='text-red-500'>Failed to set output profile</div>")
 
 
 @router.post("/volume", response_class=HTMLResponse)

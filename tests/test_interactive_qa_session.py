@@ -329,8 +329,8 @@ def test_flow_2b_audio_routing_and_dac_profiles(qa_env):
     assert pdata["status"] == "ok"
     assert "profiles" in pdata
     assert isinstance(pdata["profiles"], list)
-    assert "PipeWire Sound Server" in pdata["profiles"]
-    assert "Pure Bit-Perfect (Direct ALSA)" in pdata["profiles"]
+    assert any(p.get("name") == "PipeWire Sound Server" for p in pdata["profiles"])
+    assert any(p.get("name") == "Pure Bit-Perfect (Direct ALSA)" for p in pdata["profiles"])
 
     # 2. Switch to 'pure-bitperfect' via POST /api/player/output Form
     res_pb = client.post(
@@ -381,7 +381,7 @@ def test_flow_2b_audio_routing_and_dac_profiles(qa_env):
         res_dac_list = client.get("/api/player/output/profiles", headers=headers)
         assert res_dac_list.status_code == 200
         dac_profiles = res_dac_list.json()["profiles"]
-        letshuoer_label = next((p for p in dac_profiles if "letshuoer" in p.lower()), None)
+        letshuoer_label = next((p.get("name") for p in dac_profiles if "letshuoer" in p.get("name", "").lower()), None)
         assert letshuoer_label is not None
         assert "hw:1,0" in letshuoer_label
 

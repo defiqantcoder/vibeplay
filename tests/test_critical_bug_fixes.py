@@ -118,10 +118,10 @@ def test_dynamic_dac_detection_parses_proc_asound_cards(tmp_path: Path):
     with patch("pathlib.Path.exists", return_value=True), \
          patch("pathlib.Path.read_text", return_value=cards_sample):
         profiles = get_output_profiles()
-        assert any("FiiO KA15" in p for p in profiles)
-        assert any("Letshuoer" in p for p in profiles)
-        assert "PipeWire Sound Server" in profiles
-        assert "Pure Bit-Perfect (Direct ALSA)" in profiles
+        assert any("FiiO KA15" in p["name"] for p in profiles)
+        assert any("Letshuoer" in p["name"] for p in profiles)
+        assert any(p["name"] == "PipeWire Sound Server" for p in profiles)
+        assert any(p["name"] == "Pure Bit-Perfect (Direct ALSA)" for p in profiles)
 
 
 def test_output_selection_updates_active_checkmark_and_commits_sink(app_env):

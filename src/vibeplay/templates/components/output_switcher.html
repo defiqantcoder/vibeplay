@@ -30,9 +30,9 @@
       {% endif %}
     {% endfor %}
     {% for profile in playback.output_profiles %}
-      {% set p_low = profile|lower|trim %}
+      {% set p_low = profile.name|lower|trim %}
       {% if ns.found %}
-        {% set is_active = (profile == active_raw or p_low == active_prof) %}
+        {% set is_active = (profile.name == active_raw or p_low == active_prof) %}
       {% else %}
         {% set is_active = (active_prof == 'pure-bitperfect' and ('pure bit-perfect' in p_low or 'direct alsa' in p_low)) or (active_prof == 'spatial-headphones' and 'spatial' in p_low) or (active_prof == 'receiver-passthrough' and ('receiver' in p_low or 'hdmi' in p_low)) or (loop.first) %}
       {% endif %}
@@ -40,7 +40,7 @@
     <!-- Active Device Card -->
     <div class="output-device-card active p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
          hx-post="/api/player/output"
-         hx-vals='{"profile": "{{ profile }}"}'
+         hx-vals='{"profile": "{{ profile.name }}"}'
          hx-target="#transport-footer-container"
          hx-swap="innerHTML"
          onclick="closeOutputSwitcher()">
@@ -52,18 +52,18 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-1">
           <span class="text-[13px] font-bold text-white truncate">
-            {% if 'DAC' in profile or 'ALSA' in profile or 'Bit-Perfect' in profile or 'Spatial' in profile or 'hw:' in profile %}🎧{% elif 'Receiver' in profile or 'HDMI' in profile or 'SPDIF' in profile %}📻{% else %}💻{% endif %} {{ profile }}
+            {% if 'DAC' in profile.name or 'ALSA' in profile.name or 'Bit-Perfect' in profile.name or 'Spatial' in profile.name or 'hw:' in profile.name %}🎧{% elif 'Receiver' in profile.name or 'HDMI' in profile.name or 'SPDIF' in profile.name %}📻{% else %}💻{% endif %} {{ profile.name }}
           </span>
           <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shrink-0 flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] glow-green inline-block"></span>Active
           </span>
         </div>
         <p class="text-[10px] font-mono text-[#06b6d4] mt-0.5 leading-snug truncate">
-          {% if 'ALSA' in profile or 'Bit-Perfect' in profile or 'DAC' in profile or 'hw:' in profile %}
+          {% if 'ALSA' in profile.name or 'Bit-Perfect' in profile.name or 'DAC' in profile.name or 'hw:' in profile.name %}
             Direct ALSA • 32-bit / 768kHz • Bit-Perfect Lock
-          {% elif 'Spatial' in profile %}
+          {% elif 'Spatial' in profile.name %}
             SOFA Binaural 3D • 7.1.4 Virtualization • PipeWire
-          {% elif 'HDMI' in profile or 'Receiver' in profile %}
+          {% elif 'HDMI' in profile.name or 'Receiver' in profile.name %}
             Living Room Speakers • Raw HDMI/SPDIF Bitstream
           {% else %}
             Internal Audio • PipeWire
@@ -75,7 +75,7 @@
     <!-- Inactive Device Card -->
     <div class="output-device-card p-2.5 rounded-[12px] bg-[#121214]/60 hover:bg-[#25252e] border border-[#2a2a35] hover:border-[#3b3b4a] flex items-start gap-2.5 cursor-pointer transition-colors group"
          hx-post="/api/player/output"
-         hx-vals='{"profile": "{{ profile }}"}'
+         hx-vals='{"profile": "{{ profile.name }}"}'
          hx-target="#transport-footer-container"
          hx-swap="innerHTML"
          onclick="closeOutputSwitcher()">
@@ -84,15 +84,15 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between">
           <span class="text-[13px] font-semibold text-[#e4e4e7] group-hover:text-white truncate">
-            {% if 'DAC' in profile or 'ALSA' in profile or 'Bit-Perfect' in profile or 'Spatial' in profile or 'hw:' in profile %}🎧{% elif 'Receiver' in profile or 'HDMI' in profile or 'SPDIF' in profile %}📻{% else %}💻{% endif %} {{ profile }}
+            {% if 'DAC' in profile.name or 'ALSA' in profile.name or 'Bit-Perfect' in profile.name or 'Spatial' in profile.name or 'hw:' in profile.name %}🎧{% elif 'Receiver' in profile.name or 'HDMI' in profile.name or 'SPDIF' in profile.name %}📻{% else %}💻{% endif %} {{ profile.name }}
           </span>
         </div>
         <p class="text-[10px] text-[#9ca3af] mt-0.5 leading-snug truncate">
-          {% if 'ALSA' in profile or 'Bit-Perfect' in profile or 'DAC' in profile or 'hw:' in profile %}
+          {% if 'ALSA' in profile.name or 'Bit-Perfect' in profile.name or 'DAC' in profile.name or 'hw:' in profile.name %}
             Direct ALSA • 32-bit / 768kHz • Bit-Perfect Lock
-          {% elif 'Spatial' in profile %}
+          {% elif 'Spatial' in profile.name %}
             SOFA Binaural 3D • 7.1.4 Virtualization • PipeWire
-          {% elif 'HDMI' in profile or 'Receiver' in profile %}
+          {% elif 'HDMI' in profile.name or 'Receiver' in profile.name %}
             Living Room Speakers • Raw HDMI/SPDIF Bitstream
           {% else %}
             Internal Audio • PipeWire
