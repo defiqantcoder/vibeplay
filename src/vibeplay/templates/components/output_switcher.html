@@ -25,11 +25,12 @@
     {% set active_prof = active_raw|lower|trim %}
     {% set ns = namespace(found=false) %}
     {% for p in playback.output_profiles %}
-      {% if p == active_raw or p|lower|trim == active_prof %}
+      {% if p.name == active_raw or p.name|lower|trim == active_prof %}
         {% set ns.found = true %}
       {% endif %}
     {% endfor %}
-    {% for profile in playback.output_profiles %}
+    {% for output in playback.output_profiles %}
+      {% set profile = output.name %}
       {% set p_low = profile|lower|trim %}
       {% if ns.found %}
         {% set is_active = (profile == active_raw or p_low == active_prof) %}
@@ -40,7 +41,7 @@
     <!-- Active Device Card -->
     <div class="output-device-card active p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
          hx-post="/api/player/output"
-         hx-vals='{"profile": "{{ profile }}"}'
+         hx-vals='{{ {"profile": profile}|tojson }}'
          hx-target="#transport-footer-container"
          hx-swap="innerHTML"
          onclick="closeOutputSwitcher()">
@@ -75,7 +76,7 @@
     <!-- Inactive Device Card -->
     <div class="output-device-card p-2.5 rounded-[12px] bg-[#121214]/60 hover:bg-[#25252e] border border-[#2a2a35] hover:border-[#3b3b4a] flex items-start gap-2.5 cursor-pointer transition-colors group"
          hx-post="/api/player/output"
-         hx-vals='{"profile": "{{ profile }}"}'
+         hx-vals='{{ {"profile": profile}|tojson }}'
          hx-target="#transport-footer-container"
          hx-swap="innerHTML"
          onclick="closeOutputSwitcher()">

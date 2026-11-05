@@ -6,7 +6,7 @@ import html
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request, Response
+from fastapi import APIRouter, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -150,9 +150,11 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
             },
             status_code=200,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error setting output profile: %s", e, exc_info=True)
-        return JSONResponse(status_code=200, content={"status": "error", "message": "Failed to set profile"})
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Failed to set profile"})
 
 
 @router.post("/volume", response_class=HTMLResponse)

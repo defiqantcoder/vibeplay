@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -181,9 +181,8 @@ async def api_save_gemini_key(request: Request) -> JSONResponse:
             }
         )
     except Exception as err:
-        logger.warning("Could not persist Gemini API key: %s", err)
         logger.error("Request failed: %s", err, exc_info=True)
-        return JSONResponse(status_code=200, content={"status": "ok", "gemini_api_key": "", "gemini_model": "gemini-3.8-flash"})
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
 
 
 @router.post("/api/settings")
@@ -259,7 +258,11 @@ async def api_update_settings(request: Request) -> JSONResponse:
                 except Exception:
                     validated.peq_preamp_db = -5.5
 
-        save_desktop_settings(validated)
+        try:
+            save_desktop_settings(validated)
+        except OSError as err:
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
 
         return JSONResponse(
             content={
@@ -267,12 +270,8 @@ async def api_update_settings(request: Request) -> JSONResponse:
                 "settings": validated.model_dump(mode="json"),
             }
         )
+    except HTTPException:
+        raise
     except Exception as err:
         logger.error("Request failed: %s", err, exc_info=True)
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": "ok",
-                "settings": DesktopSettings().model_dump(mode="json"),
-            },
-        )
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
