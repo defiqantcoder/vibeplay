@@ -1,216 +1,207 @@
-{# The Add-on Toybox (Hi-Fi Lounge Design System) #}
-<div id="toybox-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-200 hidden select-none" onclick="if(event.target === this) closeToyboxModal();">
-  <div class="relative w-full max-w-[860px] bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-5 overflow-hidden text-[var(--text-primary)]" onclick="event.stopPropagation();">
-    <!-- Ambient Tube Glow Backgrounds -->
-    <div class="absolute -top-24 -left-24 w-72 h-72 bg-[var(--primary)]/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-28 -right-20 w-80 h-80 bg-[var(--secondary)]/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[var(--primary)]/60 to-transparent"></div>
-
+<!-- The Add-on Toybox (Plugin Manager Specification) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-margin-mobile lg:p-margin bg-[#0e0e10]/80 backdrop-blur-md transition-opacity duration-300 hidden select-none" id="toybox-backdrop" onclick="if(event.target === this) closeToyboxModal();">
+  <!-- Modal Window Chassis -->
+  <div class="relative w-full max-w-[860px] bg-[#1e1e24] rounded-[20px] p-8 shadow-[0_24px_64px_-8px_rgba(0,0,0,0.85),0_0_32px_-4px_rgba(6,182,212,0.18)] overflow-hidden flex flex-col justify-between" onclick="event.stopPropagation();">
+    <!-- Ambient Tube & Deck Subtle Glow Layers -->
+    <div class="absolute -top-24 -left-24 w-72 h-72 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-28 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Top Subtle Gradient Glow Strip -->
+    <div class="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-primary-container/60 to-transparent"></div>
+    
     <!-- Header Section -->
-    <div class="relative z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] pb-4">
-      <div>
-        <div class="flex items-center gap-2.5">
-          <span class="text-2xl select-none">🧩</span>
-          <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">The Add-on Toybox</h2>
-          <span class="text-xs px-2.5 py-0.5 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] font-mono font-medium">Modular Architecture</span>
-        </div>
-        <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl">
-          Modular tools and sound gadgets that stay completely out of the core playback loop until you need them.
-        </p>
-      </div>
-      <button type="button" id="toybox-close-btn" class="w-8 h-8 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors border border-[var(--border)]" onclick="closeToyboxModal();" aria-label="Close Toybox">
-        ✕
-      </button>
-    </div>
-
-    <!-- Filter Quick-tabs -->
-    <div class="relative z-10 flex items-center gap-2 overflow-x-auto text-xs font-mono">
-      <button type="button" class="toybox-filter-tab px-3.5 py-1.5 rounded-full bg-[var(--primary)] text-[var(--on-primary)] font-bold transition-all shadow-sm" data-filter="all" onclick="filterToyboxCards('all', this)">
-        All Toys (3)
-      </button>
-      <button type="button" class="toybox-filter-tab px-3.5 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--border)]" data-filter="dsp" onclick="filterToyboxCards('dsp', this)">
-        Sound DSP
-      </button>
-      <button type="button" class="toybox-filter-tab px-3.5 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--border)]" data-filter="library" onclick="filterToyboxCards('library', this)">
-        Library Tools
-      </button>
-      <button type="button" class="toybox-filter-tab px-3.5 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--border)]" data-filter="network" onclick="filterToyboxCards('network', this)">
-        Network Bridge
-      </button>
-    </div>
-
-    <!-- Cards Grid (2-column layout) -->
-    <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Card 1: The Soundbar (Parametric EQ & Spatial) -->
-      <div class="toybox-card bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between shadow-md transition-all hover:border-[var(--primary)]/50 group" data-category="dsp">
-        <div>
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] font-semibold uppercase tracking-wider">
-              DSP &amp; ACOUSTICS • V2.4
-            </span>
-            <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
+    <div class="relative z-10 flex flex-col gap-4">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl filter drop-shadow-[0_0_12px_rgba(6,182,212,0.3)] select-none">🧩</span>
+            <h2 class="font-headline-lg text-headline-lg font-bold text-[#e4e4e7] tracking-tight">The Add-on Toybox</h2>
           </div>
-          <h3 class="text-base font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2 group-hover:text-[var(--primary)] transition-colors">
-            <span>🎛️</span>
-            <span>The Soundbar</span>
-          </h3>
-          <p class="text-xs text-[var(--text-muted)] leading-relaxed mt-1.5">
-            Tweak your frequencies and soundstage! Automatically steps aside during Bit-Perfect listening for 0.0ms overhead.
+          <p class="font-body-md text-body-md text-[#9ca3af] mt-1.5 max-w-xl">
+            Modular tools and sound gadgets that stay completely out of the core playback loop until you need them.
           </p>
         </div>
-        <div class="mt-4 pt-3 border-t border-[var(--border)]/70 flex flex-col gap-3">
-          <div class="flex items-center gap-1.5 text-[11px] font-mono text-[var(--status-ok,var(--tertiary))]">
-            <span>⚡</span>
+        <!-- Cute Circular Close Button -->
+        <button aria-label="Close Toybox" class="w-9 h-9 rounded-full bg-[#121214] hover:bg-[#2a2a35] text-[#9ca3af] hover:text-[#e4e4e7] flex items-center justify-center transition-all duration-150 shadow-inner group flex-shrink-0" id="modal-close-btn" type="button" onclick="closeToyboxModal();">
+          <span class="material-symbols-outlined text-[18px] group-hover:rotate-90 transition-transform duration-200">close</span>
+        </button>
+      </div>
+      
+      <!-- Filter / Quick-tabs Strip -->
+      <div class="flex items-center gap-1.5 pt-1 overflow-x-auto">
+        <button class="tab-pill toybox-filter-tab font-label-md text-label-md px-3.5 py-1.5 rounded-full bg-primary-container/15 text-primary font-semibold shadow-sm transition-all" data-filter="all" type="button" onclick="filterToyboxCards('all', this)">
+          All Toys (3)
+        </button>
+        <button class="tab-pill toybox-filter-tab font-label-md text-label-md px-3.5 py-1.5 rounded-full bg-[#121214] hover:bg-[#2a2a35] text-[#9ca3af] hover:text-[#e4e4e7] transition-all" data-filter="dsp" type="button" onclick="filterToyboxCards('dsp', this)">
+          Sound DSP
+        </button>
+        <button class="tab-pill toybox-filter-tab font-label-md text-label-md px-3.5 py-1.5 rounded-full bg-[#121214] hover:bg-[#2a2a35] text-[#9ca3af] hover:text-[#e4e4e7] transition-all" data-filter="library" type="button" onclick="filterToyboxCards('library', this)">
+          Library Tools
+        </button>
+        <button class="tab-pill toybox-filter-tab font-label-md text-label-md px-3.5 py-1.5 rounded-full bg-[#121214] hover:bg-[#2a2a35] text-[#9ca3af] hover:text-[#e4e4e7] transition-all" data-filter="network" type="button" onclick="filterToyboxCards('network', this)">
+          Network Bridge
+        </button>
+      </div>
+    </div>
+    
+    <!-- Add-on Cards Grid (2-column layout) -->
+    <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+      <!-- Card 1: The Soundbar (Parametric EQ & Spatial) -->
+      <div class="toy-card toybox-card bg-[#121214] rounded-[14px] p-5 flex flex-col justify-between shadow-lg hover:shadow-[0_8px_24px_-4px_rgba(6,182,212,0.2)] transition-all duration-200 group" data-category="dsp">
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-primary-container/15 text-primary font-semibold uppercase tracking-wider">
+              DSP &amp; ACOUSTICS • V2.4
+            </span>
+            <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+          </div>
+          <h3 class="font-headline-sm text-headline-sm text-[#e4e4e7] flex items-center gap-1.5 group-hover:text-primary transition-colors">
+            <span>🎛️</span>
+            <span class="truncate">The Soundbar</span>
+          </h3>
+          <p class="font-body-sm text-body-sm text-[#9ca3af] mt-2">
+            Tweak your frequencies and soundstage! Automatically steps aside during Bit-Perfect listening.
+          </p>
+        </div>
+        <div class="mt-4 pt-3 flex flex-col gap-3">
+          <div class="flex items-center gap-1.5 font-label-sm text-label-sm text-tertiary">
+            <span class="material-symbols-outlined text-[14px]">bolt</span>
             <span>0.0ms overhead • Bypassed on DSD</span>
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between pt-1">
+            <!-- Status Toggle: ON -->
             <div class="flex items-center gap-2">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="plugin-toggle-dsp" checked class="sr-only peer" onchange="togglePluginDynamic('dsp', this.checked)">
-                <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary)]"></div>
-              </label>
-              <span class="text-xs font-semibold text-[var(--text-primary)]">Active &amp; Ready</span>
+              <button id="plugin-toggle-dsp" aria-checked="true" class="toy-toggle relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full bg-primary-container transition-colors duration-200 focus:outline-none shadow-[0_0_12px_rgba(6,182,212,0.45)]" role="switch" type="button" onclick="toggleToySwitch(this, 'dsp')">
+                <span class="translate-x-4 inline-block h-4 w-4 transform rounded-full bg-[#121214] shadow transition duration-200 mt-0.5 ml-0.5"></span>
+              </button>
+              <span class="font-label-sm text-label-sm text-[#e4e4e7] font-semibold toy-status-label">Active &amp; Ready</span>
             </div>
-            <button type="button" class="text-xs font-mono px-3.5 py-1.5 rounded-xl bg-[var(--surface-container-high)] hover:bg-[var(--primary)] hover:text-[var(--on-primary)] text-[var(--text-primary)] transition-all flex items-center gap-1" onclick="closeToyboxModal(); openEQStudioModal();">
+            <!-- Action Button -->
+            <button class="font-label-md text-label-md bg-[#2a2a35] hover:bg-[#343442] hover:text-white text-[#e4e4e7] px-3.5 py-1.5 rounded-xl transition duration-150 flex items-center gap-1" type="button" onclick="closeToyboxModal(); openEQStudioModal();">
               <span>Open Equalizer</span>
               <span>🎚️</span>
             </button>
           </div>
         </div>
       </div>
-
+      
       <!-- Card 2: Crate Cleaner & Deduplicator -->
-      <div class="toybox-card bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between shadow-md transition-all hover:border-[var(--secondary)]/50 group" data-category="library">
+      <div class="toy-card toybox-card bg-[#121214] rounded-[14px] p-5 flex flex-col justify-between shadow-lg hover:shadow-[0_8px_24px_-4px_rgba(255,185,95,0.15)] transition-all duration-200 group" data-category="library">
         <div>
           <div class="flex items-center justify-between gap-2 mb-2">
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--surface-container-high)] text-[var(--text-muted)] font-semibold uppercase tracking-wider">
+            <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-[#9ca3af] font-semibold uppercase tracking-wider">
               LIBRARY MAINTENANCE
             </span>
-            <span class="w-2 h-2 rounded-full bg-[var(--text-muted)]"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
           </div>
-          <h3 class="text-base font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2 group-hover:text-[var(--secondary)] transition-colors">
+          <h3 class="font-headline-sm text-headline-sm text-[#e4e4e7] flex items-center gap-1.5 group-hover:text-secondary transition-colors">
             <span>🧹</span>
-            <span>Crate Cleaner &amp; Dedupe</span>
+            <span class="truncate">Crate Cleaner &amp; Dedupe</span>
           </h3>
-          <p class="text-xs text-[var(--text-muted)] leading-relaxed mt-1.5">
-            Find duplicate audio files and polish up messy file tags across nested high-res directories on background threads.
+          <p class="font-body-sm text-body-sm text-[#9ca3af] mt-2">
+            Find duplicate audio files and polish up messy file tags across nested high-res directories.
           </p>
         </div>
-        <div class="mt-4 pt-3 border-t border-[var(--border)]/70 flex flex-col gap-3">
-          <div class="flex items-center gap-1.5 text-[11px] font-mono text-[var(--text-muted)]">
-            <span>💤</span>
+        <div class="mt-4 pt-3 flex flex-col gap-3">
+          <div class="flex items-center gap-1.5 font-label-sm text-label-sm text-[#9ca3af]">
+            <span class="material-symbols-outlined text-[14px] text-outline">bedtime</span>
             <span>Idle • Last scan 4 days ago</span>
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between pt-1">
+            <!-- Status Toggle: OFF -->
             <div class="flex items-center gap-2">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="plugin-toggle-maintenance" class="sr-only peer" onchange="togglePluginDynamic('maintenance', this.checked)">
-                <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary)]"></div>
-              </label>
-              <span class="text-xs text-[var(--text-muted)]">Taking a Nap</span>
+              <button id="plugin-toggle-maintenance" aria-checked="false" class="toy-toggle relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#2a2a35] transition-colors duration-200 focus:outline-none" role="switch" type="button" onclick="toggleToySwitch(this, 'maintenance')">
+                <span class="translate-x-0.5 inline-block h-4 w-4 transform rounded-full bg-[#9ca3af] shadow transition duration-200 mt-0.5"></span>
+              </button>
+              <span class="font-label-sm text-label-sm text-[#9ca3af] toy-status-label">Taking a Nap</span>
             </div>
+            <!-- Action Button -->
             <div class="flex items-center gap-1.5">
-              <button type="button" class="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-[var(--surface-container-high)] hover:bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] transition-colors" onclick="triggerDeduplication();">
+              <button class="font-label-md text-label-md bg-[#2a2a35] hover:bg-[#343442] hover:text-white text-[#e4e4e7] px-2.5 py-1.5 rounded-xl transition duration-150" type="button" onclick="triggerDeduplication();">
                 Dedupe
               </button>
-              <button type="button" class="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-[var(--surface-container-high)] hover:bg-[var(--surface-container)] border border-[var(--border)] text-[var(--text-primary)] transition-colors" onclick="triggerEnrichment();">
+              <button class="font-label-md text-label-md bg-[#2a2a35] hover:bg-[#343442] hover:text-white text-[#e4e4e7] px-2.5 py-1.5 rounded-xl transition duration-150" type="button" onclick="triggerEnrichment();">
                 Enrich
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Card 3: Kodi Streamer Bridge -->
-      <div class="toybox-card bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-5 flex flex-col justify-between shadow-md transition-all hover:border-[var(--primary)]/50 group" data-category="network">
+      
+      <!-- Card 3: Kodi & Network Streamer Bridge -->
+      <div class="toy-card toybox-card bg-[#121214] rounded-[14px] p-5 flex flex-col justify-between shadow-lg hover:shadow-[0_8px_24px_-4px_rgba(6,182,212,0.2)] transition-all duration-200 group" data-category="network">
         <div>
           <div class="flex items-center justify-between gap-2 mb-2">
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] font-semibold uppercase tracking-wider">
+            <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-primary-container/15 text-primary font-semibold uppercase tracking-wider">
               LAN &amp; UPNP BROADCAST
             </span>
-            <span class="w-2 h-2 rounded-full bg-[var(--status-ok,var(--tertiary))]"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
           </div>
-          <h3 class="text-base font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2 group-hover:text-[var(--primary)] transition-colors">
+          <h3 class="font-headline-sm text-headline-sm text-[#e4e4e7] flex items-center gap-1.5 group-hover:text-primary transition-colors">
             <span>📡</span>
-            <span>Kodi Streamer Bridge</span>
+            <span class="truncate">Kodi Streamer Bridge</span>
           </h3>
-          <p class="text-xs text-[var(--text-muted)] leading-relaxed mt-1.5">
+          <p class="font-body-sm text-body-sm text-[#9ca3af] mt-2">
             Beam your playlists to local TV streamers and Kodi boxes across the room with minimal jitter.
           </p>
         </div>
-        <div class="mt-4 pt-3 border-t border-[var(--border)]/70 flex flex-col gap-3">
-          <div class="flex items-center gap-1.5 text-[11px] font-mono text-[var(--status-ok,var(--tertiary))]">
-            <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-ok,var(--tertiary))]"></span>
+        <div class="mt-4 pt-3 flex flex-col gap-3">
+          <div class="flex items-center gap-1.5 font-label-sm text-label-sm text-tertiary">
+            <span class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_6px_#4edea3]"></span>
             <span class="truncate">1 device found (LivingRoom-Kodi)</span>
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between pt-1">
+            <!-- Status Toggle: ON -->
             <div class="flex items-center gap-2">
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="plugin-toggle-kodi" checked class="sr-only peer">
-                <div class="w-9 h-5 bg-[var(--surface-container-high)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary)]"></div>
-              </label>
-              <span class="text-xs font-semibold text-[var(--text-primary)]">Active</span>
+              <button id="plugin-toggle-kodi" aria-checked="true" class="toy-toggle relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full bg-primary-container transition-colors duration-200 focus:outline-none shadow-[0_0_12px_rgba(6,182,212,0.45)]" role="switch" type="button" onclick="toggleToySwitch(this, 'network')">
+                <span class="translate-x-4 inline-block h-4 w-4 transform rounded-full bg-[#121214] shadow transition duration-200 mt-0.5 ml-0.5"></span>
+              </button>
+              <span class="font-label-sm text-label-sm text-[#e4e4e7] font-semibold toy-status-label">Active</span>
             </div>
-            <button type="button" class="text-xs font-mono px-3.5 py-1.5 rounded-xl bg-[var(--surface-container-high)] hover:bg-[var(--surface-container)] text-[var(--text-primary)] border border-[var(--border)] transition-all flex items-center gap-1">
+            <!-- Action Button -->
+            <button class="font-label-md text-label-md bg-[#2a2a35] hover:bg-[#343442] hover:text-white text-[#e4e4e7] px-3.5 py-1.5 rounded-xl transition duration-150 flex items-center gap-1" type="button">
               <span>Settings</span>
               <span>⚙️</span>
             </button>
           </div>
         </div>
       </div>
-
-      <!-- Card 4: Community Sandbox -->
-      <div class="bg-[var(--surface-container-lowest)]/80 hover:bg-[var(--surface-container-lowest)] border border-dashed border-[var(--border)] rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer group transition-all">
-        <div class="w-10 h-10 rounded-full bg-[var(--surface-container-high)] group-hover:bg-[var(--primary)]/20 text-[var(--text-muted)] group-hover:text-[var(--primary)] flex items-center justify-center mb-2.5 transition-all group-hover:scale-110">
-          <span class="text-lg">➕</span>
+      
+      <!-- Card 4: Add New Tool Slot / Community Sandbox -->
+      <div class="toy-card toybox-card bg-[#121214]/60 hover:bg-[#121214] rounded-[14px] p-5 flex flex-col items-center justify-center text-center cursor-pointer group transition-all duration-200 shadow-inner hover:shadow-[0_8px_24px_-4px_rgba(6,182,212,0.18)]" data-category="all">
+        <div class="w-10 h-10 rounded-full bg-[#2a2a35]/80 group-hover:bg-primary-container/20 group-hover:text-primary text-[#9ca3af] flex items-center justify-center mb-2.5 transition-all duration-200 shadow-sm group-hover:scale-110">
+          <span class="material-symbols-outlined text-[20px]">add</span>
         </div>
-        <h3 class="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
+        <h3 class="font-headline-sm text-headline-sm text-[#e4e4e7] group-hover:text-primary transition-colors">
           Explore Community Add-ons
         </h3>
-        <p class="text-xs text-[var(--text-muted)] mt-1 max-w-xs leading-relaxed">
+        <p class="font-body-sm text-body-sm text-[#9ca3af] mt-1.5 max-w-xs leading-relaxed">
           Vinyl noise generators, Lyric scrapers, Discord Rich Presence, and more toys.
         </p>
-        <span class="mt-3 inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-3 py-1 rounded-full bg-[var(--surface-container-high)] group-hover:bg-[var(--primary)] group-hover:text-[var(--on-primary)] text-[var(--text-primary)] transition-all">
-          Browse 24+ Toys ↗
+        <span class="mt-3.5 inline-flex items-center gap-1 font-label-sm text-label-sm font-semibold px-3 py-1 rounded-full bg-[#2a2a35] group-hover:bg-primary-container group-hover:text-[#0e0e10] text-[#e4e4e7] transition-all">
+          Browse 24+ Toys
+          <span class="material-symbols-outlined text-[13px]">arrow_outward</span>
         </span>
       </div>
     </div>
-
-    <!-- Footer Bar -->
-    <div class="relative z-10 pt-2 flex items-center justify-between border-t border-[var(--border)] text-xs text-[var(--text-muted)] font-mono">
-      <span>3 plugins ready • All zero-copy isolated from ALSA playback</span>
-      <button type="button" class="px-5 py-2 rounded-full bg-[var(--primary)] text-[var(--on-primary)] font-bold text-xs hover:brightness-110 transition-all shadow-md" onclick="closeToyboxModal();">
-        Done
-      </button>
+    
+    <!-- Footer Section -->
+    <div class="relative z-10 pt-4 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#2a2a35]/40">
+      <!-- Telemetry Assurance Note -->
+      <div class="flex items-center gap-2 font-body-sm text-body-sm text-[#9ca3af]">
+        <span class="text-secondary select-none">⚡</span>
+        <span>Core audio engine runs lean &amp; clean • Zero latency impact guaranteed</span>
+      </div>
+      <!-- Modal Primary Actions -->
+      <div class="flex items-center gap-2.5 flex-shrink-0 w-full sm:w-auto justify-end">
+        <button class="w-full sm:w-auto font-label-md text-label-md font-medium text-[#e4e4e7] bg-[#121214] hover:bg-[#2a2a35] hover:text-white px-4 py-2 rounded-xl transition duration-150 flex items-center justify-center gap-1.5 shadow-sm" type="button">
+          <span>Install an Add-on</span>
+          <span>📦</span>
+        </button>
+        <button class="w-full sm:w-auto font-label-md text-label-md font-semibold bg-primary-container hover:bg-primary text-[#0e0e10] px-5 py-2 rounded-xl shadow-[0_4px_16px_rgba(6,182,212,0.3)] hover:shadow-[0_4px_24px_rgba(6,182,212,0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-1" id="modal-done-btn" type="button" onclick="closeToyboxModal();">
+          <span>All Done</span>
+          <span>👍</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
-
-<script>
-  async function loadPlugins() {
-    try {
-      const res = await fetch('/api/plugins/list');
-      const data = await res.json();
-      const container = document.getElementById('plugin-cards-container');
-      if (!container) return;
-
-      // Keep community card, clear others (this is a simplified implementation for the test)
-      // Real implementation would use Alpine or HTMX templates
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function togglePluginDynamic(pluginId, enable) {
-    try {
-      await fetch(`/api/plugins/${pluginId}/toggle`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enable })
-      });
-    } catch(e) { console.error(e); }
-  }
-
-  // Call on load
-  document.addEventListener('DOMContentLoaded', loadPlugins);
-</script>

@@ -659,3 +659,59 @@ def test_output_switcher_popover_stitch_layout_and_wiring(client: TestClient):
     assert "rotate-45" in html
 
 
+def test_addon_toybox_plugin_manager_stitch_layout_and_wiring(client: TestClient):
+    """Verify Add-on Toybox modal Stitch layout, filter tabs onclick, and toggle switches."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Backdrop and Chassis layout
+    assert 'id="toybox-backdrop"' in html
+    assert "bg-[#0e0e10]/80" in html
+    assert "backdrop-blur-md" in html
+    assert "hidden" in html
+    assert "max-w-[860px]" in html
+    assert "bg-[#1e1e24]" in html
+    assert "rounded-[20px]" in html
+    assert "p-8" in html
+
+    # 2. Header and close triggers
+    assert "The Add-on Toybox" in html
+    assert "Modular tools and sound gadgets" in html
+    assert 'id="modal-close-btn"' in html
+    assert 'onclick="closeToyboxModal();"' in html
+
+    # 3. Top filter tabs with onclick filter functions
+    assert 'onclick="filterToyboxCards(\'all\', this)"' in html
+    assert 'onclick="filterToyboxCards(\'dsp\', this)"' in html
+    assert 'onclick="filterToyboxCards(\'library\', this)"' in html
+    assert 'onclick="filterToyboxCards(\'network\', this)"' in html
+    assert "All Toys (3)" in html
+    assert "Sound DSP" in html
+    assert "Library Tools" in html
+    assert "Network Bridge" in html
+
+    # 4. Plugin Cards with Stitch classes
+    assert "The Soundbar" in html
+    assert "DSP &amp; ACOUSTICS" in html or "DSP & ACOUSTICS" in html
+    assert "Crate Cleaner &amp; Dedupe" in html or "Crate Cleaner & Dedupe" in html
+    assert "Kodi Streamer Bridge" in html
+    assert "Explore Community Add-ons" in html
+    assert "toy-card" in html
+    assert "toybox-card" in html
+
+    # 5. CSS Toggle switches intact
+    assert "toy-toggle" in html
+    assert 'role="switch"' in html
+    assert 'onclick="toggleToySwitch(this, \'dsp\')"' in html
+    assert 'onclick="toggleToySwitch(this, \'maintenance\')"' in html
+    assert 'onclick="toggleToySwitch(this, \'network\')"' in html
+    assert "Active &amp; Ready" in html or "Active & Ready" in html
+    assert "Taking a Nap" in html
+
+    # 6. Footer section
+    assert "Core audio engine runs lean &amp; clean" in html or "Core audio engine runs lean & clean" in html
+    assert "Install an Add-on" in html
+    assert 'id="modal-done-btn"' in html
+
+

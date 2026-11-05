@@ -1828,15 +1828,15 @@ function closeToyboxModal() {
 }
 
 function filterToyboxCards(category, btn) {
-  document.querySelectorAll('.toybox-filter-tab').forEach(t => {
-    t.classList.remove('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
-    t.classList.add('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+  document.querySelectorAll('.toybox-filter-tab, .tab-pill').forEach(t => {
+    t.classList.remove('bg-primary-container/15', 'text-primary', 'font-semibold', 'shadow-sm', 'bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
+    t.classList.add('bg-[#121214]', 'text-[#9ca3af]');
   });
   if (btn) {
-    btn.classList.add('bg-[var(--accent)]', 'text-[var(--bg)]', 'font-bold');
-    btn.classList.remove('bg-[var(--surface)]', 'text-[var(--text-muted)]');
+    btn.classList.add('bg-primary-container/15', 'text-primary', 'font-semibold', 'shadow-sm');
+    btn.classList.remove('bg-[#121214]', 'text-[#9ca3af]');
   }
-  document.querySelectorAll('.toybox-card').forEach(card => {
+  document.querySelectorAll('.toybox-card, .toy-card').forEach(card => {
     if (category === 'all' || card.getAttribute('data-category') === category) {
       card.style.display = 'flex';
     } else {
@@ -1844,6 +1844,47 @@ function filterToyboxCards(category, btn) {
     }
   });
 }
+
+function toggleToySwitch(btn, pluginName) {
+  if (!btn) return;
+  const isChecked = btn.getAttribute('aria-checked') === 'true';
+  const newChecked = !isChecked;
+  const thumb = btn.querySelector('span');
+  const statusLabel = btn.parentElement ? (btn.parentElement.querySelector('.toy-status-label') || btn.nextElementSibling) : null;
+
+  if (newChecked) {
+    btn.setAttribute('aria-checked', 'true');
+    btn.classList.remove('bg-[#2a2a35]');
+    btn.classList.add('bg-primary-container', 'shadow-[0_0_12px_rgba(6,182,212,0.45)]');
+    if (thumb) {
+      thumb.classList.remove('translate-x-0.5', 'bg-[#9ca3af]');
+      thumb.classList.add('translate-x-4', 'bg-[#121214]', 'ml-0.5');
+    }
+    if (statusLabel) {
+      statusLabel.textContent = 'Active & Ready';
+      statusLabel.classList.add('text-[#e4e4e7]', 'font-semibold');
+      statusLabel.classList.remove('text-[#9ca3af]');
+    }
+  } else {
+    btn.setAttribute('aria-checked', 'false');
+    btn.classList.remove('bg-primary-container', 'shadow-[0_0_12px_rgba(6,182,212,0.45)]');
+    btn.classList.add('bg-[#2a2a35]');
+    if (thumb) {
+      thumb.classList.remove('translate-x-4', 'bg-[#121214]', 'ml-0.5');
+      thumb.classList.add('translate-x-0.5', 'bg-[#9ca3af]');
+    }
+    if (statusLabel) {
+      statusLabel.textContent = 'Taking a Nap';
+      statusLabel.classList.remove('text-[#e4e4e7]', 'font-semibold');
+      statusLabel.classList.add('text-[#9ca3af]');
+    }
+  }
+
+  if (pluginName && typeof togglePlugin === 'function') {
+    togglePlugin(pluginName, newChecked);
+  }
+}
+window.toggleToySwitch = toggleToySwitch;
 
 function togglePlugin(pluginName, enabled) {
   fetch('/api/plugins/toggle', {
