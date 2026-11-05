@@ -986,4 +986,65 @@ def test_track_inspector_gauge_bubbles_stitch_layout_and_wiring(wiring_env):
     assert "0 Buffering Overruns" in html
 
 
+def test_track_context_menu_popover_stitch_layout_and_wiring(client: TestClient):
+    """Verify track context menu popover exact Stitch layout, hidden default state, and inline onclick actions."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Popover Container is hidden by default and has exact Stitch classes
+    assert 'id="track-context-menu"' in html
+    assert 'data-stitch-id="contextMenuPopover"' in html
+    assert "w-[220px]" in html
+    assert "rounded-2xl" in html
+    assert "bg-surface-container-high" in html
+    assert "shadow-[0_24px_48px_-8px_rgba(0,0,0,0.85)]" in html
+    assert "backdrop-blur-xl" in html
+    assert "hidden" in html
+    assert 'onclick="event.stopPropagation();"' in html
+
+    # 2. Node Action Header
+    assert "Node Action" in html
+    assert "#01 // FOB" in html
+    assert 'id="context-track-title"' in html
+    assert 'id="context-track-artist"' in html
+
+    # 3. All 7 Menu Actions with Material Symbols and retained onclicks
+    assert 'onclick="contextActionPlayNow()"' in html
+    assert "Play Right Now" in html
+    assert "play_arrow" in html
+    assert "hover:text-primary" in html
+
+    assert 'onclick="contextActionPlayNext()"' in html
+    assert "Play Next in Line" in html
+    assert "skip_next" in html
+
+    assert 'onclick="contextActionAddToQueue()"' in html
+    assert "Toss into Vibe Cooker" in html
+    assert "soup_kitchen" in html
+
+    assert 'onclick="contextActionInspectVibe()"' in html
+    assert "Check Song Vibes" in html
+    assert "insights" in html
+    assert "hover:text-secondary" in html
+
+    assert 'onclick="contextActionFindSimilar()"' in html
+    assert "Find Similar Tempo" in html
+    assert "graphic_eq" in html
+    assert "hover:text-tertiary" in html
+
+    assert 'onclick="closeContextMenu()"' in html
+    assert "Show in Explorer" in html
+    assert "folder_open" in html
+
+    assert "Remove from Crate" in html
+    assert "delete" in html
+    assert "text-error" in html
+    assert "hover:bg-error-container/30" in html
+
+    # 4. Dividers
+    assert "h-px bg-surface-container-highest my-1 w-full" in html
+
+
+
 
