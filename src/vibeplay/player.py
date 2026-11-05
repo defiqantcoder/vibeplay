@@ -1319,7 +1319,7 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 native_rate_hz,
                 native_depth_bits,
                 native_channels,
-            ) = _fetch_track_metadata(file_path, cur, db_path, settings=cfg)
+            ) = _fetch_track_metadata(file_path, cur, cfg.db_path, settings=cfg)
 
             audio_spec = st.get("audio")
             is_active = state in ("play", "pause") and bool(file_path)
