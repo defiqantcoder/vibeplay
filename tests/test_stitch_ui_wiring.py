@@ -472,3 +472,61 @@ def test_record_crate_visual_vinyl_sleeve_cards_and_grooves(wiring_env):
     assert "Warm Wurlitzer Solitudes" in html
     assert "Hanna Vane" in html
     assert "03:45" in html or "vinyl-specs-row" in html
+
+
+def test_boombox_capsule_transport_bar_layout_and_wiring(wiring_env):
+    """Verify Boombox Capsule 3-bay flex layout, Jinja bindings, SVGs, HTMX endpoints, and output switcher toggle."""
+    db_file, client = wiring_env
+
+    # 1. Fetch transport bar endpoint directly
+    resp = client.get("/api/player/transport")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 2. Main Boombox Capsule Container & 3-Bay Layout
+    assert "transport-footer" in html
+    assert 'id="transport-footer-bar"' in html
+    assert "now-playing" in html
+    assert "transport-center" in html
+    assert "transport-right" in html
+
+    # 3. Left Section: 56x56 Album art, animated wave bars, meta, Big Screen pill
+    assert "album-art-thumb" in html
+    assert "art-wave-overlay" in html
+    assert "wave-bar-1" in html
+    assert "now-playing-meta" in html
+    assert "lossless-pill-badge" in html
+    assert "Lossless FLAC" in html
+    assert "btn-bigscreen-pill" in html
+    assert "openFullscreenNowPlaying()" in html
+
+    # 4. Center Section: Playback SVGs and HTMX controls
+    assert 'hx-post="/api/player/toggle"' in html
+    assert 'hx-post="/api/player/next"' in html
+    assert 'hx-post="/api/player/prev"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+    assert "btn-play-pause" in html
+    assert 'id="btn-transport-shuffle"' in html
+    assert 'id="btn-transport-repeat"' in html
+
+    # 5. Center Section: Scrub Timeline micro-component
+    assert "transport-scrub-row" in html
+    assert "scrub-bar" in html
+    assert "scrub-wave-silhouette" in html
+    assert "timecode-elapsed" in html
+    assert "timecode-total" in html
+
+    # 6. Right Section: Output Switcher Pill with green dot & toggleOutputSwitcher
+    assert "transport-dac-capsule" in html
+    assert 'onclick="toggleOutputSwitcher(event)"' in html
+    assert "dac-green-dot" in html
+    assert "FiiO KA15" in html or "Direct ALSA" in html
+
+    # 7. Right Section: Bit-Perfect pill, Mute SVG, Volume slider & readout
+    assert "transport-bitperfect-pill" in html
+    assert "Bit-Perfect" in html
+    assert 'hx-post="/api/player/mute-toggle"' in html
+    assert 'hx-post="/api/player/volume"' in html
+    assert 'id="global-volume-slider"' in html
+    assert 'id="volume-readout"' in html
+    assert "vol-db-readout" in html

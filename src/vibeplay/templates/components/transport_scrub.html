@@ -1,37 +1,73 @@
 <!-- Scrub Timeline Micro-Component (Boombox Capsule Specification) -->
-<div class="transport-scrub-row"
+<div class="transport-scrub-row w-full flex items-center gap-3"
      id="transport-scrub-row"
      {% if playback and playback.state == "play" %}
      hx-get="/api/player/scrub"
      hx-trigger="every 1s"
      hx-swap="outerHTML"
      {% endif %}>
-  <span class="timecode timecode-elapsed">
+  <!-- Current Elapsed Time -->
+  <span class="timecode timecode-elapsed text-xs font-mono font-medium text-primary tracking-tight shrink-0 select-none">
     {% set el_m = ((playback.elapsed or 0) // 60)|int %}
     {% set el_s = ((playback.elapsed or 0) % 60)|int %}
     {{ "%02d:%02d"|format(el_m, el_s) }}
   </span>
   
-  <div class="scrub-bar custom-wave-scrub group"
+  <!-- Friendly Rounded Scrub Bar with Wave Silhouette Background -->
+  <div class="scrub-bar custom-wave-scrub relative flex-1 h-6 flex items-center group cursor-pointer"
        title="Click to Seek"
-       onclick="const rect = this.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)); const total = {{ playback.duration or 0 }}; if (total > 0 && window.htmx) { htmx.ajax('POST', '/api/player/seek', { target: '#transport-footer-container', swap: 'innerHTML', values: { seconds: (pct * total).toFixed(1) } }); }"
-       style="cursor: pointer;">
+       onclick="const rect = this.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)); const total = {{ playback.duration or 0 }}; if (total > 0 && window.htmx) { htmx.ajax('POST', '/api/player/seek', { target: '#transport-footer-container', swap: 'innerHTML', values: { seconds: (pct * total).toFixed(1) } }); }">
     <!-- Subtle Dancing Wave Bars Silhouette in background -->
     <div class="scrub-wave-silhouette pointer-events-none" aria-hidden="true">
-      <span style="height: 10px;"></span><span style="height: 14px;"></span><span style="height: 8px;"></span><span style="height: 16px;"></span><span style="height: 12px;"></span><span style="height: 18px;"></span><span style="height: 10px;"></span><span style="height: 14px;"></span><span style="height: 6px;"></span><span style="height: 12px;"></span><span style="height: 16px;"></span><span style="height: 8px;"></span><span style="height: 14px;"></span><span style="height: 18px;"></span><span style="height: 12px;"></span><span style="height: 10px;"></span><span style="height: 16px;"></span><span style="height: 14px;"></span><span style="height: 8px;"></span><span style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 8px;"></span>
+      <span class="scrub-wave-bar" style="height: 14px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 8px;"></span>
+      <span class="scrub-wave-bar" style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 20px;"></span>
+      <span class="scrub-wave-bar" style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 10px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 20px;"></span>
+      <span class="scrub-wave-bar" style="height: 14px;"></span>
+      <span class="scrub-wave-bar" style="height: 8px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 20px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 16px;"></span>
+      <span class="scrub-wave-bar" style="height: 8px;"></span>
+      <span class="scrub-wave-bar" style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 18px;"></span>
+      <span class="scrub-wave-bar" style="height: 12px;"></span>
+      <span class="scrub-wave-bar" style="height: 8px;"></span>
     </div>
+
     {% set pct = 0 %}
     {% if playback and playback.duration and playback.duration > 0 %}
       {% set pct = (((playback.elapsed or 0) / playback.duration) * 100)|round(1) %}
     {% endif %}
-    <div class="scrub-fill custom-cyan-fill" style="width: {{ pct }}%;"></div>
+
+    <!-- Base Rail -->
+    <div class="w-full h-2 rounded-full bg-surface-container border border-outline-variant/30 overflow-hidden relative">
+      <!-- Active Scrub Fill -->
+      <div class="scrub-fill custom-cyan-fill h-full bg-gradient-to-r from-primary/90 to-primary rounded-full relative" style="width: {{ pct }}%;">
+        <!-- Internal pulse line -->
+        <div class="absolute inset-0 bg-surface-bright/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      </div>
+    </div>
+
     <!-- Tactile Circular Thumb Indicator -->
-    <div class="scrub-thumb" style="left: calc({{ pct }}% - 7px);">
-      <div class="thumb-core"></div>
+    <div class="scrub-thumb absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-surface-container-lowest border-2 border-primary shadow-md transition-transform group-hover:scale-125 cursor-grab active:cursor-grabbing"
+         style="left: calc({{ pct }}% - 8px);">
+      <div class="thumb-core w-1.5 h-1.5 rounded-full bg-primary mx-auto mt-[3px]"></div>
     </div>
   </div>
   
-  <span class="timecode timecode-total">
+  <!-- Total Duration Timecode -->
+  <span class="timecode timecode-total text-xs font-mono font-medium text-on-surface-variant tracking-tight shrink-0 select-none">
     {% set dur_m = ((playback.duration or 0) // 60)|int %}
     {% set dur_s = ((playback.duration or 0) % 60)|int %}
     {{ "%02d:%02d"|format(dur_m, dur_s) }}
