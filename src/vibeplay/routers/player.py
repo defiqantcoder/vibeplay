@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 from pathlib import Path
 
@@ -108,8 +109,9 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
 
         # Retrieve live playback status with the newly activated profile
         playback = get_playback_status(cfg.db_path, cfg)
-        playback["active_profile"] = target_profile
-        playback["output_profile"] = target_profile
+        safe_target_profile = html.escape(str(target_profile))
+        playback["active_profile"] = safe_target_profile
+        playback["output_profile"] = safe_target_profile
         playback["output_profiles"] = get_output_profiles(cfg)
 
         accept_header = request.headers.get("accept", "")
@@ -117,7 +119,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
             return JSONResponse(
                 content={
                     "status": "ok",
-                    "active_profile": target_profile,
+                    "active_profile": safe_target_profile,
                     "playback": playback,
                 }
             )
@@ -139,7 +141,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
             context={
                 "output_switcher_html": output_switcher_html,
                 "transport_bar_html": transport_bar_html,
-                "active_profile": str(target_profile),
+                "active_profile": safe_target_profile,
             },
         )
     except Exception as err:
