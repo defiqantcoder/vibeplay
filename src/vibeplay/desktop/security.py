@@ -93,6 +93,8 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
     raw = str(path)
     if "\x00" in raw:
         raise PathTraversalError("Path contains invalid characters.")
+    if not raw.strip():
+        raise PathTraversalError("Path cannot be empty.")
     target_p = Path(raw).expanduser()
     for root in roots:
         base_dir = Path(root).resolve()
@@ -103,7 +105,7 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
                 resolved_path = (base_dir / target_p).resolve()
             if resolved_path.is_relative_to(base_dir):
                 return resolved_path
-        except (ValueError, RuntimeError):
+        except (ValueError, RuntimeError, OSError):
             continue
     raise PathTraversalError("Path traversal attempt detected: path is outside permitted directories.")
 

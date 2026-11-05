@@ -2582,7 +2582,7 @@ input:checked + .slider:before {
 
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-subtle) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -2595,7 +2595,7 @@ input:checked + .slider:before {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border-strong);
   border-radius: var(--radius-full);
 }
 

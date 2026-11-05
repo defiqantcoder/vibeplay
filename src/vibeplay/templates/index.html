@@ -1177,15 +1177,6 @@
       }
     };
 
-    window.openToyboxModal = function() {
-      if (typeof closeAllMenus === 'function') closeAllMenus();
-      showModalElement('addon-toybox-backdrop', '');
-    };
-
-    window.closeToyboxModal = function() {
-      hideModalElement('addon-toybox-backdrop');
-    };
-
     window.openEQStudioModal = function() {
       if (typeof closeAllMenus === 'function') closeAllMenus();
       showModalElement('eq-studio-backdrop', '');

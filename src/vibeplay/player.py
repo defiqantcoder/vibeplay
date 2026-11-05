@@ -719,14 +719,23 @@ def get_output_profiles(settings: Settings | None = None) -> list[str]:
             if transport.client:
                 mpd_outs = transport.client.outputs()
                 has_fiio = any("fiio" in p.lower() for p in profiles)
-                profiles_set = set(profiles)
+                seen_names_lower = {p.lower() for p in profiles}
+                seen_mpd_names = set()
+                seen_ids = set()
                 for out in mpd_outs:
                     name = out.get("outputname")
-                    if name and name not in profiles_set:
-                        if not has_fiio and "fiio" in name.lower():
+                    raw_oid = out.get("outputid", out.get("id"))
+                    oid = str(raw_oid).strip() if raw_oid is not None else ""
+                    if name:
+                        name_lower = name.lower()
+                        if name_lower in seen_names_lower or name in seen_mpd_names or (oid and oid in seen_ids):
+                            continue
+                        if not has_fiio and "fiio" in name_lower:
                             continue
                         profiles.append(name)
-                        profiles_set.add(name)
+                        seen_mpd_names.add(name)
+                        if oid:
+                            seen_ids.add(oid)
     except Exception:
         pass
 
@@ -1118,7 +1127,10 @@ step_volume = adjust_volume_step
 
 
 def _fetch_track_metadata(
-    file_path: str, cur: dict[str, Any], db_path: Path | None
+    file_path: str,
+    cur: dict[str, Any],
+    db_path: Path | None,
+    settings: Settings | None = None,
 ) -> tuple[int | None, str, str, str, int | None, int | None, int | None]:
     track_db_id = None
     cur_title = cur.get("title") or (Path(file_path).stem if file_path else "vibeplay Ready")
@@ -1148,13 +1160,21 @@ def _fetch_track_metadata(
             pass
 
     if file_path and db_path:
+        from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
         try:
-            db_p = Path(db_path)
-            base_dir = db_p.parent.resolve()
-            resolved_db = (base_dir / db_p.name).resolve()
-            if not resolved_db.is_relative_to(base_dir):
-                raise ValueError("Path traversal attempt detected")
-            if resolved_db.exists():
+            cfg = settings or get_settings()
+            target_db = Path(db_path).expanduser()
+            if not target_db.is_absolute():
+                target_db = Path.cwd() / target_db
+
+            allowed_roots = [
+                cfg.db_path.parent.resolve(),
+                Path.home().resolve(),
+                Path.cwd().resolve(),
+            ] + list(allowed_media_roots())
+            resolved_db = resolve_within(str(target_db), allowed_roots)
+            if resolved_db.exists() and resolved_db.is_file():
                 with get_connection(resolved_db) as conn:
                     row = conn.execute(
                         """
@@ -1299,7 +1319,7 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 native_rate_hz,
                 native_depth_bits,
                 native_channels,
-            ) = _fetch_track_metadata(file_path, cur, db_path)
+            ) = _fetch_track_metadata(file_path, cur, db_path, settings=cfg)
 
             audio_spec = st.get("audio")
             is_active = state in ("play", "pause") and bool(file_path)

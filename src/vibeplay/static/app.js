@@ -632,7 +632,11 @@ function saveDesktopSettings(closeAfter = false) {
     .then(async r => {
       const data = await r.json();
       if (!r.ok) {
-        setSettingsStatus('Validation error: check highlighted fields.', true);
+        if (r.status >= 500) {
+          setSettingsStatus('Error persisting settings.', true);
+        } else {
+          setSettingsStatus('Validation error: check highlighted fields.', true);
+        }
         return;
       }
       if (data.settings) {
