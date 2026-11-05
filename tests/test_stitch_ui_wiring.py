@@ -715,3 +715,58 @@ def test_addon_toybox_plugin_manager_stitch_layout_and_wiring(client: TestClient
     assert 'id="modal-done-btn"' in html
 
 
+def test_ambient_big_screen_fullscreen_now_playing_stitch_layout_and_wiring(client: TestClient):
+    """Verify ambient big-screen mode Stitch layout, gradients, sliding vinyl disc, and HTMX transport."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Fullscreen overlay shell & massive blurred background gradients
+    assert 'id="fullscreen-now-playing"' in html
+    assert "fullscreen-now-playing-overlay" in html
+    assert "blur-[120px]" in html
+    assert "blur-[100px]" in html
+    assert "hidden" in html
+
+    # 2. Sliding vinyl disc animation and album sleeve jacket
+    assert 'id="fs-vinyl-disc"' in html
+    assert "group-hover:translate-x-12" in html
+    assert "transition-transform duration-700 ease-out" in html
+    assert "33⅓ RPM" in html
+    assert "VIBEPLAY HI-FI" in html
+    assert 'id="fs-album-card"' in html
+    assert "shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)]" in html
+    assert "ANALOG MASTER" in html
+
+    # 3. Oversized track title and artist
+    assert 'id="fs-now-title"' in html
+    assert "lg:font-display-hero lg:text-display-hero" in html
+    assert 'id="fs-now-artist"' in html
+    assert 'id="fs-now-album"' in html
+
+    # 4. Oversized transport buttons wired via HTMX with exact padding and SVG sizes
+    assert 'id="main-play-btn"' in html
+    assert "w-14 h-14" in html
+    assert "text-[32px]" in html
+    assert 'hx-post="/api/player/toggle"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+
+    assert 'hx-post="/api/player/prev"' in html
+    assert 'hx-post="/api/player/next"' in html
+    assert 'hx-post="/api/player/shuffle"' in html
+    assert 'hx-post="/api/player/repeat"' in html
+    assert "w-9 h-9" in html
+    assert "skip_previous" in html
+    assert "skip_next" in html
+    assert "shuffle" in html
+    assert "repeat" in html
+
+    # 5. Volume slider, scrub timeline, and exit triggers
+    assert 'id="fs-volume-slider"' in html
+    assert 'id="fs-volume-text"' in html
+    assert 'id="fs-scrub-track"' in html
+    assert 'id="fs-scrub-fill"' in html
+    assert 'onclick="closeFullscreenNowPlaying()"' in html
+    assert "fullscreen_exit" in html
+
+

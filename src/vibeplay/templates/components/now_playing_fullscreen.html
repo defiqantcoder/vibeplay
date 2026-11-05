@@ -1,161 +1,189 @@
-{# Dedicated Fullscreen Now-Playing View (Hi-Fi Lounge Design System) #}
-<div id="fullscreen-now-playing" class="fullscreen-now-playing-overlay hidden fixed inset-0 z-50 flex flex-col justify-between bg-[var(--bg-canvas)] text-[var(--text-primary)] p-4 sm:p-6 select-none overflow-hidden" role="dialog" aria-modal="true" aria-label="Fullscreen Now Playing">
-  <!-- Glowing Ambient Aura Backdrop -->
-  <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[780px] h-[640px] bg-gradient-to-b from-[var(--primary)]/20 via-[var(--secondary)]/15 to-transparent blur-[120px] rounded-full opacity-70"></div>
-  <div class="pointer-events-none absolute bottom-10 right-10 w-[420px] h-[360px] bg-[var(--secondary)]/10 blur-[100px] rounded-full"></div>
+<!-- Dedicated Fullscreen Now-Playing View (Stitch "Ambient Fullscreen Now Playing" Specification) -->
+<div id="fullscreen-now-playing" class="fullscreen-now-playing-overlay fixed inset-0 z-50 flex flex-col justify-between overflow-hidden bg-surface-container-lowest p-space-md lg:p-space-lg selection:bg-primary-container selection:text-on-primary-container hidden select-none" role="dialog" aria-modal="true" aria-label="Fullscreen Now Playing">
+  <!-- Massive Blurred Background Gradients -->
+  <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[780px] h-[640px] bg-gradient-to-b from-primary/20 via-secondary/15 to-transparent blur-[120px] rounded-full opacity-70"></div>
+  <div class="pointer-events-none absolute bottom-10 right-10 w-[420px] h-[360px] bg-secondary-container/10 blur-[100px] rounded-full"></div>
 
   <!-- Top Navigation & Status Bar -->
-  <header class="relative z-10 w-full flex flex-col md:flex-row items-center justify-between gap-3 bg-[var(--surface-container)]/80 backdrop-blur-xl rounded-full px-5 py-2.5 shadow-xl border border-[var(--border)]">
-    <!-- Brand / Mode -->
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-1.5 font-bold tracking-tight text-sm">
-        <span class="text-base text-[var(--primary)]">✨</span>
-        <span>vibeplay</span>
+  <div class="relative z-10 w-full flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container/70 backdrop-blur-xl rounded-full px-space-lg py-space-sm shadow-[0_8px_24px_-4px_rgba(0,0,0,0.6)]">
+    <!-- Brand & Mode Pill -->
+    <div class="flex items-center gap-space-md">
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-primary text-[20px] animate-pulse">auto_awesome</span>
+        <span class="font-headline-sm text-headline-sm font-bold text-on-surface tracking-tight">vibeplay</span>
       </div>
-      <span class="text-xs text-[var(--text-muted)] font-mono">/</span>
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--surface-container-high)]/80">
-        <span class="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
-        <span class="text-[11px] font-mono text-[var(--primary)] font-bold tracking-wider">NOW PLAYING LOUNGE</span>
+      <span class="font-label-sm text-label-sm uppercase tracking-widest text-outline">/</span>
+      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high/80">
+        <span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#4cd7f6] animate-pulse"></span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant font-medium tracking-wider">NOW PLAYING LOUNGE</span>
       </div>
     </div>
 
     <!-- Center Toggle: Ambient Waveform -->
-    <div class="flex items-center gap-2">
-      <button type="button"
-              class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--surface-container-high)] text-[var(--text-primary)] hover:bg-[var(--surface)] transition-all shadow-sm border border-[var(--border)] group text-xs font-mono"
-              id="fs-visualizer-toggle-btn"
-              onclick="toggleFullscreenVisualizer()"
-              title="Toggle Audio Visualizer">
-        <span class="text-sm">〰️</span>
-        <span id="fs-visualizer-toggle-text" class="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]">Ambient Waveform</span>
-        <span class="w-2 h-2 rounded-full bg-[var(--secondary)] animate-pulse"></span>
+    <div class="flex items-center gap-space-sm">
+      <button class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-all shadow-sm group" id="toggle-waveform-btn" type="button" onclick="toggleFullscreenVisualizer()">
+        <span class="material-symbols-outlined text-secondary text-[18px]">graphic_eq</span>
+        <span class="font-label-md text-label-md text-on-surface-variant group-hover:text-on-surface" id="fs-visualizer-toggle-text">Ambient Waveform</span>
+        <span class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#ffb95f]"></span>
       </button>
     </div>
 
-    <!-- Right Specs & Exit -->
-    <div class="flex items-center gap-2 flex-wrap justify-end">
-      <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--surface-container-high)]/80 text-xs font-mono border border-[var(--border)]">
-        <span>🎧</span>
-        <span class="text-[var(--text-muted)]">Pure Lossless <span class="text-[var(--text-primary)] font-semibold" id="fs-now-format">{{ playback.sample_rate if playback else '96.0 kHz' }} / {{ playback.bit_depth if playback else '24-bit' }}</span></span>
+    <!-- Right Specs & Exit Fullscreen -->
+    <div class="flex items-center gap-space-sm flex-wrap justify-end">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high/80">
+        <span class="material-symbols-outlined text-primary text-[18px]">headphones</span>
+        <span class="font-label-sm text-label-sm text-on-surface-variant">Pure Lossless <span class="text-on-surface font-semibold" id="fs-now-format">{{ playback.sample_rate if playback and playback.sample_rate else '24-bit / 96kHz' }}</span></span>
+        <span class="px-1.5 py-0.5 rounded-full bg-tertiary/20 text-tertiary font-label-sm text-label-sm" id="fs-now-buffer">{{ playback.buffer_health if playback and playback.buffer_health else '1.2ms' }}</span>
       </div>
-      <div class="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--surface-container-lowest)] text-xs font-mono border border-[var(--border)]" id="fs-now-bitperfect">
-        <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-ok,var(--tertiary))] animate-pulse"></span>
-        <span class="text-[var(--status-ok,var(--tertiary))] font-semibold" id="fs-now-sink">{{ playback.output_profile if playback else 'Direct ALSA • Bit-Perfect' }}</span>
-        <span class="text-[var(--text-muted)] text-[10px]" id="fs-now-buffer">{{ playback.buffer_health if playback else '1.33ms' }}</span>
+      <div class="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-lowest text-outline" id="fs-now-bitperfect">
+        <span class="font-label-sm text-label-sm" id="fs-now-sink">{{ playback.output_profile if playback and playback.output_profile else 'Direct ALSA (hw:0,0)' }}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+        <span class="font-label-sm text-label-sm text-tertiary font-medium">Bit-Perfect</span>
       </div>
-      <!-- Exit Fullscreen Button -->
-      <button type="button"
-              class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--surface-container-high)] hover:bg-[var(--surface)] border border-[var(--border)] text-xs font-mono text-[var(--text-primary)] transition-all ml-1"
-              onclick="closeFullscreenNowPlaying()"
-              title="Exit Fullscreen View (Esc)">
-        <span>✕</span>
-        <span>Exit (Esc)</span>
+      <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-all text-label-sm font-label-sm" type="button" onclick="closeFullscreenNowPlaying()" title="Exit Fullscreen Mode (Esc)">
+        <span class="material-symbols-outlined text-[16px]">fullscreen_exit</span>
+        <span class="hidden sm:inline font-mono">Exit Esc</span>
       </button>
     </div>
-  </header>
+  </div>
 
-  <!-- Center Stage: Artwork & Metadata -->
-  <main class="relative z-10 flex flex-col items-center justify-center my-auto py-4 w-full max-w-5xl mx-auto">
-    <!-- Vinyl Disc & Sleeve Deck -->
-    <div class="relative flex items-center justify-center mb-6 group cursor-pointer" onclick="triggerPlayToggle()">
-      <!-- Aura Glow -->
-      <div class="absolute w-[440px] h-[440px] rounded-full bg-gradient-to-tr from-[var(--primary)]/30 via-[var(--secondary)]/20 to-transparent blur-3xl opacity-70 group-hover:opacity-90 transition-opacity pointer-events-none"></div>
+  <!-- Center Stage: Artwork & Metadata Hero -->
+  <div class="relative z-10 flex flex-col items-center justify-center my-auto py-space-md w-full max-w-5xl mx-auto">
+    <!-- Vinyl Platter Deck & Sliding Disc Animation -->
+    <div class="relative flex items-center justify-center mb-space-lg group cursor-pointer" onclick="triggerPlayToggle()">
+      <!-- Radial Aura Glow -->
+      <div class="absolute w-[480px] h-[480px] lg:w-[560px] lg:h-[560px] rounded-full bg-gradient-to-tr from-primary-container/40 via-secondary-container/30 to-tertiary/20 blur-3xl opacity-70 group-hover:opacity-90 transition-opacity duration-700 pointer-events-none"></div>
 
-      <!-- Grooved Vinyl Disc Sliding Out -->
-      <div class="absolute right-0 w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] rounded-full bg-[var(--surface-container-lowest)] shadow-2xl flex items-center justify-center transition-transform duration-700 ease-out group-hover:translate-x-16 z-0" id="fs-vinyl-disc">
-        <div class="w-full h-full rounded-full border border-[var(--border)]/40 p-2 relative flex items-center justify-center">
+      <!-- Sliding Vinyl Disc -->
+      <div class="absolute right-0 lg:-right-16 w-[360px] h-[360px] lg:w-[460px] lg:h-[460px] rounded-full bg-surface-container-lowest shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-center justify-center transition-transform duration-700 ease-out group-hover:translate-x-12 cursor-pointer z-0" id="fs-vinyl-disc">
+        <div class="w-full h-full rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-2 relative flex items-center justify-center">
           <!-- Grooves -->
-          <div class="w-11/12 h-11/12 rounded-full border border-[var(--border)]/20"></div>
-          <div class="absolute inset-8 rounded-full border border-[var(--border)]/30"></div>
-          <div class="absolute inset-16 rounded-full border border-[var(--border)]/20"></div>
-          <div class="absolute inset-24 rounded-full border border-[var(--border)]/30"></div>
+          <div class="w-11/12 h-11/12 rounded-full border border-outline-variant/10"></div>
+          <div class="absolute inset-8 rounded-full border border-outline-variant/15"></div>
+          <div class="absolute inset-16 rounded-full border border-outline-variant/20"></div>
+          <div class="absolute inset-24 rounded-full border border-outline-variant/15"></div>
           <!-- 33⅓ RPM Center Label -->
-          <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-gradient-to-br from-[var(--primary)] via-[var(--surface-container-high)] to-[var(--secondary)] p-1 shadow-inner flex flex-col items-center justify-center text-center">
-            <span class="text-[9px] font-mono text-[var(--text-primary)] font-bold tracking-wider">VIBEPLAY HI-FI</span>
-            <span class="text-[10px] font-mono text-[var(--bg-canvas)] font-bold mt-0.5">33⅓ RPM</span>
-            <div class="w-4 h-4 rounded-full bg-[var(--surface-container-lowest)] mt-1 shadow-md"></div>
+          <div class="w-36 h-36 lg:w-44 lg:h-44 rounded-full bg-gradient-to-br from-primary-container via-surface-container-high to-secondary-container p-1 shadow-inner flex flex-col items-center justify-center text-center">
+            <span class="font-label-sm text-label-sm text-on-surface font-bold uppercase tracking-wider">VIBEPLAY HI-FI</span>
+            <span class="font-label-sm text-label-sm text-surface-container-lowest mt-0.5">33⅓ RPM</span>
+            <div class="w-4 h-4 rounded-full bg-surface-container-lowest mt-1 shadow-md"></div>
           </div>
         </div>
       </div>
 
       <!-- Vinyl Jacket / Album Art Sleeve -->
-      <div class="relative z-10 w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] rounded-2xl overflow-hidden bg-[var(--surface-container-high)] shadow-2xl transition-transform duration-500 hover:scale-[1.01] border border-[var(--border)]" id="fs-album-card">
-        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--surface-container)] to-[var(--surface-container-lowest)] text-6xl">
-          🎧
+      <div class="relative z-10 w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] lg:w-[500px] lg:h-[500px] rounded-lg overflow-hidden bg-surface-container-high shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] transition-transform duration-500 hover:scale-[1.01]" id="fs-album-card">
+        {% if playback and playback.album_art_url %}
+          <img alt="Album Cover - {{ playback.title or 'Unknown' }}" class="w-full h-full object-cover select-none" src="{{ playback.album_art_url }}"/>
+        {% else %}
+          <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-surface-container to-surface-container-lowest text-6xl text-primary">
+            🎧
+          </div>
+        {% endif %}
+        <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-surface-bright/10 pointer-events-none"></div>
+        <div class="absolute inset-0 shadow-[inset_0_0_24px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+        <div class="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest/80 backdrop-blur-md">
+          <span class="font-label-sm text-label-sm text-secondary font-semibold tracking-wider">ANALOG MASTER</span>
         </div>
-        <div class="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--surface-container-lowest)]/85 backdrop-blur-md border border-[var(--border)]">
-          <span class="text-[10px] font-mono font-bold text-[var(--secondary)] tracking-wider">ANALOG MASTER</span>
-        </div>
-        <div class="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--surface-container-lowest)]/90 backdrop-blur-md border border-[var(--border)]">
-          <span class="text-[11px] font-mono text-[var(--primary)] font-semibold">FLAC 24/96 👑</span>
+        <div class="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md">
+          <span class="material-symbols-outlined text-primary text-[16px]">equalizer</span>
+          <span class="font-label-sm text-label-sm text-on-surface">{{ playback.format if playback and playback.format else 'FLAC 24/96' }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Track Metadata Hero -->
-    <div class="flex flex-col items-center text-center gap-1 max-w-2xl px-4">
-      <div class="flex items-center gap-3 justify-center flex-wrap">
-        <h1 class="text-2xl sm:text-4xl font-extrabold text-[var(--text-primary)] tracking-tight" id="fs-now-title">
-          {{ playback.title if playback else 'No Track Playing' }}
+    <!-- Oversized Track Title & Artist Hero -->
+    <div class="flex flex-col items-center text-center gap-space-xs max-w-2xl px-space-md">
+      <div class="flex items-center gap-space-md justify-center flex-wrap">
+        <h1 class="font-headline-lg text-headline-lg lg:font-display-hero lg:text-display-hero font-extrabold text-on-surface tracking-tight leading-none" id="fs-now-title">
+          {{ playback.title if playback and playback.title else 'No Track Playing' }}
         </h1>
-        <button type="button" class="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--secondary)]/15 text-[var(--secondary)] hover:bg-[var(--secondary)]/25 transition-all shadow-md" title="Toggle Favorite" onclick="toggleFavoriteCurrentTrack(event)">
-          ❤️
+        <button class="w-10 h-10 rounded-full flex items-center justify-center bg-secondary/15 text-secondary hover:bg-secondary/25 transition-all shadow-[0_0_16px_rgba(255,185,95,0.35)]" id="favorite-btn" title="Saved to Vault" type="button" onclick="toggleFavoriteCurrentTrack(event)">
+          <span class="material-symbols-outlined text-[22px]">favorite</span>
         </button>
       </div>
-      <div class="flex items-center gap-2 text-sm text-[var(--text-muted)] flex-wrap justify-center mt-1">
-        <span class="font-medium text-[var(--text-primary)]" id="fs-now-artist">{{ playback.artist if playback else 'vibeplay core' }}</span>
-        <span class="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]"></span>
-        <span id="fs-now-album">{{ playback.album if playback else 'Audiophile Master Crate' }}</span>
+      <div class="flex items-center gap-2 text-on-surface-variant flex-wrap justify-center mt-1">
+        <span class="font-headline-sm text-headline-sm text-on-surface-variant font-medium" id="fs-now-artist">{{ playback.artist if playback and playback.artist else 'vibeplay lounge' }}</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+        <span class="font-headline-sm text-headline-sm text-outline font-normal" id="fs-now-album">{{ playback.album if playback and playback.album else 'Master Library Crate' }}</span>
+      </div>
+      <div class="flex items-center gap-2 mt-2 flex-wrap justify-center">
+        <span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm tracking-wide">
+          [{{ playback.source_type if playback and playback.source_type else 'Direct Master Audio Source' }}]
+        </span>
+        <span class="px-3 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_#4cd7f6]"></span>
+          Pure Lossless • {{ playback.sample_rate if playback and playback.sample_rate else '24-bit / 96kHz' }} Direct to DAC 🎧
+        </span>
       </div>
     </div>
 
-    <!-- Audio Visualizer Canvas -->
-    <div class="w-full max-w-2xl h-16 mt-4 flex items-center justify-center px-4" id="fs-visualizer-container">
-      <canvas id="fullscreen-visualizer-canvas" class="w-full h-full" width="600" height="64"></canvas>
+    <!-- Waveform Visualizer Canvas / SVG Container -->
+    <div class="w-full max-w-2xl h-16 mt-space-md flex items-center justify-center px-space-md" id="fs-visualizer-container">
+      <svg class="w-full h-full text-primary" preserveAspectRatio="none" viewBox="0 0 600 64">
+        <defs>
+          <linearGradient id="waveGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" stop-color="#4cd7f6" stop-opacity="0.8"></stop>
+            <stop offset="50%" stop-color="#ffb95f" stop-opacity="0.9"></stop>
+            <stop offset="100%" stop-color="#4edea3" stop-opacity="0.8"></stop>
+          </linearGradient>
+          <linearGradient id="fillGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" stop-color="#4cd7f6" stop-opacity="0.15"></stop>
+            <stop offset="50%" stop-color="#ffb95f" stop-opacity="0.2"></stop>
+            <stop offset="100%" stop-color="#4edea3" stop-opacity="0.15"></stop>
+          </linearGradient>
+        </defs>
+        <path d="M 0 32 Q 25 10 50 32 T 100 32 T 150 14 T 200 48 T 250 20 T 300 44 T 350 16 T 400 38 T 450 18 T 500 40 T 550 24 T 600 32 L 600 64 L 0 64 Z" fill="url(#fillGradient)"></path>
+        <path d="M 0 32 Q 25 10 50 32 T 100 32 T 150 14 T 200 48 T 250 20 T 300 44 T 350 16 T 400 38 T 450 18 T 500 40 T 550 24 T 600 32" fill="none" stroke="url(#waveGradient)" stroke-linecap="round" stroke-width="2.5"></path>
+      </svg>
+      <canvas id="fullscreen-visualizer-canvas" class="w-full h-full hidden" width="600" height="64"></canvas>
     </div>
-  </main>
+  </div>
 
   <!-- Bottom Floating Capsule Transport Bar -->
-  <footer class="relative z-20 w-full max-w-4xl mx-auto bg-[var(--surface-container)]/90 backdrop-blur-2xl rounded-full px-6 py-3 shadow-2xl border border-[var(--border)] flex flex-col md:flex-row items-center justify-between gap-4">
-    <!-- Left Aux Controls: Shuffle -->
-    <div class="flex items-center gap-2">
-      <button type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors" title="Shuffle" onclick="toggleShuffle()">
-        🔀
+  <div class="relative z-20 w-full max-w-4xl mx-auto bg-surface-container/85 backdrop-blur-2xl rounded-full px-space-lg py-3 shadow-[0_16px_36px_-6px_rgba(0,0,0,0.75)] flex flex-col md:flex-row items-center justify-between gap-space-md">
+    <!-- Left Aux Controls: Shuffle, Previous, Rewind 10s -->
+    <div class="flex items-center gap-space-sm order-2 md:order-1">
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Shuffle" type="button" hx-post="/api/player/shuffle" hx-target="#transport-footer-container">
+        <span class="material-symbols-outlined text-[19px] text-secondary">shuffle</span>
       </button>
-      <button type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors" title="Previous Track" onclick="triggerPrevTrack()">
-        ⏮️
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Previous Track" type="button" hx-post="/api/player/prev" hx-target="#transport-footer-container">
+        <span class="material-symbols-outlined text-[20px]">skip_previous</span>
+      </button>
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Rewind 10 seconds" type="button" onclick="triggerSeekRelative(-10)">
+        <span class="material-symbols-outlined text-[20px]">replay_10</span>
       </button>
     </div>
 
-    <!-- Center Transport: Play/Pause + Scrub Bar -->
-    <div class="flex flex-col items-center flex-1 max-w-[460px] w-full">
-      <div class="flex items-center justify-center mb-1.5">
-        <button type="button" class="w-12 h-12 rounded-full bg-[var(--primary)] text-[var(--on-primary)] flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all font-bold text-lg" id="fs-btn-play-pause" onclick="triggerPlayToggle()" title="Play / Pause">
+    <!-- Center Transport: Oversized Play/Pause + Scrubber -->
+    <div class="flex flex-col items-center flex-1 max-w-[440px] w-full order-1 md:order-2">
+      <div class="flex items-center justify-center gap-space-md mb-2">
+        <button class="w-14 h-14 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_24px_#06b6d4] hover:scale-105 active:scale-95 transition-all" id="main-play-btn" title="Toggle Playback" type="button" hx-post="/api/player/toggle" hx-target="#transport-footer-container">
           {% if playback and playback.state == "play" %}
-            ⏸️
+            <span class="material-symbols-outlined text-[32px]">pause</span>
           {% else %}
-            ▶️
+            <span class="material-symbols-outlined text-[32px]">play_arrow</span>
           {% endif %}
         </button>
       </div>
 
       <!-- Scrubber -->
-      <div class="w-full flex items-center gap-3">
-        <span class="text-xs font-mono text-[var(--text-muted)]" id="fs-time-elapsed">
+      <div class="w-full flex items-center gap-space-sm">
+        <span class="font-label-sm text-label-sm text-on-surface-variant font-mono" id="fs-time-elapsed">
           {% set el_m = ((playback.elapsed or 0) // 60)|int if playback else 0 %}
           {% set el_s = ((playback.elapsed or 0) % 60)|int if playback else 0 %}
           {{ "%02d:%02d"|format(el_m, el_s) }}
         </span>
-
-        <div class="relative flex-1 h-2 bg-[var(--surface-container-highest)] rounded-full overflow-hidden cursor-pointer group" id="fs-scrub-track" onclick="handleFsSeek(event)" title="Click to Seek">
+        <div class="relative flex-1 h-2 bg-surface-container-highest rounded-full overflow-hidden cursor-pointer group" id="fs-scrub-track" onclick="handleFsSeek(event)" title="Click to Seek">
           {% set pct = 0 %}
           {% if playback and playback.duration and playback.duration > 0 %}
             {% set pct = (((playback.elapsed or 0) / playback.duration) * 100)|round(1) %}
           {% endif %}
-          <div class="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] rounded-full" id="fs-scrub-fill" style="width: {{ pct }}%;"></div>
+          <div class="h-full bg-gradient-to-r from-primary-container to-secondary rounded-full relative" id="fs-scrub-fill" style="width: {{ pct }}%;">
+            <span class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-on-surface rounded-full shadow-[0_0_8px_#4cd7f6] scale-0 group-hover:scale-100 transition-transform"></span>
+          </div>
         </div>
-
-        <span class="text-xs font-mono text-[var(--text-muted)]" id="fs-time-duration">
+        <span class="font-label-sm text-label-sm text-outline font-mono" id="fs-time-duration">
           {% set dur_m = ((playback.duration or 0) // 60)|int if playback else 0 %}
           {% set dur_s = ((playback.duration or 0) % 60)|int if playback else 0 %}
           {{ "%02d:%02d"|format(dur_m, dur_s) }}
@@ -163,28 +191,30 @@
       </div>
     </div>
 
-    <!-- Right Controls: Next, Repeat, Volume -->
-    <div class="flex items-center gap-2">
-      <button type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors" title="Next Track" onclick="triggerNextTrack()">
-        ⏭️
+    <!-- Right Controls: Forward 10s, Next, Repeat, Volume, Exit -->
+    <div class="flex items-center gap-space-sm order-3">
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Fast Forward 10 seconds" type="button" onclick="triggerSeekRelative(10)">
+        <span class="material-symbols-outlined text-[20px]">forward_10</span>
       </button>
-      <button type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-colors" title="Repeat" onclick="toggleRepeat()">
-        🔁
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Next Track" type="button" hx-post="/api/player/next" hx-target="#transport-footer-container">
+        <span class="material-symbols-outlined text-[20px]">skip_next</span>
+      </button>
+      <button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Repeat" type="button" hx-post="/api/player/repeat" hx-target="#transport-footer-container">
+        <span class="material-symbols-outlined text-[20px] text-primary">repeat</span>
       </button>
 
       <!-- Mini Volume Slider -->
-      <div class="hidden sm:flex items-center gap-1.5 ml-2">
-        <span class="text-xs">🔊</span>
-        <input type="range"
-               id="fs-volume-slider"
-               class="w-16 h-1.5 rounded-full accent-[var(--primary)] bg-[var(--surface-container-highest)] cursor-pointer"
-               min="0"
-               max="100"
-               value="{{ playback.volume if playback else 100 }}"
-               oninput="handleFsVolumeInput(this)"
-               title="Volume Level"/>
-        <span class="text-[10px] font-mono text-[var(--text-muted)] min-w-[32px] text-right" id="fs-volume-text">{{ playback.volume if playback else 100 }}%</span>
+      <div class="hidden lg:flex items-center gap-1.5 ml-2">
+        <span class="material-symbols-outlined text-outline text-[18px]">volume_up</span>
+        <input type="range" id="fs-volume-slider" class="w-16 h-1.5 rounded-full accent-primary-container bg-surface-container-highest cursor-pointer" min="0" max="100" value="{{ playback.volume if playback and playback.volume is not none else 100 }}" oninput="handleFsVolumeInput(this)" title="Volume Level"/>
+        <span class="text-[10px] font-mono text-on-surface-variant min-w-[32px] text-right" id="fs-volume-text">{{ playback.volume if playback and playback.volume is not none else 100 }}%</span>
       </div>
+
+      <!-- Exit Button -->
+      <button class="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-all text-label-sm font-label-sm" type="button" onclick="closeFullscreenNowPlaying()" title="Exit Fullscreen Mode">
+        <span class="material-symbols-outlined text-[16px]">fullscreen_exit</span>
+        <span class="hidden sm:inline font-mono">Exit Esc</span>
+      </button>
     </div>
-  </footer>
+  </div>
 </div>

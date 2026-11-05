@@ -1719,6 +1719,30 @@ function handleFsVolumeInput(slider) {
   handleVolumeInput(slider);
 }
 
+function triggerSeekRelative(delta) {
+  const elapsedEl = document.getElementById('fs-time-elapsed');
+  const durationEl = document.getElementById('fs-time-duration');
+  let currentSec = 0;
+  let totalSec = 0;
+  if (elapsedEl && elapsedEl.textContent) {
+    const parts = elapsedEl.textContent.trim().split(':').map(Number);
+    if (parts.length === 2) currentSec = (parts[0] * 60) + parts[1];
+  }
+  if (durationEl && durationEl.textContent) {
+    const parts = durationEl.textContent.trim().split(':').map(Number);
+    if (parts.length === 2) totalSec = (parts[0] * 60) + parts[1];
+  }
+  const targetSec = Math.max(0, Math.min(totalSec || 99999, currentSec + delta));
+  if (window.htmx) {
+    htmx.ajax('POST', '/api/player/seek', {
+      target: '#transport-footer-container',
+      swap: 'innerHTML',
+      values: { seconds: targetSec.toFixed(1) }
+    });
+  }
+}
+window.triggerSeekRelative = triggerSeekRelative;
+
 function startFullscreenVisualizer() {
   if (fsVisualizerAnimId) {
     cancelAnimationFrame(fsVisualizerAnimId);
