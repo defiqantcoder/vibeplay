@@ -1149,12 +1149,10 @@ def _fetch_track_metadata(
 
     if file_path and db_path:
         try:
-            db_p = Path(db_path)
-            base_dir = db_p.parent.resolve()
-            resolved_db = (base_dir / db_p.name).resolve()
-            if not resolved_db.is_relative_to(base_dir):
-                raise ValueError("Path traversal attempt detected")
-            if resolved_db.exists():
+            from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+            resolved_db = resolve_within(str(db_path), allowed_media_roots())
+            if resolved_db.exists() and resolved_db.is_file():
                 with get_connection(resolved_db) as conn:
                     row = conn.execute(
                         """
