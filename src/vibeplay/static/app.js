@@ -2195,12 +2195,12 @@ window.toggleSpatialBinaural = toggleSpatialBinaural;
 
 // 4. Welcome Onboarding Modal (Screen 6)
 function openOnboardingModal() {
-  const el = document.getElementById('onboarding-backdrop');
+  const el = document.getElementById('onboarding-modal-backdrop') || document.getElementById('onboarding-backdrop');
   if (el) el.classList.remove('hidden');
 }
 
 function closeOnboardingModal() {
-  const el = document.getElementById('onboarding-backdrop');
+  const el = document.getElementById('onboarding-modal-backdrop') || document.getElementById('onboarding-backdrop');
   if (el) el.classList.add('hidden');
 }
 
@@ -2211,6 +2211,8 @@ function browseLibraryFolder() {
       if (data.folder) {
         const lbl = document.getElementById('onboarding-folder-label');
         if (lbl) lbl.textContent = 'Selected: ' + data.folder;
+        const inp = document.getElementById('music-path');
+        if (inp) inp.value = data.folder;
       }
     }).catch(() => {});
 }
@@ -2222,12 +2224,12 @@ function completeOnboarding() {
 
 // 5. DAC Disconnected Alert & Recovery (Screen 11)
 function openDACAlertModal() {
-  const el = document.getElementById('dac-alert-backdrop');
+  const el = document.getElementById('dac-alert-backdrop') || document.getElementById('dac-alert-modal-backdrop');
   if (el) el.classList.remove('hidden');
 }
 
 function closeDACAlertModal() {
-  const el = document.getElementById('dac-alert-backdrop');
+  const el = document.getElementById('dac-alert-backdrop') || document.getElementById('dac-alert-modal-backdrop');
   if (el) el.classList.add('hidden');
 }
 
@@ -2238,12 +2240,12 @@ function retryDACConnection() {
 
 // 6. Handy Keyboard Shortcuts Modal (Screen 12)
 function openShortcutsModal() {
-  const el = document.getElementById('shortcuts-backdrop');
+  const el = document.getElementById('shortcuts-modal-backdrop') || document.getElementById('shortcuts-backdrop');
   if (el) el.classList.remove('hidden');
 }
 
 function closeShortcutsModal() {
-  const el = document.getElementById('shortcuts-backdrop');
+  const el = document.getElementById('shortcuts-modal-backdrop') || document.getElementById('shortcuts-backdrop');
   if (el) el.classList.add('hidden');
 }
 

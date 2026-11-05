@@ -1046,5 +1046,86 @@ def test_track_context_menu_popover_stitch_layout_and_wiring(client: TestClient)
     assert "h-px bg-surface-container-highest my-1 w-full" in html
 
 
+def test_utility_modals_stitch_layout_and_dismiss_wiring(client: TestClient):
+    """Verify DAC alert, Onboarding, and Shortcuts utility modals exact Stitch layout, hidden default state, and close actions."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. DAC Disconnected Alert & Recovery Popover
+    assert 'id="dac-alert-backdrop"' in html
+    # Hidden by default
+    assert re.search(r'id="dac-alert-backdrop"[^>]*class="[^"]*hidden', html) is not None
+    # Floating top pill banner
+    assert 'id="alert-banner"' in html
+    assert "DAC Unplugged:" in html
+    assert "Auto-Protected 🛡️" in html
+    assert 'onclick="closeDACAlertModal(); dismissBanner();"' in html
+    # Recovery popover card
+    assert 'id="recovery-card"' in html
+    assert "Sound Output Changed" in html
+    assert "Route Telemetry" in html
+    assert 'id="dac-alert-device-name"' in html
+    assert 'id="dac-alert-capabilities"' in html
+    assert 'onclick="closeDACAlertModal();"' in html
+    assert 'id="btn-switch-speakers"' in html
+    assert 'id="btn-wait-device"' in html
+    assert 'onclick="retryDACConnection();"' in html
+
+    # 2. Welcome Onboarding & Setup Modal
+    assert 'id="onboarding-modal-backdrop"' in html
+    # Hidden by default
+    assert re.search(r'id="onboarding-modal-backdrop"[^>]*class="[^"]*hidden', html) is not None
+    # Modal card
+    assert 'id="onboarding-modal-card"' in html
+    assert "Welcome to VibePlay" in html
+    assert "Your laid-back, bit-perfect music crate" in html
+    assert 'onclick="closeOnboardingModal();"' in html
+    # Step 1: Music library folder
+    assert "Where do you keep your tunes?" in html
+    assert 'id="music-path"' in html
+    assert 'id="browse-btn"' in html
+    assert 'onclick="browseLibraryFolder()"' in html
+    assert 'id="onboarding-folder-label"' in html
+    # Step 2: Extract vibes toggle
+    assert "Extract Vibes on Import" in html
+    assert 'id="vibe-checkbox-input"' in html
+    assert 'id="vibe-checkbox"' in html
+    # Step 3: Bit-perfect output select
+    assert "Bit-Perfect Sound Output" in html
+    assert 'id="onboarding-dac-select"' in html
+    # Footer launch & skip actions
+    assert 'id="launch-crate-btn"' in html
+    assert 'onclick="completeOnboarding();"' in html
+    assert "Load Up the Crate &amp; Start Jamming" in html or "Load Up the Crate & Start Jamming" in html
+    assert "Skip Setup" in html
+
+    # 3. Handy Keyboard Shortcuts Modal
+    assert 'id="shortcuts-modal-backdrop"' in html
+    # Hidden by default
+    assert re.search(r'id="shortcuts-modal-backdrop"[^>]*class="[^"]*hidden', html) is not None
+    # Modal island
+    assert 'id="shortcuts-modal-card"' in html
+    assert "Handy Keyboard Shortcuts" in html
+    assert "Quick Keys" in html
+    assert 'id="close-modal-x"' in html
+    assert 'onclick="closeShortcutsModal();"' in html
+    # 3 Balanced Columns
+    assert "Jamming" in html
+    assert "Play/Pause ⏯️" in html
+    assert "Jump 5s ⏩" in html
+    assert "Chill Screen 📺" in html
+    assert "Navigating" in html
+    assert "Filter crate 🔍" in html
+    assert "Vibe Cooker 🍳" in html
+    assert "Sound &amp; Output" in html or "Sound & Output" in html
+    assert "Bit-Perfect ✨" in html
+    assert "Mute Deck 🔇" in html
+    # Footer action
+    assert 'id="close-modal-btn"' in html
+    assert "Got It 👍" in html
+
+
+
 
 
