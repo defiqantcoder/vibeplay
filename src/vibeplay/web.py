@@ -1272,6 +1272,9 @@ def create_app(
         if not target_profile:
             target_profile = "pure-bitperfect"
 
+        target_profile = str(target_profile).strip()
+        safe_target_profile = html.escape(target_profile, quote=True)
+
         set_output_profile(target_profile, settings=cfg)
         try:
             from vibe_dsp.ipc import DSPClient
@@ -1333,8 +1336,8 @@ def create_app(
                 pass
 
         playback = get_playback_status(resolved_db_path, cfg)
-        playback["active_profile"] = target_profile
-        playback["output_profile"] = target_profile
+        playback["active_profile"] = safe_target_profile
+        playback["output_profile"] = safe_target_profile
         from vibeplay.player import get_output_profiles
         playback["output_profiles"] = get_output_profiles(cfg)
 
@@ -1343,7 +1346,7 @@ def create_app(
             return JSONResponse(
                 content={
                     "status": "ok",
-                    "active_profile": target_profile,
+                    "active_profile": safe_target_profile,
                     "playback": playback,
                 }
             )
@@ -1364,7 +1367,7 @@ def create_app(
             context={
                 "output_switcher_html": output_switcher_html,
                 "transport_bar_html": transport_bar_html,
-                "active_profile": str(target_profile),
+                "active_profile": safe_target_profile,
             },
         )
 
