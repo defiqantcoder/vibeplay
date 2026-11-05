@@ -88,23 +88,41 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
     """Resolve ``path`` (following symlinks) and require it to live inside one of ``roots``.
 
     Raises:
-        PathTraversalError: If the path contains NUL bytes or escapes every allowed root.
+        PathTraversalError: If the path is empty, contains NUL bytes, or escapes allowed roots.
     """
     raw = str(path)
     if "\x00" in raw:
         raise PathTraversalError("Path contains invalid characters.")
-    target_p = Path(raw).expanduser()
+    cleaned = raw.strip()
+    if not cleaned:
+        raise PathTraversalError("Path cannot be empty.")
+
+    target_p = Path(cleaned).expanduser()
+    allowed_roots: list[Path] = []
     for root in roots:
-        base_dir = Path(root).resolve()
         try:
-            if target_p.is_absolute():
-                resolved_path = target_p.resolve()
-            else:
-                resolved_path = (base_dir / target_p).resolve()
-            if resolved_path.is_relative_to(base_dir):
-                return resolved_path
-        except (ValueError, RuntimeError):
+            base_dir = Path(root).expanduser().resolve()
+            if base_dir.is_absolute():
+                allowed_roots.append(base_dir)
+        except (ValueError, RuntimeError, OSError):
             continue
+
+    if not allowed_roots:
+        raise PathTraversalError("No valid permitted directories configured.")
+
+    try:
+        if target_p.is_absolute():
+            resolved_path = target_p.resolve()
+            if any(resolved_path.is_relative_to(base_dir) for base_dir in allowed_roots):
+                return resolved_path
+        else:
+            for base_dir in allowed_roots:
+                resolved_path = (base_dir / target_p).resolve()
+                if resolved_path.is_relative_to(base_dir):
+                    return resolved_path
+    except (ValueError, RuntimeError, OSError):
+        pass
+
     raise PathTraversalError("Path traversal attempt detected: path is outside permitted directories.")
 
 
