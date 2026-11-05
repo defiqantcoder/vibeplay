@@ -33,6 +33,33 @@ class PlaybackError(Exception):
     pass
 
 
+def _normalize_output_profile(profile_name: str) -> str:
+    """Map user-provided profile labels to a strict internal allowlist."""
+    p_lower = str(profile_name or "").strip().lower()
+    if not p_lower:
+        return "pure-bitperfect"
+
+    profile_map = {
+        "pure-bitperfect": "pure-bitperfect",
+        "pure bit-perfect (direct alsa)": "pure-bitperfect",
+        "usb dac (bit-perfect)": "pure-bitperfect",
+        "direct alsa (hw:0,0)": "pure-bitperfect",
+        "pipewire sound server": "pure-bitperfect",
+        "spatial-headphones": "spatial-headphones",
+        "7.1.4 spatial headphones (sofa 3d)": "spatial-headphones",
+        "headphones": "spatial-headphones",
+        "receiver-passthrough": "receiver-passthrough",
+        "av receiver passthrough (hdmi)": "receiver-passthrough",
+    }
+    if p_lower in profile_map:
+        return profile_map[p_lower]
+    if "spatial" in p_lower:
+        return "spatial-headphones"
+    if "receiver" in p_lower or "hdmi" in p_lower:
+        return "receiver-passthrough"
+    return "pure-bitperfect"
+
+
 _FALLBACK_LOCK = threading.Lock()
 _FALLBACK_PROC: subprocess.Popen[Any] | None = None
 
@@ -761,10 +788,11 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
 def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
     """Set the active hardware audio output profile and dynamically configure MPD outputs."""
     global ACTIVE_OUTPUT_PROFILE
-    ACTIVE_OUTPUT_PROFILE = profile_name
-    logger.info("Active audio output profile switched to: %s", profile_name)
+    normalized_profile = _normalize_output_profile(profile_name)
+    ACTIVE_OUTPUT_PROFILE = normalized_profile
+    logger.info("Active audio output profile switched to: %s", normalized_profile)
 
-    p_lower = profile_name.lower()
+    p_lower = normalized_profile.lower()
     try:
         from vibe_dsp.ipc import DSPClient
 
