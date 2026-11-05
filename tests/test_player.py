@@ -408,6 +408,57 @@ def test_get_output_profile() -> None:
         assert get_output_profile() == "Mocked Profile"
 
 
+@pytest.mark.parametrize(
+    ("selected", "outputs", "expected_id", "dsp_profile"),
+    [
+        ("FiiO KA15 (Bit-Perfect hw:2,0)", ["PipeWire", "Generic DAC", "FiiO KA15"], "2", "pure-bitperfect"),
+        ("Letshuoer USB DAC (Bit-Perfect hw:1,0)", ["PipeWire", "Generic ALSA", "Letshuoer DT01"], "2", "pure-bitperfect"),
+        ("USB DAC Bit-Perfect (Example)", ["PipeWire", "Direct ALSA"], "1", "pure-bitperfect"),
+        ("PipeWire Sound Server", ["Direct ALSA", "PipeWire Output"], "1", "pure-bitperfect"),
+        ("7.1.4 Spatial Headphones (SOFA 3D)", ["Direct ALSA", "PipeWire Output"], "1", "spatial-headphones"),
+        ("Custom Output", ["PipeWire", "Custom Output"], "1", "pure-bitperfect"),
+    ],
+)
+def test_output_selection_preserves_device_and_routes(
+    selected: str, outputs: list[str], expected_id: str, dsp_profile: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vibeplay import player
+
+    monkeypatch.setattr(player, "ACTIVE_OUTPUT_PROFILE", "pure-bitperfect")
+    monkeypatch.setattr(player, "SELECTED_OUTPUT_DEVICE", "PipeWire Sound Server")
+    monkeypatch.setattr(player, "get_output_profiles", lambda settings=None: [selected])
+    client = MagicMock()
+    client.outputs.return_value = [{"outputid": str(i), "outputname": name} for i, name in enumerate(outputs)]
+    transport = MagicMock()
+    transport.client = client
+    transport.status.return_value = {"state": "stop"}
+    transport.current_song.return_value = {}
+
+    with patch("vibeplay.player.get_mpd_transport") as connection, patch("vibe_dsp.ipc.DSPClient") as dsp:
+        connection.return_value.__enter__.return_value = transport
+        assert player.set_output_profile(selected) == dsp_profile
+        assert player.ACTIVE_OUTPUT_PROFILE == dsp_profile
+        assert player.get_active_output_profile() == selected
+        dsp.return_value.set_profile.assert_called_once_with(dsp_profile)
+        client.enableoutput.assert_called_once_with(expected_id)
+        status = player.get_playback_status()
+        assert status["daemon_online"] is True
+        assert status["active_profile"] == status["output_profile"] == selected
+
+
+def test_unrecognized_output_cannot_set_device_or_dsp(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vibeplay import player
+
+    monkeypatch.setattr(player, "ACTIVE_OUTPUT_PROFILE", "pure-bitperfect")
+    monkeypatch.setattr(player, "SELECTED_OUTPUT_DEVICE", "PipeWire Sound Server")
+    monkeypatch.setattr(player, "get_output_profiles", lambda settings=None: [])
+    with patch("vibeplay.player.get_mpd_transport", side_effect=ConnectionError), patch("vibe_dsp.ipc.DSPClient") as dsp:
+        player.set_output_profile("FiiO spatial; arbitrary input")
+        assert player.get_active_output_profile() == "pure-bitperfect"
+        assert player.get_output_profile() == "pure-bitperfect"
+        dsp.return_value.set_profile.assert_called_once_with("pure-bitperfect")
+
+
 def test_seek_playback() -> None:
     """Verify seek_playback correctly sends seekcur to MPD and clamps negative values."""
     from unittest.mock import MagicMock, patch

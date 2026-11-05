@@ -1273,23 +1273,8 @@ def create_app(
             target_profile = "pure-bitperfect"
 
         set_output_profile(target_profile, settings=cfg)
-        try:
-            from vibe_dsp.ipc import DSPClient
-
-            prof_map = {
-                "Pure Bit-Perfect (Direct ALSA)": "pure-bitperfect",
-                "7.1.4 Spatial Headphones (SOFA 3D)": "spatial-headphones",
-                "AV Receiver Passthrough (HDMI)": "receiver-passthrough",
-                "USB DAC (Bit-Perfect)": "pure-bitperfect",
-                "Direct ALSA (hw:0,0)": "pure-bitperfect",
-                "Headphones": "spatial-headphones",
-                "PipeWire Sound Server": "pure-bitperfect",
-            }
-            target_id = prof_map.get(target_profile, target_profile)
-            client = DSPClient()
-            client.set_profile(target_id)
-        except Exception as err:
-            logger.debug("Could not dispatch profile switch to vibe-dsp IPC: %s", err)
+        from vibeplay.player import get_active_output_profile
+        target_profile = get_active_output_profile(cfg)
 
         # Synchronize spatial state and desktop settings
         p_low = target_profile.lower()
@@ -1471,8 +1456,9 @@ def create_app(
                 "active_profile": client.get_profile(),
             }
         except Exception:
+            from vibeplay.player import get_output_profile
             playback["dsp"] = {
-                "active_profile": playback.get("output_profile"),
+                "active_profile": get_output_profile(),
             }
         return JSONResponse(content=playback)
 

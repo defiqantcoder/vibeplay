@@ -560,7 +560,8 @@ def play_track(
         }
 
 
-ACTIVE_OUTPUT_PROFILE = "PipeWire Sound Server"
+ACTIVE_OUTPUT_PROFILE = "pure-bitperfect"
+SELECTED_OUTPUT_DEVICE = "PipeWire Sound Server"
 OUTPUT_PROFILES = [
     "PipeWire Sound Server",
     "Pure Bit-Perfect (Direct ALSA)",
@@ -770,9 +771,9 @@ get_dynamic_output_profiles = get_output_profiles
 
 def get_active_output_profile(settings: Settings | None = None) -> str:
     """Return the name of the currently active audio output profile."""
-    global ACTIVE_OUTPUT_PROFILE
-    if ACTIVE_OUTPUT_PROFILE:
-        return ACTIVE_OUTPUT_PROFILE
+    global SELECTED_OUTPUT_DEVICE
+    if SELECTED_OUTPUT_DEVICE:
+        return SELECTED_OUTPUT_DEVICE
 
     cfg = settings or get_settings()
     try:
@@ -783,43 +784,45 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
                     if str(out.get("outputenabled", "0")) == "1":
                         name = str(out.get("outputname", ""))
                         if name:
-                            ACTIVE_OUTPUT_PROFILE = name
-                            return ACTIVE_OUTPUT_PROFILE
+                            SELECTED_OUTPUT_DEVICE = name
+                            return SELECTED_OUTPUT_DEVICE
     except Exception:
         pass
-    return ACTIVE_OUTPUT_PROFILE or "PipeWire Sound Server"
+    return SELECTED_OUTPUT_DEVICE or "PipeWire Sound Server"
 
 
 def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
     """Set the active profile and attempt to configure DSP and MPD outputs.
 
-    The label is normalized to an internal profile ID; blank or unrecognized
-    labels select "pure-bitperfect". MPD output selection can also use the
-    original label for an exact name match, falling back to the first output
-    when no match is found. The active profile is returned even if DSP or MPD
-    configuration fails. Errors loading default settings propagate after the
-    active profile has been updated.
+    Selectable device labels are retained separately from the normalized DSP
+    profile ID. Blank or unrecognized labels select "pure-bitperfect". MPD
+    selection uses the device label for exact and keyword matches, preferring
+    PipeWire for spatial profiles and falling back to the first output when
+    no match is found. The DSP profile is returned even if DSP or MPD
+    configuration fails. Errors loading default settings propagate before the
+    active selection is updated.
     """
-    global ACTIVE_OUTPUT_PROFILE
-    normalized_profile = _normalize_output_profile(profile_name)
+    global ACTIVE_OUTPUT_PROFILE, SELECTED_OUTPUT_DEVICE
+    cfg = settings or get_settings()
+    requested = str(profile_name or "").strip()
+    allowed_profiles = set(get_output_profiles(cfg)) | set(OUTPUT_PROFILES) | {
+        "pure-bitperfect", "spatial-headphones", "receiver-passthrough"
+    }
+    selected_device = requested if requested in allowed_profiles else "pure-bitperfect"
+    normalized_profile = _normalize_output_profile(selected_device)
     ACTIVE_OUTPUT_PROFILE = normalized_profile
-    logger.info("Active audio output profile switched to: %s", normalized_profile)
+    SELECTED_OUTPUT_DEVICE = selected_device
+    logger.info("Active audio output switched to: %s (DSP: %s)", selected_device, normalized_profile)
 
-    p_lower = normalized_profile.lower()
+    p_lower = selected_device.lower()
     try:
         from vibe_dsp.ipc import DSPClient
 
         dsp = DSPClient()
-        if "spatial" in p_lower:
-            dsp.set_profile("spatial-headphones")
-        elif "receiver" in p_lower or "hdmi" in p_lower:
-            dsp.set_profile("receiver-passthrough")
-        else:
-            dsp.set_profile("pure-bitperfect")
+        dsp.set_profile(normalized_profile)
     except Exception as dsp_err:
         logger.debug("Could not dispatch profile to vibe-dsp: %s", dsp_err)
 
-    cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
             if not transport.client:
@@ -831,7 +834,7 @@ def set_output_profile(profile_name: str, settings: Settings | None = None) -> s
             target_id: str | None = None
 
             # Spatial headphones requires PipeWire output so 3D binaural convolution applies
-            if "spatial" in p_lower:
+            if normalized_profile == "spatial-headphones":
                 for out in mpd_outputs:
                     o_name = str(out.get("outputname", "")).lower()
                     if "pipewire" in o_name:
@@ -841,7 +844,20 @@ def set_output_profile(profile_name: str, settings: Settings | None = None) -> s
             # Exact name match
             if target_id is None:
                 for out in mpd_outputs:
-                    if out.get("outputname") == profile_name:
+                    if out.get("outputname") == selected_device:
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+
+            # Prefer a named DAC over a generic ALSA output when both are present.
+            if target_id is None:
+                device_names = ()
+                if "letshuoer" in p_lower or "dt01" in p_lower:
+                    device_names = ("letshuoer", "dt01")
+                elif "fiio" in p_lower or "ka15" in p_lower:
+                    device_names = ("fiio", "ka15")
+                for out in mpd_outputs:
+                    o_name = str(out.get("outputname", "")).lower()
+                    if any(name in o_name for name in device_names):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
 
@@ -880,7 +896,7 @@ def set_output_profile(profile_name: str, settings: Settings | None = None) -> s
                             transport.client.enableoutput(oid)
                         else:
                             transport.client.disableoutput(oid)
-                    logger.info("Switched MPD active output ID to %s (%s)", target_id, profile_name)
+                    logger.info("Switched MPD active output ID to %s (%s)", target_id, selected_device)
                 except Exception as out_err:
                     logger.warning("Error enabling MPD output %s, trying PipeWire fallback: %s", target_id, out_err)
                     _try_enable_pipewire_fallback(transport.client)

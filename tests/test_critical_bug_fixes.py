@@ -149,6 +149,48 @@ def test_output_selection_updates_active_checkmark_and_commits_sink(app_env):
     assert get_active_output_profile() == target
 
 
+def test_selected_output_survives_status_refresh(app_env, monkeypatch):
+    from vibeplay import player
+
+    client, _, _, _ = app_env
+    selected = "FiiO KA15 (Bit-Perfect hw:2,0)"
+    monkeypatch.setattr(player, "ACTIVE_OUTPUT_PROFILE", "pure-bitperfect")
+    monkeypatch.setattr(player, "SELECTED_OUTPUT_DEVICE", "PipeWire Sound Server")
+    monkeypatch.setattr(player, "get_output_profiles", lambda settings=None: ["PipeWire Sound Server", selected])
+    with patch("vibeplay.player.get_mpd_transport", side_effect=ConnectionError), patch("vibe_dsp.ipc.DSPClient") as dsp:
+        dsp.return_value.get_profile.side_effect = ConnectionError
+        response = client.post("/api/player/output?format=json", data={"profile": selected})
+        assert response.json()["active_profile"] == selected
+        dsp.return_value.set_profile.assert_called_once_with("pure-bitperfect")
+        profiles = client.get("/api/player/output/profiles").json()
+        assert profiles["active_profile"] == selected
+        status = client.get("/api/player/status").json()
+        assert status["daemon_online"] is False
+        assert status["active_profile"] == status["output_profile"] == selected
+        assert status["dsp"]["active_profile"] == "pure-bitperfect"
+
+
+def test_player_router_reports_selected_output(app_env, monkeypatch):
+    from fastapi import FastAPI
+    from vibeplay import player
+    from vibeplay.routers import player as player_router
+
+    _, _, _, cfg = app_env
+    selected = "PipeWire Sound Server"
+    monkeypatch.setattr(player, "ACTIVE_OUTPUT_PROFILE", "pure-bitperfect")
+    monkeypatch.setattr(player, "SELECTED_OUTPUT_DEVICE", "pure-bitperfect")
+    monkeypatch.setattr(player, "get_output_profiles", lambda settings=None: [selected])
+    monkeypatch.setattr(player_router, "get_output_profiles", lambda settings=None: [selected])
+    monkeypatch.setattr(player_router, "get_settings", lambda: cfg)
+    app = FastAPI()
+    app.include_router(player_router.router)
+    with TestClient(app) as client, patch("vibeplay.player.get_mpd_transport", side_effect=ConnectionError), patch("vibe_dsp.ipc.DSPClient") as dsp:
+        response = client.post("/api/player/output?format=json", data={"profile": selected})
+        assert response.json()["active_profile"] == selected
+        assert client.get("/api/player/output/profiles").json()["active_profile"] == selected
+        dsp.return_value.set_profile.assert_called_once_with("pure-bitperfect")
+
+
 def test_play_track_falls_back_to_direct_audio_player_on_mpd_failure(tmp_path: Path):
     """Verify play_track triggers fallback playback without swallowing exceptions when MPD fails or reports device error."""
     db_file = tmp_path / "test_player.db"

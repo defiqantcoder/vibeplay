@@ -66,26 +66,9 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
 
     # Commit hardware sink routing
     set_output_profile(str(target_profile), settings=cfg)
+    target_profile = get_active_output_profile(cfg)
 
-    # Dispatch to DSP IPC if applicable
     p_low = str(target_profile).lower()
-    try:
-        from vibe_dsp.ipc import DSPClient
-
-        prof_map = {
-            "pure-bitperfect": "pure-bitperfect",
-            "pure bit-perfect (direct alsa)": "pure-bitperfect",
-            "spatial-headphones": "spatial-headphones",
-            "7.1.4 spatial headphones (sofa 3d)": "spatial-headphones",
-            "receiver-passthrough": "receiver-passthrough",
-            "av receiver passthrough (hdmi)": "receiver-passthrough",
-            "pipewire sound server": "pure-bitperfect",
-        }
-        target_id = prof_map.get(p_low, str(target_profile))
-        DSPClient().set_profile(target_id)
-    except Exception as err:
-        logger.debug("Could not dispatch profile to vibe-dsp IPC: %s", err)
-
     # Synchronize desktop settings
     if "spatial" in p_low:
         try:
