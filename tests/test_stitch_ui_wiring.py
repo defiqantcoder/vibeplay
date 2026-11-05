@@ -92,6 +92,23 @@ def test_soundbar_10_band_parametric_eq(client: TestClient):
     assert 'id="eqCurvePath"' in html
     assert 'id="eqAreaPath"' in html
     assert 'id="nodesLayer"' in html
+    assert 'id="eqGlowGradient"' in html
+    assert 'id="neonGlow"' in html
+    assert 'filter="url(#neonGlow)"' in html
+    assert 'fill="url(#eqGlowGradient)"' in html
+
+    # Modal hidden by default
+    assert 'id="eq-studio-backdrop"' in html
+    assert 'hidden' in html
+
+    # Preset dropdown styling and inline onclick triggers for applyEQPreset()
+    assert 'id="presetTrigger"' in html
+    assert 'id="presetMenu"' in html
+    assert 'onclick="applyEQPreset(\'My Custom Warm Vibe\'' in html
+    assert 'onclick="applyEQPreset(\'Bass Bump 🔊\'' in html
+    assert 'onclick="applyEQPreset(\'Vocal Sparkle ✨\'' in html
+    assert 'onclick="applyEQPreset(\'Flat Studio 📏\'' in html
+    assert 'onclick="applyEQPreset(\'Analog Tape Reel 📼\'' in html
 
 
 def test_smart_playlist_creator_two_column_layout(wiring_env):

@@ -2011,6 +2011,11 @@ function selectPreset(name, values) {
 }
 window.selectPreset = selectPreset;
 
+function applyEQPreset(name, values) {
+  selectPreset(name, values);
+}
+window.applyEQPreset = applyEQPreset;
+
 function renderCurve() {
   const xs = [50, 130, 210, 295, 385, 475, 565, 655, 745, 825];
   const pts = bandValues.map((v, i) => {
