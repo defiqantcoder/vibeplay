@@ -57,6 +57,44 @@ def validate_loopback_host(host: str) -> str:
     return host.strip()
 
 
+_SYSTEM_MEDIA_ROOTS: tuple[str, ...] = ("/media", "/mnt", "/run/media")
+
+
+def allowed_media_roots(*extra: Path | str | None) -> list[Path]:
+    """Return resolved directories under which user-supplied media paths are permitted.
+
+    Includes the user's home directory, standard removable-media mount points,
+    and any extra roots (e.g. the configured music directory).
+    """
+    roots: list[Path] = [Path.home().resolve()]
+    roots.extend(Path(r) for r in _SYSTEM_MEDIA_ROOTS)
+    for item in extra:
+        if item:
+            roots.append(Path(item).expanduser().resolve())
+    import os
+
+    for item in os.environ.get("VIBEPLAY_EXTRA_MEDIA_ROOTS", "").split(os.pathsep):
+        if item.strip():
+            roots.append(Path(item).expanduser().resolve())
+    return roots
+
+
+def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Path:
+    """Resolve ``path`` (following symlinks) and require it to live inside one of ``roots``.
+
+    Raises:
+        PermissionError: If the path contains NUL bytes or escapes every allowed root.
+    """
+    raw = str(path)
+    if "\x00" in raw:
+        raise PermissionError("Path contains invalid characters.")
+    resolved = Path(raw).expanduser().resolve()
+    for root in roots:
+        if resolved.is_relative_to(Path(root).resolve()):
+            return resolved
+    raise PermissionError("Path is outside permitted directories.")
+
+
 def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:
     """Apply restrictive permissions to a file path or file descriptor."""
     if isinstance(path_or_fd, int):

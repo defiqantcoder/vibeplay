@@ -30,6 +30,17 @@ def choose_directory_dialog(
     Returns:
         str | None: Selected folder path, or None if user cancelled or dialog unavailable.
     """
+    from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+    roots = allowed_media_roots()
+    if initial_dir:
+        try:
+            initial_dir = str(resolve_within(initial_dir, roots))
+        except PermissionError:
+            logger.warning("Ignoring initial_dir outside permitted directories.")
+            initial_dir = None
+    title = str(title).replace("\x00", "")
+
     # 1. Check for zenity
     if shutil.which("zenity"):
         cmd = ["zenity", "--file-selection", "--directory", f"--title={title}"]
@@ -39,8 +50,8 @@ def choose_directory_dialog(
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
             if res.returncode == 0:
                 selected = res.stdout.strip()
-                if selected and Path(selected).is_dir():
-                    return selected
+                if selected and Path(selected).resolve().is_dir():
+                    return str(Path(selected).resolve())
             elif res.returncode == 1:
                 # User pressed Cancel
                 return None
@@ -55,8 +66,8 @@ def choose_directory_dialog(
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
             if res.returncode == 0:
                 selected = res.stdout.strip()
-                if selected and Path(selected).is_dir():
-                    return selected
+                if selected and Path(selected).resolve().is_dir():
+                    return str(Path(selected).resolve())
             elif res.returncode == 1:
                 return None
         except Exception as err:
@@ -85,8 +96,8 @@ def choose_directory_dialog(
             if response == Gtk.ResponseType.ACCEPT:
                 chosen_path = dialog.get_filename()
             dialog.destroy()
-            if chosen_path and Path(chosen_path).is_dir():
-                return chosen_path
+            if chosen_path and Path(chosen_path).resolve().is_dir():
+                return str(Path(chosen_path).resolve())
         except Exception as err:
             logger.debug("GTK native folder chooser failed: %s", err)
 

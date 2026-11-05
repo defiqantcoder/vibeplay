@@ -213,3 +213,13 @@ def seed_test_database():
         return track_ids
 
     return _seed
+
+
+import pytest as _pytest_sec
+
+
+@_pytest_sec.fixture(autouse=True)
+def _allow_tmp_media_roots(monkeypatch, tmp_path_factory):
+    import tempfile
+
+    monkeypatch.setenv("VIBEPLAY_EXTRA_MEDIA_ROOTS", tempfile.gettempdir())

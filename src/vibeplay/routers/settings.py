@@ -180,7 +180,8 @@ async def api_save_gemini_key(request: Request) -> JSONResponse:
         )
     except Exception as err:
         logger.warning("Could not persist Gemini API key: %s", err)
-        return JSONResponse(status_code=500, content={"status": "error", "message": str(err)})
+        logger.error("Request failed: %s", err, exc_info=True)
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
 
 
 @router.post("/api/settings")
@@ -201,7 +202,7 @@ async def api_update_settings(request: Request) -> JSONResponse:
         except Exception as err:
             return JSONResponse(
                 status_code=400,
-                content={"detail": f"Invalid JSON body: {err}"},
+                content={"detail": "Invalid JSON body."},
             )
     else:
         try:

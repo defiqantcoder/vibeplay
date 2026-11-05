@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import logging
 from pathlib import Path
 from typing import Any
@@ -136,7 +137,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
     full_html = (
         f"{output_switcher_html}\n"
         f'<div id="transport-footer-container" hx-swap-oob="true">\n{transport_bar_html}\n</div>\n'
-        f'<span id="header-playing-on-text" hx-swap-oob="true">{target_profile}</span>\n'
+        f'<span id="header-playing-on-text" hx-swap-oob="true">{html.escape(str(target_profile))}</span>\n'
     )
     return HTMLResponse(content=full_html)
 

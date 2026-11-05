@@ -55,8 +55,21 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
             _FALLBACK_PROC = None
 
         player_bin = shutil.which("pw-play") or shutil.which("aplay") or shutil.which("ffplay")
-        if not player_bin or not Path(track_path).exists():
+        if not player_bin:
             return
+
+        # Path traversal guard: resolve symlinks and enforce permitted media roots
+        from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+        fb_cfg = settings or get_settings()
+        try:
+            safe_track = resolve_within(track_path, allowed_media_roots(getattr(fb_cfg, "music_dir", None)))
+        except PermissionError:
+            logger.warning("Refusing fallback playback of path outside permitted directories.")
+            return
+        if not safe_track.is_file():
+            return
+        track_path = str(safe_track)
 
         # Before launching an external ALSA fallback player (aplay), cleanly release/disable MPD hardware outputs
         # so the device node is not locked with EBUSY

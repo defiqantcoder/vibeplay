@@ -153,6 +153,8 @@ def parse_desktop_uri(raw: str) -> Path:
     cleaned = raw.strip()
     if not cleaned:
         raise ValueError("Desktop URI or file path cannot be empty.")
+    if "\x00" in cleaned:
+        raise ValueError("Desktop URI or file path contains invalid characters.")
 
     if "://" in cleaned:
         parsed = urlparse(cleaned)
@@ -215,8 +217,13 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
             except ValueError:
                 continue
         else:
+            if "\x00" in entry:
+                continue
             candidate = Path(entry).expanduser()
             track_path = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
+            # Relative entries must not escape the playlist's directory
+            if not candidate.is_absolute() and not track_path.is_relative_to(base_dir):
+                continue
         tracks.append(track_path)
 
     return tracks

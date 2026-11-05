@@ -192,7 +192,8 @@ def test_flow_2a_native_folder_picker(qa_env):
         assert res.status_code == 500
         data = res.json()
         assert data["cancelled"] is True
-        assert "X11 display lost" in data["error"]
+        assert data["error"] == "Operation failed"
+        assert "X11 display lost" not in res.text
 
 
 def test_flow_2a_background_jobs_and_concurrency_stress(qa_env):

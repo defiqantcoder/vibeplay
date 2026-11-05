@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import html
 import logging
 from pathlib import Path
 from typing import Any
@@ -950,7 +951,8 @@ def create_app(
                 playlist_id = save_playlist(conn, name, vibe_arc, track_ids)
             return JSONResponse({"status": "success", "playlist_id": playlist_id})
         except Exception as e:
-            return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+            logger.error("Request failed: %s", e, exc_info=True)
+            return JSONResponse({"status": "error", "message": "Operation failed"}, status_code=400)
 
     @app.post("/api/playlist/import")
     async def api_playlist_import(request: Request) -> Response:
@@ -1359,7 +1361,7 @@ def create_app(
         full_html = (
             f"{output_switcher_html}\n"
             f'<div id="transport-footer-container" hx-swap-oob="true">\n{transport_bar_html}\n</div>\n'
-            f'<span id="header-playing-on-text" hx-swap-oob="true">{target_profile}</span>\n'
+            f'<span id="header-playing-on-text" hx-swap-oob="true">{html.escape(str(target_profile))}</span>\n'
         )
         return HTMLResponse(content=full_html)
 
@@ -1398,8 +1400,9 @@ def create_app(
             return JSONResponse(content={"status": "ok", "data": status})
         except Exception as err:
             logger.warning("Error fetching DSP status: %s", err)
+            logger.error("Request failed: %s", err, exc_info=True)
             return JSONResponse(
-                content={"status": "error", "message": str(err)},
+                content={"status": "error", "message": "Operation failed"},
                 status_code=500,
             )
 
@@ -1441,8 +1444,9 @@ def create_app(
             return JSONResponse(content=res)
         except Exception as err:
             logger.warning("Error switching DSP profile: %s", err)
+            logger.error("Request failed: %s", err, exc_info=True)
             return JSONResponse(
-                content={"status": "error", "message": str(err)},
+                content={"status": "error", "message": "Operation failed"},
                 status_code=500,
             )
 
@@ -1635,7 +1639,8 @@ def create_app(
             key = updated.get("gemini_api_key", "") if hasattr(updated, "get") else getattr(updated, "gemini_api_key", "")
             return JSONResponse(content={"status": "ok", "gemini_api_key": key, "gemini_model": model})
         except Exception as err:
-            return JSONResponse(status_code=500, content={"status": "error", "message": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
 
     @app.post("/api/settings")
     @app.put("/api/settings")
@@ -1657,7 +1662,7 @@ def create_app(
             except Exception as err:
                 return JSONResponse(
                     status_code=400,
-                    content={"detail": f"Invalid JSON body: {err}"},
+                    content={"detail": "Invalid JSON body."},
                 )
         else:
             try:
@@ -1834,7 +1839,8 @@ def create_app(
                 transport.clear()
             return JSONResponse(content={"status": "cleared", "detail": "MPD queue cleared successfully."})
         except Exception as err:
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.get("/api/dsp/telemetry")
     async def api_dsp_telemetry() -> JSONResponse:
@@ -1914,7 +1920,8 @@ def create_app(
                 pass
             return JSONResponse(content=result_payload)
         except Exception as err:
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.get("/api/plugins")
     async def api_plugins_list() -> JSONResponse:
@@ -1954,7 +1961,8 @@ def create_app(
                 p.enable()
             return JSONResponse(content={"name": p.name, "enabled": p.is_enabled})
         except Exception as err:
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.post("/api/desktop/open")
     async def api_desktop_open(request: Request) -> JSONResponse:
@@ -1975,7 +1983,7 @@ def create_app(
             except Exception as err:
                 return JSONResponse(
                     status_code=400,
-                    content={"detail": f"Invalid JSON body: {err}"},
+                    content={"detail": "Invalid JSON body."},
                 )
         else:
             q_uri = request.query_params.get("uri")
@@ -2027,7 +2035,17 @@ def create_app(
             except ValueError as val_err:
                 return JSONResponse(
                     status_code=400,
-                    content={"detail": str(val_err)},
+                    content={"detail": "Invalid file path or URI."},
+                )
+
+            from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+            try:
+                resolve_within(target.path, allowed_media_roots(getattr(cfg, "music_dir", None)))
+            except PermissionError:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "Path is outside permitted directories."},
                 )
 
             item_info: dict[str, Any] = {
@@ -2216,8 +2234,8 @@ def create_app(
                 return JSONResponse(content={"path": chosen, "cancelled": False})
             return JSONResponse(content={"path": None, "cancelled": True})
         except Exception as err:
-            logger.error("Error in /api/desktop/browse-folder: %s", err)
-            return JSONResponse(status_code=500, content={"error": str(err), "cancelled": True})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed", "cancelled": True})
 
     @app.post("/api/library/scan")
     async def api_library_scan(request: Request) -> JSONResponse:
@@ -2245,10 +2263,20 @@ def create_app(
             else:
                 scan_path = Path(scan_path_str).expanduser().resolve()
 
+            from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+            try:
+                scan_path = resolve_within(scan_path, allowed_media_roots(getattr(cfg, "music_dir", None)))
+            except PermissionError:
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Path is outside permitted directories."},
+                )
+
             if not scan_path.exists() or not scan_path.is_dir():
                 return JSONResponse(
                     status_code=400,
-                    content={"error": f"Path is not a valid directory: {scan_path}"},
+                    content={"error": "Path is not a valid directory."},
                 )
 
             job_id, started = start_background_scan(resolved_db_path, scan_path)
@@ -2261,8 +2289,8 @@ def create_app(
                 },
             )
         except Exception as err:
-            logger.error("Error initiating library scan: %s", err)
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.post("/api/library/enrich")
     async def api_library_enrich() -> JSONResponse:
@@ -2279,8 +2307,8 @@ def create_app(
                 },
             )
         except Exception as err:
-            logger.error("Error initiating metadata enrichment: %s", err)
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.post("/api/library/analyze")
     async def api_library_analyze() -> JSONResponse:
@@ -2297,8 +2325,8 @@ def create_app(
                 },
             )
         except Exception as err:
-            logger.error("Error initiating feature analysis: %s", err)
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.get("/api/jobs/status")
     async def api_jobs_status() -> JSONResponse:
@@ -2316,8 +2344,8 @@ def create_app(
                 }
             )
         except Exception as err:
-            logger.error("Error fetching jobs status: %s", err)
-            return JSONResponse(status_code=500, content={"error": str(err)})
+            logger.error("Request failed: %s", err, exc_info=True)
+            return JSONResponse(status_code=500, content={"error": "Operation failed"})
 
     @app.get("/api/jobs/progress-widget", response_class=HTMLResponse)
     async def api_jobs_progress_widget(request: Request) -> Response:
