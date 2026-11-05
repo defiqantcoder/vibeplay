@@ -112,6 +112,34 @@ def test_output_dsp_dispatch_failure_remains_nonfatal(router_client, monkeypatch
     assert response.json()["active_profile"] == "Desk"
 
 
+def test_output_profile_round_trips_in_json_and_escaped_html(router_client, monkeypatch):
+    profile = 'DAC "Studio" & <script>alert(1)</script>\'s'
+    committed = []
+    monkeypatch.setattr(player_router, "set_output_profile", lambda name, settings: committed.append(name))
+    monkeypatch.setattr(player_router, "get_playback_status", lambda *args: {})
+    monkeypatch.setattr(player_router, "get_output_profiles", lambda *args: [
+        {"id": "first", "name": "Other", "type": "mpd"},
+        {"id": "target", "name": profile, "type": "mpd"},
+    ])
+    monkeypatch.setattr("vibe_dsp.ipc.DSPClient.set_profile", lambda *args: None)
+
+    response = router_client.post("/api/player/output?format=json", data={"profile": profile})
+    assert response.status_code == 200
+    assert response.json()["active_profile"] == profile
+    assert response.json()["playback"]["active_profile"] == profile
+    assert response.json()["playback"]["output_profile"] == profile
+
+    response = router_client.post("/api/player/output", data={"profile": profile})
+    assert response.status_code == 200
+    parser = CardParser()
+    parser.feed(response.text)
+    assert [("active" in classes, name) for classes, name in parser.cards] == [(False, "Other"), (True, profile)]
+    assert "<script>alert(1)</script>" not in response.text
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in response.text
+    assert "&amp;lt;script" not in response.text
+    assert committed == [profile, profile]
+
+
 def test_gemini_save_failure_has_no_key(router_client, monkeypatch, caplog):
     def fail(*args, **kwargs):
         raise OSError("disk full")
