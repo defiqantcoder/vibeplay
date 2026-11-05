@@ -114,13 +114,16 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
         playback["output_profile"] = target_profile
         playback["output_profiles"] = get_output_profiles(cfg)
 
+        # Escape the target profile to prevent XSS vulnerabilities
+        safe_target_profile = html.escape(str(target_profile))
+
         accept_header = request.headers.get("accept", "")
         if "application/json" in accept_header or request.query_params.get("format") == "json":
             return JSONResponse(
                 status_code=200,
                 content={
                     "status": "ok",
-                    "active_profile": target_profile,
+                    "active_profile": safe_target_profile,
                     "playback": playback,
                 },
             )
@@ -142,7 +145,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
             context={
                 "output_switcher_html": output_switcher_html,
                 "transport_bar_html": transport_bar_html,
-                "active_profile": str(target_profile),
+                "active_profile": safe_target_profile,
             },
             status_code=200,
         )
