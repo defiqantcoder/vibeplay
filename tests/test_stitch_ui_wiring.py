@@ -605,3 +605,40 @@ def test_multipane_settings_modal_and_theme_customizer_wiring(client: TestClient
     assert 'onclick="saveDesktopSettings(true)"' in html
     assert "Save &amp; Chill" in html or "Save & Chill" in html
 
+
+def test_output_switcher_popover_stitch_layout_and_wiring(client: TestClient):
+    """Verify output switcher popover Stitch layout, dynamic device cards loop, and hx-post route change triggers."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Output Switcher Popover shell and glassmorphism styling
+    assert 'id="output-switcher-popover"' in html
+    assert "w-[320px]" in html
+    assert "rounded-[18px]" in html
+    assert "backdrop-blur-xl" in html
+    assert "hidden" in html
+
+    # 2. Popover Header
+    assert "Where should the music play?" in html
+    assert "Plugging in a DAC automatically swaps audio here!" in html
+    assert 'onclick="closeOutputSwitcher();"' in html
+
+    # 3. Dynamic Device Cards with exact Stitch classes and hx-post
+    assert "output-device-card" in html
+    assert 'hx-post="/api/player/output"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+    assert 'onclick="closeOutputSwitcher()"' in html
+
+    # Stitch exact card classes
+    assert "bg-[#06b6d4]/10" in html
+    assert "border-2 border-[#06b6d4]" in html
+    assert "bg-[#121214]/60" in html
+    assert "border-[#2a2a35]" in html
+
+    # 4. Footer Instant Auto-Swap and downward caret arrow
+    assert "Instant Auto-Swap" in html
+    assert "Switch to USB DAC the moment plugged" in html
+    assert "rotate-45" in html
+
+

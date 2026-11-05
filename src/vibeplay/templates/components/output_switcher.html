@@ -1,53 +1,60 @@
 <!-- Sound Output Switcher Popover (Stitch Hi-Fi Lounge Specification) -->
-<div id="output-switcher-popover" class="fixed bottom-24 right-8 w-[320px] rounded-[18px] bg-surface-container border border-outline-variant shadow-2xl p-4 z-50 text-left cursor-default backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 hidden">
+<div id="output-switcher-popover" class="output-switcher-popover fixed bottom-24 right-8 w-[320px] rounded-[18px] bg-[#1e1e24] border border-[#2a2a35] shadow-2xl shadow-black/90 p-4 z-50 text-left cursor-default backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 hidden">
   <!-- Header -->
   <div class="mb-3">
     <div class="flex items-center justify-between">
-      <h5 class="text-[14px] font-bold text-on-surface flex items-center gap-1.5">
+      <h5 class="text-[14px] font-bold text-[#e4e4e7] flex items-center gap-1.5">
         <span>Where should the music play?</span>
         <span class="text-sm">🔊</span>
       </h5>
       <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-tertiary glow-green"></span>
-        <button type="button" class="w-5 h-5 rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface flex items-center justify-center text-[10px] transition-colors" onclick="closeOutputSwitcher();" aria-label="Close Output Switcher">
+        <span class="w-2 h-2 rounded-full bg-[#10b981] glow-green"></span>
+        <button type="button" class="w-5 h-5 rounded-full bg-[#121214] hover:bg-[#2a2a35] text-[#9ca3af] hover:text-white flex items-center justify-center text-[10px] transition-colors" onclick="closeOutputSwitcher();" aria-label="Close Output Switcher">
           ✕
         </button>
       </div>
     </div>
-    <p class="text-[11px] text-on-surface-variant leading-tight mt-0.5">
+    <p class="text-[11px] text-[#9ca3af] leading-tight mt-0.5">
       Plugging in a DAC automatically swaps audio here!
     </p>
   </div>
 
   <!-- Device Selection List -->
   <div class="space-y-2 select-none">
+    {% set active_prof = (playback.output_profile if playback and playback.output_profile else '')|lower %}
+    {% set matching_profiles = [] %}
+    {% for p in playback.output_profiles %}
+      {% set p_low = p|lower %}
+      {% if (p_low == active_prof) or (active_prof and (active_prof in p_low or p_low in active_prof)) or ('direct alsa' in active_prof and 'direct alsa' in p_low) or ('bit-perfect' in active_prof and 'bit-perfect' in p_low) or ('spatial' in active_prof and 'spatial' in p_low) or ('pipewire' in active_prof and 'pipewire' in p_low) %}
+        {% set _ = matching_profiles.append(p) %}
+      {% endif %}
+    {% endfor %}
     {% for profile in playback.output_profiles %}
-    {% set is_active = (profile == playback.output_profile) or (loop.first and not playback.output_profile) %}
-    <div class="output-device-card p-2.5 rounded-[12px] {% if is_active %}bg-primary-container/10 border-2 border-primary-container shadow-sm relative{% else %}bg-surface-container-lowest/60 hover:bg-surface-container-high border border-outline-variant hover:border-outline transition-colors{% endif %} flex items-start gap-2.5 cursor-pointer group"
-         onclick="selectOutputRoute('{{ profile }}')">
-      {% if is_active %}
-      <div class="mt-0.5 w-4 h-4 rounded-full border-2 border-primary-container flex items-center justify-center shrink-0 bg-primary-container">
-        <svg class="w-2.5 h-2.5 text-surface-container-lowest fill-current" viewBox="0 0 20 20">
+    {% set is_active = (profile == matching_profiles[0]) if matching_profiles else loop.first %}
+    {% if is_active %}
+    <!-- Active Device Card -->
+    <div class="output-device-card p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
+         hx-post="/api/player/output"
+         hx-vals='{"profile": "{{ profile }}"}'
+         hx-target="#transport-footer-container"
+         hx-swap="innerHTML"
+         onclick="closeOutputSwitcher()">
+      <div class="mt-0.5 w-4 h-4 rounded-full border-2 border-[#06b6d4] flex items-center justify-center shrink-0 bg-[#06b6d4]">
+        <svg class="w-2.5 h-2.5 text-[#121214] fill-current" viewBox="0 0 20 20">
           <path clip-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill-rule="evenodd"></path>
         </svg>
       </div>
-      {% else %}
-      <div class="mt-0.5 w-4 h-4 rounded-full border border-on-surface-variant/40 group-hover:border-primary-container flex items-center justify-center shrink-0">
-      </div>
-      {% endif %}
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-1">
-          <span class="text-[13px] {% if is_active %}font-bold text-on-surface{% else %}font-semibold text-on-surface group-hover:text-primary{% endif %} truncate">
-            {% if 'DAC' in profile or 'ALSA' in profile or 'Bit-Perfect' in profile or 'Spatial' in profile %}🎧{% elif 'Receiver' in profile or 'HDMI' in profile %}📻{% else %}💻{% endif %} {{ profile }}
+          <span class="text-[13px] font-bold text-white truncate">
+            {% if 'DAC' in profile or 'ALSA' in profile or 'Bit-Perfect' in profile or 'Spatial' in profile or 'hw:' in profile %}🎧{% elif 'Receiver' in profile or 'HDMI' in profile or 'SPDIF' in profile %}📻{% else %}💻{% endif %} {{ profile }}
           </span>
-          {% if is_active %}
-          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary border border-tertiary/30 shrink-0 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-tertiary glow-green inline-block"></span>Active
+          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shrink-0 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] glow-green inline-block"></span>Active
           </span>
-          {% endif %}
         </div>
-        <p class="text-[10px] {% if is_active %}font-mono text-primary-container{% else %}text-on-surface-variant{% endif %} mt-0.5 leading-snug truncate">
-          {% if 'ALSA' in profile or 'Bit-Perfect' in profile or 'DAC' in profile %}
+        <p class="text-[10px] font-mono text-[#06b6d4] mt-0.5 leading-snug truncate">
+          {% if 'ALSA' in profile or 'Bit-Perfect' in profile or 'DAC' in profile or 'hw:' in profile %}
             Direct ALSA • 32-bit / 768kHz • Bit-Perfect Lock
           {% elif 'Spatial' in profile %}
             SOFA Binaural 3D • 7.1.4 Virtualization • PipeWire
@@ -60,21 +67,56 @@
       </div>
     </div>
     {% else %}
-    <div class="output-device-card p-2.5 rounded-[12px] bg-primary-container/10 border-2 border-primary-container flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
-         onclick="selectOutputRoute('Pure Bit-Perfect (Direct ALSA)')">
-      <div class="mt-0.5 w-4 h-4 rounded-full border-2 border-primary-container flex items-center justify-center shrink-0 bg-primary-container">
-        <svg class="w-2.5 h-2.5 text-surface-container-lowest fill-current" viewBox="0 0 20 20">
+    <!-- Inactive Device Card -->
+    <div class="output-device-card p-2.5 rounded-[12px] bg-[#121214]/60 hover:bg-[#25252e] border border-[#2a2a35] hover:border-[#3b3b4a] flex items-start gap-2.5 cursor-pointer transition-colors group"
+         hx-post="/api/player/output"
+         hx-vals='{"profile": "{{ profile }}"}'
+         hx-target="#transport-footer-container"
+         hx-swap="innerHTML"
+         onclick="closeOutputSwitcher()">
+      <div class="mt-0.5 w-4 h-4 rounded-full border border-[#9ca3af]/40 group-hover:border-[#06b6d4] flex items-center justify-center shrink-0">
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <span class="text-[13px] font-semibold text-[#e4e4e7] group-hover:text-white truncate">
+            {% if 'DAC' in profile or 'ALSA' in profile or 'Bit-Perfect' in profile or 'Spatial' in profile or 'hw:' in profile %}🎧{% elif 'Receiver' in profile or 'HDMI' in profile or 'SPDIF' in profile %}📻{% else %}💻{% endif %} {{ profile }}
+          </span>
+        </div>
+        <p class="text-[10px] text-[#9ca3af] mt-0.5 leading-snug truncate">
+          {% if 'ALSA' in profile or 'Bit-Perfect' in profile or 'DAC' in profile or 'hw:' in profile %}
+            Direct ALSA • 32-bit / 768kHz • Bit-Perfect Lock
+          {% elif 'Spatial' in profile %}
+            SOFA Binaural 3D • 7.1.4 Virtualization • PipeWire
+          {% elif 'HDMI' in profile or 'Receiver' in profile %}
+            Living Room Speakers • Raw HDMI/SPDIF Bitstream
+          {% else %}
+            Internal Audio • PipeWire
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Fallback Card if output_profiles is empty -->
+    <div class="output-device-card p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
+         hx-post="/api/player/output"
+         hx-vals='{"profile": "Pure Bit-Perfect (Direct ALSA)"}'
+         hx-target="#transport-footer-container"
+         hx-swap="innerHTML"
+         onclick="closeOutputSwitcher()">
+      <div class="mt-0.5 w-4 h-4 rounded-full border-2 border-[#06b6d4] flex items-center justify-center shrink-0 bg-[#06b6d4]">
+        <svg class="w-2.5 h-2.5 text-[#121214] fill-current" viewBox="0 0 20 20">
           <path clip-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill-rule="evenodd"></path>
         </svg>
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-1">
-          <span class="text-[13px] font-bold text-on-surface truncate">🎧 FiiO KA15 USB DAC</span>
-          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-tertiary/20 text-tertiary border border-tertiary/30 shrink-0 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-tertiary glow-green inline-block"></span>Active
+          <span class="text-[13px] font-bold text-white truncate">🎧 FiiO KA15 USB DAC</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shrink-0 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] glow-green inline-block"></span>Active
           </span>
         </div>
-        <p class="text-[10px] font-mono text-primary-container mt-0.5 leading-snug truncate">
+        <p class="text-[10px] font-mono text-[#06b6d4] mt-0.5 leading-snug truncate">
           Direct ALSA • 32-bit / 768kHz • Bit-Perfect Lock
         </p>
       </div>
@@ -83,21 +125,21 @@
   </div>
 
   <!-- Footer: Auto-Swap Toggle -->
-  <div class="mt-3 pt-3 border-t border-outline-variant flex items-center justify-between">
+  <div class="mt-3 pt-3 border-t border-[#2a2a35] flex items-center justify-between">
     <div>
-      <div class="text-[11px] font-bold text-on-surface flex items-center gap-1">
+      <div class="text-[11px] font-bold text-[#e4e4e7] flex items-center gap-1">
         <span>⚡ Instant Auto-Swap</span>
       </div>
-      <div class="text-[10px] text-on-surface-variant leading-tight">
+      <div class="text-[10px] text-[#9ca3af] leading-tight">
         (Switch to USB DAC the moment plugged)
       </div>
     </div>
     <!-- Active Toggle Switch -->
-    <button type="button" class="w-9 h-5 rounded-full bg-primary-container p-0.5 transition-colors cursor-pointer flex items-center justify-end shadow-sm glow-cyan-sm" onclick="this.classList.toggle('justify-end'); this.classList.toggle('justify-start'); this.classList.toggle('bg-primary-container'); this.classList.toggle('bg-surface-container-highest');" title="Toggle Instant Auto-Swap">
-      <span class="w-4 h-4 rounded-full bg-on-surface shadow-md transform transition-transform"></span>
+    <button type="button" class="w-9 h-5 rounded-full bg-[#06b6d4] p-0.5 transition-colors cursor-pointer flex items-center justify-end shadow-sm glow-cyan-sm" onclick="this.classList.toggle('justify-end'); this.classList.toggle('justify-start'); this.classList.toggle('bg-[#06b6d4]'); this.classList.toggle('bg-[#2a2a35]');" title="Toggle Instant Auto-Swap">
+      <span class="w-4 h-4 rounded-full bg-white shadow-md transform transition-transform"></span>
     </button>
   </div>
 
   <!-- Downward Caret Arrow pointing cleanly to DAC button -->
-  <div class="absolute -bottom-2 right-8 w-4 h-4 bg-surface-container border-r border-b border-outline-variant rotate-45"></div>
+  <div class="absolute -bottom-2 right-8 w-4 h-4 bg-[#1e1e24] border-r border-b border-[#2a2a35] rotate-45"></div>
 </div>
