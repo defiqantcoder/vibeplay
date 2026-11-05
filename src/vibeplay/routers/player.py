@@ -112,9 +112,10 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
                 pass
 
         # Retrieve live playback status with the newly activated profile
+        safe_profile = html.escape(str(target_profile))
         playback = get_playback_status(cfg.db_path, cfg)
-        playback["active_profile"] = target_profile
-        playback["output_profile"] = target_profile
+        playback["active_profile"] = safe_profile
+        playback["output_profile"] = safe_profile
         playback["output_profiles"] = get_output_profiles(cfg)
 
         accept_header = request.headers.get("accept", "")
@@ -123,12 +124,13 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
                 status_code=200,
                 content={
                     "status": "ok",
-                    "active_profile": target_profile,
+                    "active_profile": safe_profile,
                     "playback": playback,
                 },
             )
 
         # Render updated output_switcher.html snippet with active checkmark class
+        safe_profile = html.escape(str(target_profile))
         output_switcher_html = templates.get_template("components/output_switcher.html").render(
             request=request,
             playback=playback,
@@ -145,7 +147,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
             context={
                 "output_switcher_html": output_switcher_html,
                 "transport_bar_html": transport_bar_html,
-                "active_profile": target_profile,
+                "active_profile": safe_profile,
             },
             status_code=200,
         )
