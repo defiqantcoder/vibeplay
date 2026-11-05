@@ -1149,13 +1149,16 @@ def _fetch_track_metadata(
 
     if file_path and db_path:
         try:
-            db_p = Path(db_path)
-            base_dir = db_p.parent.resolve()
-            resolved_db = (base_dir / db_p.name).resolve()
-            if not resolved_db.is_relative_to(base_dir):
+            cfg = get_settings()
+            trusted_db = Path(cfg.db_path).resolve()
+            trusted_base_dir = trusted_db.parent
+
+            candidate_db = Path(db_path).resolve()
+            if not candidate_db.is_relative_to(trusted_base_dir):
                 raise ValueError("Path traversal attempt detected")
-            if resolved_db.exists():
-                with get_connection(resolved_db) as conn:
+
+            if candidate_db.exists():
+                with get_connection(candidate_db) as conn:
                     row = conn.execute(
                         """
                         SELECT t.id, t.title, t.artist, t.album, t.sample_rate, t.bit_depth
