@@ -4,32 +4,33 @@
 
 <div class="guided-playlist-builder builder-tracks-container" id="guided-playlist-builder-root">
   <!-- Top Hero Deck: Natural Language Vibe Synthesizer (Stitch Specification) -->
-  <section class="vibe-synthesizer-hero-deck">
-    <!-- Ambient Energy Glows -->
-    <div class="hero-glow-cyan pointer-events-none" aria-hidden="true"></div>
-    <div class="hero-glow-amber pointer-events-none" aria-hidden="true"></div>
+  <section class="vibe-synthesizer-hero-deck w-full bg-surface-container rounded-lg p-space-md lg:p-space-lg shadow-xl relative overflow-hidden">
+    <!-- Subtle Ambient Energy Glows -->
+    <div class="absolute -top-24 -right-16 w-96 h-96 rounded-full bg-primary-container/10 blur-3xl pointer-events-none" aria-hidden="true"></div>
+    <div class="absolute -bottom-20 -left-12 w-80 h-80 rounded-full bg-secondary/10 blur-3xl pointer-events-none" aria-hidden="true"></div>
 
-    <div class="vibe-hero-content">
+    <div class="relative z-10 flex flex-col gap-space-md">
       <!-- Section Title & Status Pill -->
-      <div class="vibe-hero-header">
+      <div class="flex flex-wrap items-center justify-between gap-space-sm">
         <div>
-          <div class="vibe-title-row">
-            <h2 class="vibe-hero-title font-bold">
+          <div class="flex items-center gap-2">
+            <span class="font-headline-lg text-headline-lg text-on-surface flex items-center gap-2">
               Tell me what you want to hear
-              <span class="chat-bubble-emoji">💬</span>
-            </h2>
-            <span class="vibe-engine-tag font-mono font-semibold">
+              <span class="inline-block hover:rotate-12 transition-transform cursor-default">💬</span>
+            </span>
+            <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-primary-container/15 text-primary tracking-wide">
               VIBE ENGINE v4.2
             </span>
           </div>
-          <p class="vibe-hero-subtitle">
+          <p class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5 mt-0.5">
+            <span class="material-symbols-outlined text-[15px] text-tertiary">graphic_eq</span>
             AI Acoustic Synthesis &amp; Harmonic Camelot Matching Engine • Bit-Perfect Hi-Fi Source
           </p>
         </div>
-        <div class="acoustic-model-pill">
-          <span class="font-mono text-outline uppercase">Acoustic Model:</span>
-          <span class="model-badge font-mono font-semibold">
-            <span class="pulse-dot"></span>
+        <div class="flex items-center gap-2">
+          <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-mono">Acoustic Model:</span>
+          <span class="font-label-sm text-label-sm bg-surface-container-high px-2.5 py-1 rounded-full text-primary font-semibold flex items-center gap-1 font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
             HarmonicFlow-LLM (Lossless)
           </span>
         </div>
@@ -40,188 +41,219 @@
             hx-target="#main-content-area"
             hx-swap="innerHTML"
             hx-indicator="#nl-search-spinner"
-            class="conversational-prompt-console">
-        <div class="prompt-spark-icon text-primary">
-          <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+            class="w-full bg-surface-container-lowest rounded-lg p-2 lg:p-3 shadow-inner flex flex-col md:flex-row items-center gap-2 focus-within:shadow-[0_0_24px_rgba(6,182,212,0.25)] transition-all">
+        <div class="flex items-center pl-2 text-primary">
+          <span class="material-symbols-outlined text-[24px]">auto_awesome</span>
         </div>
-        <div class="prompt-input-wrapper">
-          <input type="text"
+        <div class="flex-1 w-full min-w-0">
+          <input class="w-full bg-transparent font-headline-sm text-headline-sm text-on-surface placeholder:text-outline focus:outline-none px-2 py-1 select-all"
+                 id="vibeInput"
                  name="prompt"
-                 id="nl-playlist-prompt-input"
-                 class="conversational-input select-all"
-                 placeholder="Describe your vibe, mood, tempo, or sonic atmosphere in plain English..."
-                 value="{{ prompt if prompt is defined and prompt else '' }}" />
+                 placeholder="Describe your vibe, mood, tempo, or sonic mood in plain English..."
+                 type="text"
+                 value="{{ prompt if prompt is defined and prompt else 'upbeat high-energy pop-punk and melodic rock around 140 bpm for a sunny outdoor skate session' }}"/>
         </div>
-        <div class="prompt-action-cluster">
-          <button type="button" class="btn-clear-prompt" onclick="document.getElementById('nl-playlist-prompt-input').value='';" title="Clear text">
-            ✕
+        <!-- Input Actions & Trigger -->
+        <div class="flex items-center gap-2 w-full md:w-auto justify-end pr-1">
+          <button class="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors"
+                  onclick="document.getElementById('vibeInput').value='';"
+                  title="Clear text"
+                  type="button">
+            <span class="material-symbols-outlined text-[18px]">close</span>
           </button>
-          <button type="button" class="btn-mic-prompt" title="Voice Prompt Mode">
-            🎙️
+          <button class="w-9 h-9 rounded-full flex items-center justify-center bg-surface-container text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-all"
+                  title="Voice Prompt Mode"
+                  type="button">
+            <span class="material-symbols-outlined text-[20px]">mic</span>
           </button>
-          <button type="submit" class="btn-cook-mixtape" id="cookBtn">
+          <button class="px-5 py-2.5 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm text-headline-sm tracking-tight font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.45)] hover:shadow-[0_0_28px_rgba(6,182,212,0.7)] hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                  id="cookBtn"
+                  type="submit">
             <span>Cook Up Mixtape</span>
-            <span class="bolt-icon">⚡</span>
-            <span id="nl-search-spinner" class="htmx-indicator" style="font-size: 11px;">...</span>
+            <span class="material-symbols-outlined text-[20px]">bolt</span>
+            <span id="nl-search-spinner" class="htmx-indicator font-label-sm text-label-sm">...</span>
           </button>
         </div>
       </form>
 
       <!-- Quick Suggestion Pills -->
-      <div class="quick-injections-bar">
-        <span class="quick-injections-label uppercase font-mono">Quick Injections:</span>
-        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Morning Coffee & Lo-Fi')">
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        <span class="font-label-sm text-label-sm text-outline mr-1 uppercase tracking-wider font-mono">Quick Injections:</span>
+        <button class="group font-label-md text-label-md px-3 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5"
+                onclick="applyNlPrompt('Morning Coffee & Lo-Fi')"
+                type="button">
           <span>☕</span> Morning Coffee &amp; Lo-Fi
         </button>
-        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('High Energy Workout >130 BPM')">
+        <button class="group font-label-md text-label-md px-3 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5"
+                onclick="applyNlPrompt('High Energy Workout >130 BPM')"
+                type="button">
           <span>🏃</span> High Energy Workout &gt;130 BPM
         </button>
-        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Late Night Rainy Melancholy')">
+        <button class="group font-label-md text-label-md px-3 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5"
+                onclick="applyNlPrompt('Late Night Rainy Melancholy')"
+                type="button">
           <span>🌙</span> Late Night Rainy Melancholy
         </button>
-        <button type="button" class="quick-injection-pill highlight-cyan" onclick="applyNlPrompt('Fast Pop-Punk Blast')">
+        <button class="group font-label-md text-label-md px-3.5 py-1 rounded-full bg-primary-container/20 text-primary font-semibold shadow-[0_0_12px_rgba(6,182,212,0.3)] transition-all flex items-center gap-1.5"
+                onclick="applyNlPrompt('Fast Pop-Punk Blast')"
+                type="button">
           <span>⚡</span> Fast Pop-Punk Blast
-          <span class="w-1.5 h-1.5 rounded-full bg-primary inline-block ml-1"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
         </button>
-        <button type="button" class="quick-injection-pill" onclick="applyNlPrompt('Deep Focus & Synth Textures')">
+        <button class="group font-label-md text-label-md px-3 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1.5"
+                onclick="applyNlPrompt('Deep Focus & Synth Textures')"
+                type="button">
           <span>🎧</span> Deep Focus &amp; Synth Textures
         </button>
       </div>
 
       <!-- Parsed Sonic DNA Badges & Tuners -->
-      <div class="sonic-dna-bar">
-        <div class="dna-badges-cluster">
-          <span class="dna-label font-mono uppercase">
-            <span class="dna-icon">🧬</span> Parsed Sonic DNA:
+      <div class="bg-surface-container-low rounded-lg p-3 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 shadow-sm">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-label-sm text-label-sm text-outline uppercase tracking-wider flex items-center gap-1 font-mono">
+            <span class="material-symbols-outlined text-[14px] text-tertiary">strikethrough_s</span>
+            Parsed Sonic DNA:
           </span>
-          <span class="dna-chip chip-amber font-semibold">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-secondary/15 text-secondary flex items-center gap-1 font-semibold">
             Energy: High 🔥
           </span>
-          <span class="dna-chip chip-cyan font-semibold">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-primary-container/15 text-primary flex items-center gap-1 font-semibold">
             BPM: 130–155 ⚡
           </span>
-          <span class="dna-chip chip-green font-semibold">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-tertiary/15 text-tertiary flex items-center gap-1 font-semibold">
             Danceability: 74% 💃
           </span>
-          <span class="dna-chip chip-neutral font-medium">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface flex items-center gap-1">
             Mood: Euphoric &amp; Punchy 🛹
           </span>
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-secondary-container/20 text-secondary flex items-center gap-1">
+            Analog Saturation: 65% 📼
+          </span>
         </div>
-        <div class="dna-camelot-rel font-mono text-xs text-primary">
-          <span>Optimal Camelot Arc: <strong>8A → 9A → 10A (Boost)</strong></span>
+        <!-- Quick Tweak Toggle Pills -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant hover:text-on-surface flex items-center gap-1 transition-colors" type="button">
+            <span class="material-symbols-outlined text-[14px]">tune</span>
+            Strict BPM Lock
+            <span class="w-2 h-2 rounded-full bg-tertiary inline-block"></span>
+          </button>
+          <button class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant hover:text-on-surface flex items-center gap-1 transition-colors" type="button">
+            <span class="material-symbols-outlined text-[14px]">graphic_eq</span>
+            Camelot Key Matching: On
+          </button>
         </div>
       </div>
     </div>
   </section>
 
   <!-- 4-Step Stepper Navigation Header -->
-  <nav class="builder-stepper" aria-label="Playlist Builder Steps">
+  <nav class="builder-stepper w-full bg-surface-container-low/90 backdrop-blur-md rounded-full p-1.5 flex items-center justify-between ring-1 ring-outline-variant/30 shadow-md my-space-md" aria-label="Playlist Builder Steps">
     <button type="button"
-            class="builder-step-pill {% if current_step == 1 %}active{% elif current_step > 1 %}completed{% endif %}"
+            class="builder-step-pill flex items-center gap-2 px-space-md py-1.5 rounded-full font-label-md text-label-md transition-all {% if current_step == 1 %}active bg-primary-container text-surface-container-lowest font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)]{% elif current_step > 1 %}completed text-tertiary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %}"
             id="pill-step-1"
             onclick="switchBuilderStep(1)">
-      <span class="step-num">1</span>
+      <span class="step-num w-5 h-5 rounded-full flex items-center justify-center font-label-sm text-label-sm {% if current_step == 1 %}bg-surface-container-lowest text-primary font-bold{% elif current_step > 1 %}bg-tertiary/20 text-tertiary font-bold{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">1</span>
       <span>Seed Track</span>
     </button>
-    <div class="builder-step-divider"></div>
+    <div class="builder-step-divider flex-1 h-px bg-outline-variant/30 mx-2"></div>
 
     <button type="button"
-            class="builder-step-pill {% if current_step == 2 %}active{% elif current_step > 2 %}completed{% endif %}"
+            class="builder-step-pill flex items-center gap-2 px-space-md py-1.5 rounded-full font-label-md text-label-md transition-all {% if current_step == 2 %}active bg-primary-container text-surface-container-lowest font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)]{% elif current_step > 2 %}completed text-tertiary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %}"
             id="pill-step-2"
             onclick="switchBuilderStep(2)">
-      <span class="step-num">2</span>
-      <span>Vibe Arc & Constraints</span>
+      <span class="step-num w-5 h-5 rounded-full flex items-center justify-center font-label-sm text-label-sm {% if current_step == 2 %}bg-surface-container-lowest text-primary font-bold{% elif current_step > 2 %}bg-tertiary/20 text-tertiary font-bold{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">2</span>
+      <span>Vibe Arc &amp; Constraints</span>
     </button>
-    <div class="builder-step-divider"></div>
+    <div class="builder-step-divider flex-1 h-px bg-outline-variant/30 mx-2"></div>
 
     <button type="button"
-            class="builder-step-pill {% if current_step == 3 %}active{% elif current_step > 3 %}completed{% endif %}"
+            class="builder-step-pill flex items-center gap-2 px-space-md py-1.5 rounded-full font-label-md text-label-md transition-all {% if current_step == 3 %}active bg-primary-container text-surface-container-lowest font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)]{% elif current_step > 3 %}completed text-tertiary bg-surface-container-high{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %}"
             id="pill-step-3"
             onclick="switchBuilderStep(3)"
             {% if not playlist or not playlist.tracks %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
-      <span class="step-num">3</span>
+      <span class="step-num w-5 h-5 rounded-full flex items-center justify-center font-label-sm text-label-sm {% if current_step == 3 %}bg-surface-container-lowest text-primary font-bold{% elif current_step > 3 %}bg-tertiary/20 text-tertiary font-bold{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">3</span>
       <span>Harmonic Preview</span>
     </button>
-    <div class="builder-step-divider"></div>
+    <div class="builder-step-divider flex-1 h-px bg-outline-variant/30 mx-2"></div>
 
     <button type="button"
-            class="builder-step-pill {% if current_step == 4 %}active{% endif %}"
+            class="builder-step-pill flex items-center gap-2 px-space-md py-1.5 rounded-full font-label-md text-label-md transition-all {% if current_step == 4 %}active bg-primary-container text-surface-container-lowest font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)]{% else %}text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high{% endif %}"
             id="pill-step-4"
             onclick="switchBuilderStep(4)"
             {% if not playlist or not playlist.tracks %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
-      <span class="step-num">4</span>
-      <span>Drag & Drop Reorder</span>
+      <span class="step-num w-5 h-5 rounded-full flex items-center justify-center font-label-sm text-label-sm {% if current_step == 4 %}bg-surface-container-lowest text-primary font-bold{% else %}bg-surface-container-highest text-on-surface-variant{% endif %}">4</span>
+      <span>Drag &amp; Drop Reorder</span>
     </button>
   </nav>
 
   <!-- STEP 1: Seed Track Picker -->
   <section id="builder-step-1" class="builder-step-panel" style="display: {% if current_step == 1 %}block{% else %}none{% endif %};">
-    <div style="background: var(--bg-container-low); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div class="bg-surface-container rounded-lg p-space-md lg:p-space-lg shadow-xl flex flex-col gap-space-md ring-1 ring-outline-variant/30">
+      <div class="flex justify-between items-start">
         <div>
-          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); text-transform: uppercase;">Step 1 of 4</span>
-          <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 2px 0;">Select Reference Seed Track</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+          <span class="font-label-sm text-label-sm text-primary uppercase font-mono tracking-wider">Step 1 of 4</span>
+          <h3 class="font-headline-md text-headline-md font-bold text-on-surface mt-1">Select Reference Seed Track</h3>
+          <p class="font-label-md text-label-md text-on-surface-variant mt-0.5">
             Search your lossless library to pick an anchor track. The harmonic engine will build acoustic compatibility outward from its root key and tempo.
           </p>
         </div>
-        <span class="badge-spec">ACOUSTIC TELEMETRY</span>
+        <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-mono font-semibold">ACOUSTIC TELEMETRY</span>
       </div>
 
       <!-- Live Search Input -->
-      <div style="position: relative;">
+      <div class="relative w-full">
         <input type="text"
                id="builder-seed-search-input"
-               class="input-text"
+               class="w-full bg-surface-container-lowest rounded-full pl-10 pr-24 py-2.5 text-on-surface placeholder:text-outline font-label-md text-label-md ring-1 ring-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary-container shadow-inner"
                placeholder="Search by title, artist, or album..."
                hx-get="/api/playlist/builder/search"
                hx-trigger="input changed delay:200ms, search"
                hx-target="#builder-seed-search-results"
-               hx-indicator="#seed-search-spinner"
-               style="width: 100%; padding-left: 2rem; font-size: 13px;"/>
-        <svg class="icon" style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; fill: var(--text-dim);" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <span id="seed-search-spinner" class="htmx-indicator" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--primary); font-family: var(--font-mono);">SEARCHING...</span>
+               hx-indicator="#seed-search-spinner"/>
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+        <span id="seed-search-spinner" class="htmx-indicator absolute right-3 top-1/2 -translate-y-1/2 text-primary font-label-sm text-label-sm font-mono">SEARCHING...</span>
       </div>
 
       <!-- Live Search Results Container -->
       <div id="builder-seed-search-results">
-        <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 12px; border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+        <div class="text-center py-6 px-4 text-outline font-label-md text-label-md border border-dashed border-outline-variant/40 rounded-lg">
           Type above to search tracks with live harmonic keys and BPM telemetry.
         </div>
       </div>
 
       <!-- Active Seed Track Selected Card -->
-      <div id="selected-seed-card" style="display: {% if current_seed_id %}flex{% else %}none{% endif %}; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: var(--primary-tint); border: 1px solid var(--primary-border); border-radius: var(--radius-md);">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--primary); display: flex; align-items: center; justify-content: center;">
-            <svg class="icon" style="width: 16px; height: 16px; fill: var(--on-primary);" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+      <div id="selected-seed-card"
+           class="{% if current_seed_id %}flex{% else %}hidden{% endif %} items-center justify-between p-3.5 bg-primary-container/10 border border-primary-container/30 rounded-lg shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center font-bold">
+            <span class="material-symbols-outlined text-[18px]">check</span>
           </div>
           <div>
-            <div style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--primary); font-weight: 600;">Active Seed Track</div>
-            <div id="selected-seed-title" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">
+            <div class="font-label-sm text-label-sm uppercase text-primary font-semibold font-mono">Active Seed Track</div>
+            <div id="selected-seed-title" class="font-headline-sm text-headline-sm text-on-surface font-bold">
               {% if playlist and playlist.tracks %}{{ playlist.tracks[0].title }}{% else %}No Track Selected{% endif %}
             </div>
-            <div id="selected-seed-artist" style="font-size: 11px; color: var(--text-muted);">
+            <div id="selected-seed-artist" class="font-label-md text-label-md text-on-surface-variant">
               {% if playlist and playlist.tracks %}{{ playlist.tracks[0].artist }} — {{ playlist.tracks[0].album }}{% endif %}
             </div>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <span class="badge-spec" id="selected-seed-bpm">
+        <div class="flex items-center gap-2">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface font-mono" id="selected-seed-bpm">
             {% if playlist and playlist.tracks and playlist.tracks[0].bpm %}{{ playlist.tracks[0].bpm|round(1) }} BPM{% else %}— BPM{% endif %}
           </span>
-          <span class="badge-camelot" id="selected-seed-camelot">
+          <span class="font-label-sm text-label-sm px-2.5 py-1 rounded-full bg-primary-container/20 text-primary font-mono font-semibold" id="selected-seed-camelot">
             {% if playlist and playlist.tracks %}{{ playlist.tracks[0].camelot or playlist.tracks[0].key or '—' }}{% else %}—{% endif %}
           </span>
         </div>
       </div>
 
       <!-- Step 1 Footer Action -->
-      <div style="display: flex; justify-content: flex-end; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
+      <div class="flex justify-end pt-3 border-t border-outline-variant/30">
         <button type="button"
                 id="btn-goto-step-2"
-                class="btn-primary"
+                class="px-5 py-2.5 rounded-full bg-primary-container text-surface-container-lowest font-label-md text-label-md font-bold flex items-center gap-2 shadow-[0_0_16px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all"
                 onclick="switchBuilderStep(2)"
                 {% if not current_seed_id %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
           <span>Continue to Step 2: Vibe Arc ➔</span>
@@ -235,185 +267,185 @@
     <form hx-post="/api/playlist/builder/preview"
           hx-target="#guided-playlist-builder-root"
           hx-swap="outerHTML"
-          style="display: flex; flex-direction: column; gap: 1rem; background: var(--bg-container-low); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.25rem;">
+          class="flex flex-col gap-space-md bg-surface-container rounded-lg p-space-md lg:p-space-lg shadow-xl ring-1 ring-outline-variant/30">
       <input type="hidden" name="seed_track_id" id="builder-form-seed-id" value="{{ current_seed_id }}"/>
 
-      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div class="flex justify-between items-start">
         <div>
-          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); text-transform: uppercase;">Step 2 of 4</span>
-          <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 2px 0;">Vibe Arc & Mixing Constraints</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+          <span class="font-label-sm text-label-sm text-primary uppercase font-mono tracking-wider">Step 2 of 4</span>
+          <h3 class="font-headline-md text-headline-md font-bold text-on-surface mt-1">Vibe Arc &amp; Mixing Constraints</h3>
+          <p class="font-label-md text-label-md text-on-surface-variant mt-0.5">
             Select an energy trajectory arc for your session and tune harmonic tolerance parameters.
           </p>
         </div>
-        <button type="button" class="btn-secondary" onclick="switchBuilderStep(1)" style="font-size: 11px; padding: 0.25rem 0.6rem;">
+        <button type="button" class="px-3.5 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors flex items-center gap-1" onclick="switchBuilderStep(1)">
           <span>← Back to Seed</span>
         </button>
       </div>
 
       <!-- Journey Arc Selector Grid -->
       <div>
-        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 0.4rem;">
+        <label class="block font-label-md text-label-md font-semibold text-on-surface mb-2">
           Journey Arc Trajectory
         </label>
-        <div class="arc-cards-grid">
+        <div class="arc-cards-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <!-- Arc 1: Energy Ramp -->
-          <label class="arc-card {% if current_arc == 'energy_ramp' %}active{% endif %}">
-            <input type="radio" name="arc" value="energy_ramp" {% if current_arc == 'energy_ramp' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Energy Ramp</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+          <label class="arc-card {% if current_arc == 'energy_ramp' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-primary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="energy_ramp" {% if current_arc == 'energy_ramp' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Energy Ramp</span>
+              <span class="material-symbols-outlined text-[18px] text-primary">trending_up</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Gradual warm-up ascending smoothly into a high-energy climax.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">0.25 ➔ 0.90 Target Energy</div>
+            <div class="font-label-sm text-label-sm text-tertiary font-mono">0.25 ➔ 0.90 Target Energy</div>
           </label>
 
           <!-- Arc 2: Peak-Hour Wave -->
-          <label class="arc-card {% if current_arc == 'peak_hour_wave' or current_arc == 'peak' %}active{% endif %}">
-            <input type="radio" name="arc" value="peak_hour_wave" {% if current_arc == 'peak_hour_wave' or current_arc == 'peak' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Peak-Hour Wave</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M14 6l1.41 1.41-3.3 3.3 3.3 3.29-1.41 1.41-4.71-4.7 4.71-4.71zm-8 0l1.41 1.41-3.3 3.3 3.3 3.29-1.41 1.41-4.71-4.7 4.71-4.71zM18 12h4v2h-4z"/></svg>
+          <label class="arc-card {% if current_arc == 'peak_hour_wave' or current_arc == 'peak' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-secondary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="peak_hour_wave" {% if current_arc == 'peak_hour_wave' or current_arc == 'peak' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Peak-Hour Wave</span>
+              <span class="material-symbols-outlined text-[18px] text-secondary">waves</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Gentle ascent to an explosive peak, followed by gradual cooldown.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--secondary);">Sinusoidal Wave (Apex ~0.90)</div>
+            <div class="font-label-sm text-label-sm text-secondary font-mono">Sinusoidal Wave (Apex ~0.90)</div>
           </label>
 
           <!-- Arc 3: Steady Pulse -->
-          <label class="arc-card {% if current_arc == 'steady_pulse' or current_arc == 'steady' %}active{% endif %}">
-            <input type="radio" name="arc" value="steady_pulse" {% if current_arc == 'steady_pulse' or current_arc == 'steady' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Steady Pulse</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M3 13h2l3.5-7 4 14 3.5-9 2 4H21v-2h-6.5l-2 4.5-3.5-12.5-4 8H3v2z"/></svg>
+          <label class="arc-card {% if current_arc == 'steady_pulse' or current_arc == 'steady' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-tertiary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="steady_pulse" {% if current_arc == 'steady_pulse' or current_arc == 'steady' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Steady Pulse</span>
+              <span class="material-symbols-outlined text-[18px] text-tertiary">monitor_heart</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Hypnotic locked groove maintaining consistent dance floor drive.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">Flat Plateau (~0.60 Energy)</div>
+            <div class="font-label-sm text-label-sm text-tertiary font-mono">Flat Plateau (~0.60 Energy)</div>
           </label>
 
           <!-- Arc 4: Late Night Chill -->
-          <label class="arc-card {% if current_arc == 'late_night_chill' or current_arc == 'chill' %}active{% endif %}">
-            <input type="radio" name="arc" value="late_night_chill" {% if current_arc == 'late_night_chill' or current_arc == 'chill' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Late Night Chill</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+          <label class="arc-card {% if current_arc == 'late_night_chill' or current_arc == 'chill' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-primary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="late_night_chill" {% if current_arc == 'late_night_chill' or current_arc == 'chill' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Late Night Chill</span>
+              <span class="material-symbols-outlined text-[18px] text-primary">bedtime</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Mellow nocturnal flow descending into deep introspective calm.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary);">0.45 ➔ 0.20 Ambient Decay</div>
+            <div class="font-label-sm text-label-sm text-primary font-mono">0.45 ➔ 0.20 Ambient Decay</div>
           </label>
 
           <!-- Arc 5: Double Peak -->
-          <label class="arc-card {% if current_arc == 'double_peak' %}active{% endif %}">
-            <input type="radio" name="arc" value="double_peak" {% if current_arc == 'double_peak' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Double Peak</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M4 18h2V6l3 5 3-5v12h2V6l3 5 3-5v12h2V4l-4 7-3-5-3 5-4-7z"/></svg>
+          <label class="arc-card {% if current_arc == 'double_peak' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-secondary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="double_peak" {% if current_arc == 'double_peak' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Double Peak</span>
+              <span class="material-symbols-outlined text-[18px] text-secondary">insights</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Two energetic climaxes separated by an atmospheric breakdown.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--secondary);">Twin Apex (~0.85 / ~0.90)</div>
+            <div class="font-label-sm text-label-sm text-secondary font-mono">Twin Apex (~0.85 / ~0.90)</div>
           </label>
 
           <!-- Arc 6: Sunrise Roller -->
-          <label class="arc-card {% if current_arc == 'sunrise_roller' %}active{% endif %}">
-            <input type="radio" name="arc" value="sunrise_roller" {% if current_arc == 'sunrise_roller' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Sunrise Roller</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5 0 .65.13 1.26.36 1.83l2.92-2.92c.39-.39 1.02-.39 1.41 0l3.14 3.14c.73-.59 1.17-1.48 1.17-2.05 0-2.76-2.24-5-5-5zm-1.28 10.95L8.3 15.53C8.1 14.73 8 13.88 8 13c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.1 1.73-.3 2.53l-2.42 2.42c-.78.78-2.05.78-2.56 0zM1 18h22v2H1z"/></svg>
+          <label class="arc-card {% if current_arc == 'sunrise_roller' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-tertiary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="sunrise_roller" {% if current_arc == 'sunrise_roller' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Sunrise Roller</span>
+              <span class="material-symbols-outlined text-[18px] text-tertiary">wb_sunny</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Uplifting progression rising into bright morning euphoria.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">0.35 ➔ 0.85 Rolling Lift</div>
+            <div class="font-label-sm text-label-sm text-tertiary font-mono">0.35 ➔ 0.85 Rolling Lift</div>
           </label>
 
           <!-- Arc 7: Deep Dive -->
-          <label class="arc-card {% if current_arc == 'deep_dive' %}active{% endif %}">
-            <input type="radio" name="arc" value="deep_dive" {% if current_arc == 'deep_dive' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Deep Dive</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--primary);" viewBox="0 0 24 24"><path d="M16 13h-3V3h-2v10H8l4 4 4-4zM4 19v2h16v-2H4z"/></svg>
+          <label class="arc-card {% if current_arc == 'deep_dive' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-primary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="deep_dive" {% if current_arc == 'deep_dive' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Deep Dive</span>
+              <span class="material-symbols-outlined text-[18px] text-primary">scuba_diving</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Hypnotic descent into sub-bass depths and minimal textures.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--primary);">0.70 ➔ 0.30 Deep Plunge</div>
+            <div class="font-label-sm text-label-sm text-primary font-mono">0.70 ➔ 0.30 Deep Plunge</div>
           </label>
 
           <!-- Arc 8: Heartbeat Wave -->
-          <label class="arc-card {% if current_arc == 'heartbeat_wave' %}active{% endif %}">
-            <input type="radio" name="arc" value="heartbeat_wave" {% if current_arc == 'heartbeat_wave' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Heartbeat Wave</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M3 12h3.5l2.5-6 4 13 3-9 2 4H21v-2h-4.5l-2.5 5.5-3-11.5-4 9H3v2z"/></svg>
+          <label class="arc-card {% if current_arc == 'heartbeat_wave' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-secondary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="heartbeat_wave" {% if current_arc == 'heartbeat_wave' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Heartbeat Wave</span>
+              <span class="material-symbols-outlined text-[18px] text-secondary">favorite</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Pulsing rhythmic oscillations cycling between peaks and valleys.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--secondary);">Cyclic Dynamic Waves</div>
+            <div class="font-label-sm text-label-sm text-secondary font-mono">Cyclic Dynamic Waves</div>
           </label>
 
           <!-- Arc 9: Slow Burn -->
-          <label class="arc-card {% if current_arc == 'slow_burn' %}active{% endif %}">
-            <input type="radio" name="arc" value="slow_burn" {% if current_arc == 'slow_burn' %}checked{% endif %} style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateArcSelection(this)"/>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Slow Burn</span>
-              <svg class="icon" style="width: 16px; height: 16px; fill: var(--tertiary);" viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg>
+          <label class="arc-card {% if current_arc == 'slow_burn' %}active{% endif %} group relative bg-surface-container-low hover:bg-surface-container-high rounded-lg p-3.5 ring-1 ring-outline-variant/30 hover:ring-tertiary/40 transition-all cursor-pointer flex flex-col gap-1.5 shadow-sm">
+            <input type="radio" name="arc" value="slow_burn" {% if current_arc == 'slow_burn' %}checked{% endif %} class="sr-only" onchange="updateArcSelection(this)"/>
+            <div class="flex justify-between items-center">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Slow Burn</span>
+              <span class="material-symbols-outlined text-[18px] text-tertiary">local_fire_department</span>
             </div>
-            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">
+            <p class="font-label-md text-label-md text-on-surface-variant m-0">
               Extended subtle build with incremental tension leading to a late peak.
             </p>
-            <div style="font-family: var(--font-mono); font-size: 10px; color: var(--tertiary);">0.30 ➔ 0.95 Late Climax</div>
+            <div class="font-label-sm text-label-sm text-tertiary font-mono">0.30 ➔ 0.95 Late Climax</div>
           </label>
         </div>
       </div>
 
       <!-- Controls & Sliders Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: var(--bg-container); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-surface-container-low rounded-lg ring-1 ring-outline-variant/20 shadow-sm">
         <!-- Playlist Name -->
         <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Session Title</label>
-          <input type="text" name="name" class="input-text" value="Harmonic Journey Session" style="width: 100%; font-size: 12px;"/>
+          <label class="block font-label-sm text-label-sm text-outline mb-1 font-mono uppercase">Session Title</label>
+          <input type="text" name="name" class="w-full bg-surface-container-lowest rounded-full px-3 py-1.5 text-on-surface font-label-md text-label-md ring-1 ring-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary" value="Harmonic Journey Session"/>
         </div>
 
         <!-- Track Limit Slider -->
-        <div class="slider-group">
-          <div class="slider-label" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+        <div class="flex flex-col justify-between">
+          <div class="flex justify-between font-label-sm text-label-sm text-outline mb-1 font-mono">
             <span>Track Limit</span>
-            <span id="builder-limit-val" style="font-family: var(--font-mono); font-weight: 600; color: var(--primary);">12</span>
+            <span id="builder-limit-val" class="font-semibold text-primary">12</span>
           </div>
-          <input type="range" name="limit" min="5" max="30" step="1" value="12" style="width: 100%;" oninput="document.getElementById('builder-limit-val').textContent = this.value;"/>
+          <input type="range" name="limit" min="5" max="30" step="1" value="12" class="w-full accent-primary-container h-1.5 bg-surface-container-highest rounded-full cursor-pointer" oninput="document.getElementById('builder-limit-val').textContent = this.value;"/>
         </div>
 
         <!-- Max BPM Delta Slider -->
-        <div class="slider-group">
-          <div class="slider-label" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">
+        <div class="flex flex-col justify-between">
+          <div class="flex justify-between font-label-sm text-label-sm text-outline mb-1 font-mono">
             <span>Max BPM Delta</span>
-            <span id="builder-bpm-delta-val" style="font-family: var(--font-mono); font-weight: 600; color: var(--tertiary);">±10 BPM</span>
+            <span id="builder-bpm-delta-val" class="font-semibold text-tertiary">±10 BPM</span>
           </div>
-          <input type="range" name="max_bpm_delta" min="2" max="25" step="1" value="10" style="width: 100%;" oninput="document.getElementById('builder-bpm-delta-val').textContent = '±' + this.value + ' BPM';"/>
+          <input type="range" name="max_bpm_delta" min="2" max="25" step="1" value="10" class="w-full accent-tertiary h-1.5 bg-surface-container-highest rounded-full cursor-pointer" oninput="document.getElementById('builder-bpm-delta-val').textContent = '±' + this.value + ' BPM';"/>
         </div>
 
         <!-- Max Per Artist -->
         <div>
-          <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Max Per Artist</label>
-          <input type="number" name="max_artist_tracks" class="input-text" value="2" min="1" max="5" style="width: 100%; text-align: center;"/>
+          <label class="block font-label-sm text-label-sm text-outline mb-1 font-mono uppercase">Max Per Artist</label>
+          <input type="number" name="max_artist_tracks" class="w-full bg-surface-container-lowest rounded-full px-3 py-1.5 text-on-surface font-label-md text-label-md text-center ring-1 ring-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary" value="2" min="1" max="5"/>
         </div>
 
         <!-- Allow Half-Time / Double-Time -->
-        <div style="display: flex; align-items: center; gap: 0.5rem; grid-column: 1 / -1; margin-top: 0.25rem;">
-          <input type="checkbox" id="allow_half_double_time" name="allow_half_double_time" value="true" class="checkbox-input"/>
-          <label for="allow_half_double_time" style="font-size: 12px; color: var(--text-primary); cursor: pointer; user-select: none;">
-            <strong>Allow Half-Time / Double-Time</strong>
-            <span style="display: block; font-size: 11px; color: var(--text-muted);">
+        <div class="flex items-center gap-2 sm:col-span-2 lg:col-span-4 pt-1">
+          <input type="checkbox" id="allow_half_double_time" name="allow_half_double_time" value="true" class="w-4 h-4 rounded accent-primary-container cursor-pointer"/>
+          <label for="allow_half_double_time" class="font-label-md text-label-md text-on-surface cursor-pointer select-none">
+            <span class="font-semibold">Allow Half-Time / Double-Time</span>
+            <span class="text-on-surface-variant block text-label-sm font-normal">
               Permit smooth transitions across 2x octave boundaries (e.g. 75 BPM ➔ 150 BPM) without penalty.
             </span>
           </label>
@@ -421,9 +453,9 @@
       </div>
 
       <!-- Step 2 Submit Action -->
-      <div style="display: flex; justify-content: flex-end; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
-        <button type="submit" class="btn-primary" style="padding: 0.55rem 1.25rem;">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
+      <div class="flex justify-end pt-3 border-t border-outline-variant/30">
+        <button type="submit" class="px-5 py-2.5 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm text-headline-sm font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.45)] hover:scale-105 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
           <span>Generate Harmonic Sequence ➔</span>
         </button>
       </div>
@@ -433,41 +465,43 @@
   <!-- STEP 3: Harmonic Transition Preview -->
   <section id="builder-step-3" class="builder-step-panel" style="display: {% if current_step == 3 %}block{% else %}none{% endif %};">
     {% if playlist and playlist.tracks %}
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      <!-- Playlist Telemetry Header -->
-      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container-low); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem 1.25rem;">
-        <div>
-          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); text-transform: uppercase;">
-            {{ playlist.mode }} Mode • Playlist #{{ playlist.playlist_id }}
+    <div class="flex flex-col gap-space-md">
+      <!-- Mixtape Control Ribbon (Stitch Layout) -->
+      <div class="flex flex-wrap items-center justify-between gap-space-md bg-surface-container rounded-lg p-space-md shadow-md ring-1 ring-outline-variant/30">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-headline-md">⚡</span>
+            <h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">
+              {{ playlist.name }}
+            </h2>
           </div>
-          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 2px 0;">
-            {{ playlist.name }}
-          </h3>
-          <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem; margin-top: 4px;">
-            <span>{{ playlist.tracks|length }} Tracks</span>
-            <span>•</span>
-            <span>{{ (playlist.total_duration // 60)|int }}m {{ "%02d"|format((playlist.total_duration % 60)|int) }}s</span>
-            <span>•</span>
-            <span>Avg Transition: <strong style="color: var(--tertiary);">{{ (playlist.avg_transition_score * 100)|round(1) if playlist.avg_transition_score <= 1.0 else playlist.avg_transition_score|round(1) }}/100</strong></span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-label-sm text-label-sm px-3 py-1 rounded-full bg-tertiary/15 text-tertiary font-semibold flex items-center gap-1 shadow-[0_0_12px_rgba(78,222,163,0.25)] font-mono">
+              <span>🎉</span> {{ playlist.tracks|length }} songs • {{ (playlist.total_duration // 60)|int }}m {{ "%02d"|format((playlist.total_duration % 60)|int) }}s
+            </span>
+            <span class="font-label-sm text-label-sm px-3 py-1 rounded-full bg-primary-container/15 text-primary font-semibold flex items-center gap-1 font-mono">
+              <span>🎯</span> Avg Fit: {{ (playlist.avg_transition_score * 100)|round(1) if playlist.avg_transition_score <= 1.0 else playlist.avg_transition_score|round(1) }}%
+            </span>
           </div>
         </div>
 
-        <!-- Actions -->
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button type="button" class="btn-secondary" onclick="switchBuilderStep(4)">
+        <!-- Actions Suite -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="px-4 py-2 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5" onclick="switchBuilderStep(4)">
+            <span class="material-symbols-outlined text-[16px] text-primary">drag_indicator</span>
             <span>Fine-Tune Order (Step 4) ➔</span>
           </button>
           {% if playlist.playlist_id %}
-          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="btn-secondary" download>
-            <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-            <span>Export M3U8</span>
+          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="px-3 py-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1" title="Export standard audio playlist" download>
+            <span class="material-symbols-outlined text-[16px]">file_download</span>
+            <span>.m3u8</span>
           </a>
-          <button class="btn-primary"
+          <button class="px-5 py-2 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm text-headline-sm font-bold flex items-center gap-1.5 shadow-[0_0_16px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-transform"
                   hx-post="/api/player/play-playlist/{{ playlist.playlist_id }}"
                   hx-target="#transport-footer-container"
                   hx-swap="innerHTML">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            <span>Play in MPD</span>
+            <span class="material-symbols-outlined text-[20px]">play_arrow</span>
+            <span>Spin It Now</span>
           </button>
           {% endif %}
         </div>
@@ -475,18 +509,18 @@
 
       <!-- Harmonic Telemetry Badges Strip -->
       {% if summary %}
-      <div style="display: flex; gap: 0.75rem; align-items: center; padding: 0.5rem 1rem; background: var(--bg-container-lowest); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 11px;">
-        <span style="color: var(--text-muted);">Harmonic Summary:</span>
-        <span class="badge-harmonic-seamless">{{ summary.seamless_count }} Seamless</span>
-        <span class="badge-harmonic-boost">{{ summary.boost_count }} Energy Boosts (+1)</span>
-        <span class="badge-harmonic-acceptable">{{ summary.acceptable_count }} Acceptable</span>
+      <div class="flex flex-wrap items-center gap-2 p-3 bg-surface-container-low rounded-lg ring-1 ring-outline-variant/20 font-mono text-label-sm">
+        <span class="text-outline uppercase tracking-wider">Harmonic Summary:</span>
+        <span class="badge-harmonic-seamless px-2.5 py-1 rounded-full bg-tertiary/15 text-tertiary font-semibold">{{ summary.seamless_count }} Seamless</span>
+        <span class="badge-harmonic-boost px-2.5 py-1 rounded-full bg-primary-container/15 text-primary font-semibold">{{ summary.boost_count }} Energy Boosts (+1)</span>
+        <span class="badge-harmonic-acceptable px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-semibold">{{ summary.acceptable_count }} Acceptable</span>
         {% if summary.clash_count > 0 %}
-        <span class="badge-harmonic-clash">{{ summary.clash_count }} Clashes</span>
+        <span class="badge-harmonic-clash px-2.5 py-1 rounded-full bg-error-container/20 text-error font-semibold">{{ summary.clash_count }} Clashes</span>
         {% endif %}
       </div>
       {% endif %}
 
-      <!-- 2-Column Workspace: Tracks Console (Left 8 Cols) + Mixtape Inspector & Harmonic Deck (Right 4 Cols) -->
+      <!-- Two-Column Workspace: Tracks Console (Left) + Mixtape Inspector & Harmonic Deck (Right) -->
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
         <!-- LEFT COLUMN: The Track Crate (8 Cols) -->
         <div class="xl:col-span-8 flex flex-col gap-space-sm">
@@ -506,15 +540,15 @@
           <div class="harmonic-preview-list flex flex-col gap-1.5">
             {% for item in playlist.tracks %}
               <!-- Track Row Card -->
-              <div class="preview-track-card group relative w-full bg-surface-container hover:bg-surface-container-high rounded-lg p-2.5 flex items-center justify-between transition-all cursor-pointer"
+              <div class="preview-track-card group relative w-full bg-surface-container hover:bg-surface-container-high rounded-lg p-2.5 flex items-center justify-between transition-all cursor-pointer shadow-sm"
                    hx-post="/api/player/play-track/{{ item.track_id }}"
                    hx-target="#transport-footer-container"
                    hx-swap="innerHTML">
                 <div class="flex items-center gap-3 w-full sm:w-[42%] min-w-0">
-                  <span class="w-6 text-center font-label-md text-label-md text-outline">
+                  <span class="w-6 text-center font-label-md text-label-md text-outline font-mono">
                     {{ "%02d"|format(item.position) }}
                   </span>
-                  <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container-lowest flex items-center justify-center">
+                  <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container-lowest flex items-center justify-center shadow-inner">
                     <img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="{{ item.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ item.title }}"/>
                   </div>
                   <div class="flex flex-col min-w-0">
@@ -540,7 +574,7 @@
                 </div>
 
                 <div class="flex flex-col items-center justify-center w-[12%]">
-                  <span class="font-label-md text-label-md text-tertiary font-bold">
+                  <span class="font-label-md text-label-md text-tertiary font-bold font-mono">
                     {% if item.transition and item.transition.total_score %}
                       {{ (item.transition.total_score * 100)|round(1) if item.transition.total_score <= 1.0 else item.transition.total_score|round(1) }}%
                     {% else %}
@@ -553,14 +587,14 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-1.5 w-[12%] pr-1">
-                  <button class="w-7 h-7 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center hover:scale-110 transition-transform"
+                  <button class="w-8 h-8 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_12px_rgba(6,182,212,0.3)]"
                           type="button"
                           hx-post="/api/player/play-track/{{ item.track_id }}"
                           hx-target="#transport-footer-container"
                           hx-swap="innerHTML"
                           onclick="event.stopPropagation()"
                           title="Play Track">
-                    <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                    <span class="material-symbols-outlined text-[18px]">play_arrow</span>
                   </button>
                 </div>
               </div>
@@ -568,20 +602,20 @@
               <!-- Transition Connector between tracks -->
               {% if transitions and loop.index0 < transitions|length %}
                 {% set tr = transitions[loop.index0] %}
-                <div class="transition-connector transition-{{ tr.harmonic_badge }}">
-                  <div style="display: flex; align-items: center; gap: 0.6rem;">
-                    <svg class="icon" style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-                    <span style="font-weight: 600;">{{ tr.relation_label }}</span>
-                    <span class="badge-harmonic-{{ tr.harmonic_badge }}">
+                <div class="transition-connector transition-{{ tr.harmonic_badge }} flex items-center justify-between px-3 py-1.5 bg-surface-container-lowest/80 rounded-md border-l-2 {% if tr.harmonic_badge == 'seamless' %}border-tertiary text-tertiary{% elif tr.harmonic_badge == 'harmonic-boost' %}border-primary text-primary{% elif tr.harmonic_badge == 'clash' %}border-error text-error{% else %}border-outline-variant text-on-surface-variant{% endif %} font-mono text-label-sm my-1">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[14px]">arrow_downward</span>
+                    <span class="font-semibold">{{ tr.relation_label }}</span>
+                    <span class="badge-harmonic-{{ tr.harmonic_badge }} px-2 py-0.5 rounded-full bg-surface-container text-label-sm font-semibold">
                       {{ tr.quality }}
                     </span>
                   </div>
 
-                  <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <span style="color: var(--text-muted); font-size: 10px;">
+                  <div class="flex items-center gap-3">
+                    <span class="text-outline text-label-sm">
                       Δ {{ tr.bpm_delta }} BPM ({{ tr.bpm_delta_pct }}%) [{{ tr.bpm_status }}]
                     </span>
-                    <span class="badge-score {{ tr.badge_class }}">
+                    <span class="badge-score {{ tr.badge_class }} font-bold">
                       {{ tr.total_score }} / 100
                     </span>
                   </div>
@@ -594,9 +628,9 @@
         <!-- RIGHT COLUMN: Mixtape Inspector & Harmonic Deck (4 Cols) -->
         <div class="xl:col-span-4 flex flex-col gap-space-md">
           <!-- Physical Cassette / Deck Preview Card -->
-          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-xl relative overflow-hidden">
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-xl relative overflow-hidden ring-1 ring-outline-variant/30">
             <div class="flex items-center justify-between mb-3">
-              <span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Mixtape Deck Reel</span>
+              <span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-mono">Mixtape Deck Reel</span>
               <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary font-mono">
                 Lossless Bitstream
               </span>
@@ -604,8 +638,8 @@
             <!-- Stylized Cassette Graphic -->
             <div class="w-full bg-surface-container-lowest rounded-lg p-3 relative shadow-inner">
               <div class="w-full bg-surface-container-high rounded px-3 py-1 flex items-center justify-between mb-2">
-                <span class="font-label-sm text-label-sm text-secondary font-bold tracking-widest uppercase">SIDE A • {{ playlist.name if playlist and playlist.name else 'AUDIOPHILE SURGE' }}</span>
-                <span class="font-label-sm text-label-sm text-outline">Type IV Metal</span>
+                <span class="font-label-sm text-label-sm text-secondary font-bold tracking-widest uppercase font-mono">SIDE A • {{ playlist.name if playlist and playlist.name else 'AUDIOPHILE SURGE' }}</span>
+                <span class="font-label-sm text-label-sm text-outline font-mono">Type IV Metal</span>
               </div>
               <div class="w-full bg-surface-container-highest/60 rounded-md py-3 px-4 flex items-center justify-around relative">
                 <!-- Left Spool -->
@@ -632,7 +666,7 @@
                   <div class="w-3 h-3 rounded-full bg-surface-container-high"></div>
                 </div>
               </div>
-              <div class="flex items-center justify-between text-outline text-[10px] pt-2 px-1">
+              <div class="flex items-center justify-between text-outline text-[10px] pt-2 px-1 font-mono">
                 <span>FLAC 96kHz / 24-bit</span>
                 <span class="flex items-center gap-1 text-primary">
                   <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -654,16 +688,16 @@
           </div>
 
           <!-- Harmonic Flow Visualizer (Inline SVG Curve) -->
-          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-2">
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-2 ring-1 ring-outline-variant/30">
             <div class="flex items-center justify-between">
-              <span class="font-headline-sm text-headline-sm text-on-surface">Harmonic Flow Arc</span>
-              <span class="font-label-sm text-label-sm text-primary">Warmup → Climax</span>
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Harmonic Flow Arc</span>
+              <span class="font-label-sm text-label-sm text-primary font-mono">Warmup → Climax</span>
             </div>
             <p class="font-label-sm text-label-sm text-outline">
               Progression curve structured to build tempo from {{ playlist.tracks[0].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[0].bpm else 120 }} BPM up to {{ playlist.tracks[-1].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[-1].bpm else 145 }} BPM peak without abrupt key clashes.
             </p>
             <!-- Inline SVG Curve Chart -->
-            <div class="w-full h-28 bg-surface-container-lowest rounded-md p-2 relative flex items-center justify-center overflow-hidden">
+            <div class="w-full h-28 bg-surface-container-lowest rounded-md p-2 relative flex items-center justify-center overflow-hidden shadow-inner">
               <svg class="w-full h-full overflow-visible" viewBox="0 0 300 90">
                 <defs>
                   <linearGradient id="curveGradient" x1="0%" x2="100%" y1="0%" y2="0%">
@@ -692,7 +726,7 @@
                 <circle cx="290" cy="15" fill="var(--secondary)" r="4"></circle>
               </svg>
             </div>
-            <div class="flex items-center justify-between font-label-sm text-label-sm text-outline px-1">
+            <div class="flex items-center justify-between font-label-sm text-label-sm text-outline px-1 font-mono">
               <span>Track 01 ({{ playlist.tracks[0].bpm|round(0)|int if playlist and playlist.tracks and playlist.tracks[0].bpm else 120 }} BPM)</span>
               <span class="text-primary font-semibold">Mid-Set</span>
               <span class="text-secondary font-semibold">Peak Climax</span>
@@ -700,10 +734,10 @@
           </div>
 
           <!-- Acoustic DNA Balance Gauges -->
-          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3">
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3 ring-1 ring-outline-variant/30">
             <div class="flex items-center justify-between">
-              <span class="font-headline-sm text-headline-sm text-on-surface">Acoustic DNA Balance</span>
-              <span class="font-label-sm text-label-sm text-outline">Target match: 98%</span>
+              <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Acoustic DNA Balance</span>
+              <span class="font-label-sm text-label-sm text-outline font-mono">Target match: 98%</span>
             </div>
             <!-- Gauge 1: Distortion & Energy -->
             <div class="flex flex-col gap-1">
@@ -712,7 +746,7 @@
                   <span class="material-symbols-outlined text-[15px] text-secondary">electric_bolt</span>
                   Distortion &amp; Energy
                 </span>
-                <span class="text-secondary font-bold">92%</span>
+                <span class="text-secondary font-bold font-mono">92%</span>
               </div>
               <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
                 <div class="h-full bg-secondary rounded-full w-[92%]"></div>
@@ -725,7 +759,7 @@
                   <span class="material-symbols-outlined text-[15px] text-primary">speed</span>
                   Tempo Punch &amp; Rhythm
                 </span>
-                <span class="text-primary font-bold">88%</span>
+                <span class="text-primary font-bold font-mono">88%</span>
               </div>
               <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
                 <div class="h-full bg-primary rounded-full w-[88%]"></div>
@@ -738,7 +772,7 @@
                   <span class="material-symbols-outlined text-[15px] text-tertiary">mic</span>
                   Vocal Forwardness
                 </span>
-                <span class="text-tertiary font-bold">80%</span>
+                <span class="text-tertiary font-bold font-mono">80%</span>
               </div>
               <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
                 <div class="h-full bg-tertiary rounded-full w-[80%]"></div>
@@ -751,7 +785,7 @@
                   <span class="material-symbols-outlined text-[15px] text-outline">radio</span>
                   Analog Tape Warmth
                 </span>
-                <span class="text-outline font-bold">65%</span>
+                <span class="text-outline font-bold font-mono">65%</span>
               </div>
               <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
                 <div class="h-full bg-outline rounded-full w-[65%]"></div>
@@ -760,10 +794,10 @@
           </div>
 
           <!-- Fine-Tune Generation Sliders -->
-          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3">
-            <span class="font-headline-sm text-headline-sm text-on-surface">Fine-Tune Generation</span>
+          <div class="w-full bg-surface-container rounded-lg p-space-md shadow-lg flex flex-col gap-3 ring-1 ring-outline-variant/30">
+            <span class="font-headline-sm text-headline-sm text-on-surface font-bold">Fine-Tune Generation</span>
             <div class="flex flex-col gap-1">
-              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline">
+              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline font-mono">
                 <span>Chill</span>
                 <span class="text-primary font-bold">UPBEAT HIGH-OCTANE (85%)</span>
                 <span>Hyper</span>
@@ -771,7 +805,7 @@
               <input class="w-full accent-primary-container h-1.5 bg-surface-container-highest rounded-full cursor-pointer" max="100" min="0" type="range" value="85"/>
             </div>
             <div class="flex flex-col gap-1">
-              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline">
+              <div class="flex items-center justify-between font-label-sm text-label-sm text-outline font-mono">
                 <span>Obscure Deep Cuts</span>
                 <span class="text-secondary font-bold">BALANCED HITS (60%)</span>
                 <span>Anthem Hits</span>
@@ -783,14 +817,14 @@
       </div>
     </div>
     {% else %}
-    <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted); background: var(--bg-container-low); border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg);">
-      <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
+    <div class="text-center py-16 px-8 text-outline bg-surface-container rounded-lg border border-dashed border-outline-variant/40 shadow-sm">
+      <h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface mb-2">
         No Harmonic Sequence Generated Yet
       </h3>
-      <p style="font-size: 13px; max-width: 420px; margin: 0 auto 1.25rem auto;">
+      <p class="font-label-md text-label-md max-w-md mx-auto mb-5 text-on-surface-variant">
         Start in Step 1 to select a seed track, or define your vibe arc in Step 2 to generate an energy-guided playlist.
       </p>
-      <button type="button" class="btn-primary" onclick="switchBuilderStep(1)">
+      <button type="button" class="px-5 py-2.5 rounded-full bg-primary-container text-surface-container-lowest font-label-md text-label-md font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all" onclick="switchBuilderStep(1)">
         <span>Start with Seed Track (Step 1)</span>
       </button>
     </div>
@@ -801,98 +835,130 @@
   <section id="builder-step-4" class="builder-step-panel" style="display: {% if current_step == 4 %}block{% else %}none{% endif %};">
     <div id="playlist-tracks-list"
          data-playlist-id="{{ playlist.playlist_id if playlist and playlist.playlist_id else '' }}"
-         style="display: flex; flex-direction: column; gap: 1rem;">
+         class="flex flex-col gap-space-md">
       {% if playlist and playlist.tracks %}
-      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-container-low); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem 1.25rem;">
+      <!-- Step 4 Top Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-space-sm bg-surface-container rounded-lg p-space-md shadow-md ring-1 ring-outline-variant/30">
         <div>
-          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--primary); text-transform: uppercase;">Step 4 of 4</span>
-          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 2px 0;">Native Drag-and-Drop Reordering</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-            Drag track rows to customize the sequence. The harmonic engine will recalculate Camelot transitions and scores immediately on release.
+          <span class="font-label-sm text-label-sm text-primary uppercase font-mono tracking-wider">Step 4 of 4</span>
+          <h3 class="font-headline-md text-headline-md font-bold text-on-surface mt-0.5">Native Drag-and-Drop Reordering</h3>
+          <p class="font-label-md text-label-md text-on-surface-variant mt-0.5">
+            Drag track rows to customize sequence. The harmonic engine recalculates Camelot transitions immediately on release.
           </p>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button type="button" class="btn-secondary" onclick="switchBuilderStep(3)">
+        <div class="flex items-center gap-2">
+          <button type="button" class="px-3.5 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" onclick="switchBuilderStep(3)">
             <span>← Back to Preview</span>
           </button>
           {% if playlist.playlist_id %}
-          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="btn-secondary" download>
-            <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          <a href="/api/playlist/{{ playlist.playlist_id }}/export" class="px-3.5 py-1.5 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5" download>
+            <span class="material-symbols-outlined text-[16px]">file_download</span>
             <span>Export M3U8</span>
           </a>
-          <button class="btn-primary"
+          <button class="px-4 py-1.5 rounded-full bg-primary-container text-surface-container-lowest font-headline-sm text-headline-sm font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.35)] hover:scale-105 active:scale-95 transition-all"
                   hx-post="/api/player/play-playlist/{{ playlist.playlist_id }}"
                   hx-target="#transport-footer-container"
                   hx-swap="innerHTML">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <span class="material-symbols-outlined text-[18px]">play_arrow</span>
             <span>Play in MPD</span>
           </button>
           {% endif %}
         </div>
       </div>
 
-      <!-- Draggable Track Rows List -->
-      <div class="draggable-rows-wrapper" style="display: flex; flex-direction: column; gap: 6px;">
+      <!-- Step 4 Grid Header Bar -->
+      <div class="w-full bg-surface-container-high rounded-full px-4 py-2.5 flex items-center justify-between text-outline font-label-sm text-label-sm uppercase tracking-wider">
+        <div class="flex items-center gap-4 w-[42%] min-w-0">
+          <span class="w-6 text-center">#</span>
+          <span>Track &amp; Artist</span>
+        </div>
+        <div class="hidden sm:flex items-center justify-center w-[16%]">Tempo / Energy</div>
+        <div class="hidden md:flex items-center justify-center w-[18%]">Key &amp; Camelot</div>
+        <div class="flex items-center justify-center w-[12%]">Vibe Match</div>
+        <div class="flex items-center justify-end w-[12%] pr-2">Actions</div>
+      </div>
+
+      <!-- Draggable Track Rows Container (Target of drag-and-drop JS) -->
+      <div class="draggable-rows-wrapper flex flex-col gap-2">
         {% for item in playlist.tracks %}
-        <div class="playlist-track-row"
+        <div class="playlist-track-row group relative w-full bg-surface-container hover:bg-surface-container-high rounded-lg p-2.5 flex items-center justify-between transition-all cursor-grab active:cursor-grabbing border border-outline-variant/30 hover:border-primary/40 shadow-sm"
              draggable="true"
              data-track-id="{{ item.track_id }}"
              data-position="{{ item.position }}">
-          <!-- Left side: Drag handle + title/artist -->
-          <div style="display: flex; align-items: center;">
-            <svg class="icon drag-handle" style="width: 16px; height: 16px; cursor: grab; fill: var(--text-dim); margin-right: 6px;" viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 24px;">
-              {{ item.position }}
+          <!-- Left Column: Drag Handle + Position + Album Artwork + Title/Artist -->
+          <div class="flex items-center gap-3 w-full sm:w-[42%] min-w-0">
+            <span class="material-symbols-outlined drag-handle text-outline text-[18px] cursor-grab group-hover:text-primary transition-colors shrink-0">drag_indicator</span>
+            <span class="w-6 text-center font-label-md text-label-md text-outline font-mono shrink-0">
+              {{ "%02d"|format(item.position) }}
             </span>
-            <div>
-              <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">
+            <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-surface-container-lowest flex items-center justify-center shadow-inner">
+              <img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="{{ item.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ item.title }}"/>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate group-hover:text-primary transition-colors">
                 {{ item.title }}
-              </div>
-              <div style="font-size: 11px; color: var(--text-muted);">
-                {{ item.artist }} — <span style="color: var(--text-dim);">{{ item.album }}</span>
-              </div>
+              </span>
+              <span class="font-label-md text-label-md text-on-surface-variant truncate">
+                {{ item.artist }}{% if item.album %} • {{ item.album }}{% endif %}
+              </span>
             </div>
           </div>
 
-          <!-- Right side: Specs & Transition Smoothness -->
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">
-              {{ (item.duration // 60)|int }}:{{ "%02d"|format((item.duration % 60)|int) }}
+          <!-- Tempo & Energy (hidden sm:flex) -->
+          <div class="hidden sm:flex flex-col items-center justify-center w-[16%]">
+            <span class="font-label-md text-label-md text-on-surface font-semibold">{{ item.bpm|round(1) if item.bpm else '—' }} BPM</span>
+            <span class="font-label-sm text-label-sm text-secondary">
+              {% if item.energy and item.energy >= 0.75 %}Peak Drive ⚡{% elif item.energy and item.energy >= 0.5 %}High Groove 🔥{% else %}Mellow Tone ☕{% endif %}
             </span>
-            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 55px; text-align: right;">
-              {{ item.bpm|round(1) if item.bpm else '—' }} BPM
-            </span>
-            <span class="badge-camelot" style="width: 40px; text-align: center;">
-              {{ item.camelot or item.key or '—' }}
-            </span>
+          </div>
 
-            <div style="width: 120px; text-align: right;">
+          <!-- Key & Camelot (hidden md:flex) -->
+          <div class="hidden md:flex flex-col items-center justify-center w-[18%]">
+            <span class="font-label-md text-label-md text-on-surface">{{ item.key or 'Harmonic' }}</span>
+            <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-outline font-mono">{{ item.camelot or item.key or '—' }}</span>
+          </div>
+
+          <!-- Vibe Match & Transition Score -->
+          <div class="flex flex-col items-center justify-center w-[12%]">
+            <span class="font-label-md text-label-md text-tertiary font-bold font-mono">
               {% if item.position == 1 or not item.transition %}
-                <span style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--text-dim);">
-                  Anchor Start
-                </span>
+                Anchor
               {% else %}
                 {% set sc = item.transition.total_score %}
-                {% set badge_c = item.transition.badge_class or ('score-high' if sc >= 0.8 else ('score-mid' if sc >= 0.5 else 'score-low')) %}
-                <span class="badge-score {{ badge_c }}">
-                  {{ (sc * 100)|round(1) if sc <= 1.0 else sc|round(1) }} / 100
-                </span>
+                {{ (sc * 100)|round(1) if sc <= 1.0 else sc|round(1) }}%
               {% endif %}
-            </div>
+            </span>
+            <span class="w-12 h-1 bg-surface-container-highest rounded-full overflow-hidden mt-1">
+              {% set fill_pct = 100 if (item.position == 1 or not item.transition) else (((item.transition.total_score * 100) if item.transition.total_score <= 1.0 else item.transition.total_score)|int) %}
+              <span class="block h-full bg-tertiary" style="width: {{ fill_pct }}%;"></span>
+            </span>
+          </div>
+
+          <!-- Actions / Play Button -->
+          <div class="flex items-center justify-end gap-1.5 w-[12%] pr-1">
+            <button class="w-8 h-8 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                    type="button"
+                    hx-post="/api/player/play-track/{{ item.track_id }}"
+                    hx-target="#transport-footer-container"
+                    hx-swap="innerHTML"
+                    onclick="event.stopPropagation()"
+                    title="Play Track">
+              <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+            </button>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted); background: var(--bg-container-low); border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg);">
-        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
+      <div class="text-center py-16 px-8 text-outline bg-surface-container rounded-lg border border-dashed border-outline-variant/40 shadow-sm">
+        <h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface mb-2">
           No Playlist Available to Reorder
         </h3>
-        <p style="font-size: 13px; max-width: 420px; margin: 0 auto 1.25rem auto;">
+        <p class="font-label-md text-label-md max-w-md mx-auto mb-5 text-on-surface-variant">
           Generate a playlist first using Steps 1 and 2, then fine-tune track ordering here.
         </p>
-        <button type="button" class="btn-primary" onclick="switchBuilderStep(1)">
+        <button type="button" class="px-5 py-2.5 rounded-full bg-primary-container text-surface-container-lowest font-label-md text-label-md font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all" onclick="switchBuilderStep(1)">
           <span>Start Wizard</span>
         </button>
       </div>
@@ -903,15 +969,19 @@
 
 <script>
 function switchBuilderStep(stepNumber) {
-  // Update stepper buttons
   for (let s = 1; s <= 4; s++) {
     const pill = document.getElementById('pill-step-' + s);
     const panel = document.getElementById('builder-step-' + s);
     if (pill) {
       if (s === stepNumber) {
         pill.classList.add('active');
+        pill.classList.remove('completed');
+      } else if (s < stepNumber) {
+        pill.classList.remove('active');
+        pill.classList.add('completed');
       } else {
         pill.classList.remove('active');
+        pill.classList.remove('completed');
       }
     }
     if (panel) {
@@ -924,6 +994,7 @@ function switchBuilderStep(stepNumber) {
 }
 
 function selectSeedTrack(el) {
+  if (!el) return;
   const tid = el.getAttribute('data-track-id');
   const title = el.getAttribute('data-title');
   const artist = el.getAttribute('data-artist');
@@ -938,7 +1009,11 @@ function selectSeedTrack(el) {
   if (formSeedId) formSeedId.value = tid;
 
   const card = document.getElementById('selected-seed-card');
-  if (card) card.style.display = 'flex';
+  if (card) {
+    card.classList.remove('hidden');
+    card.classList.add('flex');
+    card.style.display = 'flex';
+  }
 
   const tEl = document.getElementById('selected-seed-title');
   if (tEl) tEl.textContent = title;
@@ -964,13 +1039,13 @@ function updateArcSelection(radio) {
   document.querySelectorAll('.arc-card').forEach(card => {
     card.classList.remove('active');
   });
-  if (radio.checked && radio.closest('.arc-card')) {
+  if (radio && radio.checked && radio.closest('.arc-card')) {
     radio.closest('.arc-card').classList.add('active');
   }
 }
 
 function applyNlPrompt(promptText) {
-  const input = document.getElementById('nl-playlist-prompt-input');
+  const input = document.getElementById('vibeInput') || document.getElementById('nl-playlist-prompt-input');
   if (input) {
     input.value = promptText;
     const form = input.closest('form');

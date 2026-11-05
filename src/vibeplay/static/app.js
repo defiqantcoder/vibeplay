@@ -78,10 +78,11 @@ function updateSliderLabel(sliderId, labelId, suffix = '') {
 let draggedItem = null;
 
 function initPlaylistDragDrop() {
-  const container = document.getElementById('playlist-tracks-list');
-  if (!container) return;
+  const root = document.getElementById('playlist-tracks-list');
+  if (!root) return;
+  const container = root.querySelector('.draggable-rows-wrapper') || root;
 
-  const items = container.querySelectorAll('.playlist-track-row');
+  const items = root.querySelectorAll('.playlist-track-row');
   items.forEach(item => {
     item.addEventListener('dragstart', (e) => {
       draggedItem = item;
@@ -2802,7 +2803,7 @@ function updateArcSelection(radio) {
 window.updateArcSelection = updateArcSelection;
 
 function applyNlPrompt(promptText) {
-  const input = document.getElementById('nl-playlist-prompt-input');
+  const input = document.getElementById('vibeInput') || document.getElementById('nl-playlist-prompt-input');
   if (input) {
     input.value = promptText;
     const form = input.closest('form');
@@ -2824,8 +2825,13 @@ function switchBuilderStep(stepNumber) {
     if (pill) {
       if (s === stepNumber) {
         pill.classList.add('active');
+        pill.classList.remove('completed');
+      } else if (s < stepNumber) {
+        pill.classList.remove('active');
+        pill.classList.add('completed');
       } else {
         pill.classList.remove('active');
+        pill.classList.remove('completed');
       }
     }
     if (panel) {

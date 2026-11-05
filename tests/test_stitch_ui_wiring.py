@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
+import numpy as np
 from fastapi.testclient import TestClient
 import pytest
 
 from vibeplay.config import Settings
-from vibeplay.db import init_db
+from vibeplay.db import get_connection, init_db, insert_or_replace_features, insert_track
 from vibeplay.web import create_app
 
 
@@ -768,5 +770,109 @@ def test_ambient_big_screen_fullscreen_now_playing_stitch_layout_and_wiring(clie
     assert 'id="fs-scrub-fill"' in html
     assert 'onclick="closeFullscreenNowPlaying()"' in html
     assert "fullscreen_exit" in html
+
+
+def test_playlist_builder_wizard_and_drag_drop_stitch_layout_and_wiring(wiring_env):
+    """Verify Natural Language Vibe Synthesizer, 4-step navigation pills, Journey Arc cards, and drag-and-drop track rows."""
+    db_file, client = wiring_env
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Natural Language Vibe Synthesizer (Hero Deck)
+    assert "vibe-synthesizer-hero-deck" in html
+    assert "Tell me what you want to hear" in html
+    assert "VIBE ENGINE v4.2" in html
+    assert "HarmonicFlow-LLM (Lossless)" in html
+    assert 'id="vibeInput"' in html
+    assert 'name="prompt"' in html
+    assert 'id="cookBtn"' in html
+    assert "Parsed Sonic DNA:" in html
+    assert "Morning Coffee &amp; Lo-Fi" in html or "Morning Coffee & Lo-Fi" in html
+    assert "Fast Pop-Punk Blast" in html
+    assert "Strict BPM Lock" in html
+    assert "Camelot Key Matching: On" in html
+
+    # 2. 4-step navigation pills
+    assert "builder-stepper" in html
+    assert "builder-step-pill" in html
+    assert 'id="pill-step-1"' in html
+    assert 'id="pill-step-2"' in html
+    assert 'id="pill-step-3"' in html
+    assert 'id="pill-step-4"' in html
+    assert 'onclick="switchBuilderStep(1)"' in html
+    assert 'onclick="switchBuilderStep(2)"' in html
+    assert 'onclick="switchBuilderStep(3)"' in html
+    assert 'onclick="switchBuilderStep(4)"' in html
+    assert 'id="builder-step-1"' in html
+    assert 'id="builder-step-2"' in html
+    assert 'id="builder-step-3"' in html
+    assert 'id="builder-step-4"' in html
+
+    # 3. Journey Arc Trajectory radio cards
+    assert "arc-cards-grid" in html
+    assert "arc-card" in html
+    assert 'value="energy_ramp"' in html
+    assert 'value="peak_hour_wave"' in html
+    assert 'value="steady_pulse"' in html
+    assert 'value="late_night_chill"' in html
+    assert 'value="double_peak"' in html
+    assert 'value="sunrise_roller"' in html
+    assert 'value="deep_dive"' in html
+    assert 'value="heartbeat_wave"' in html
+    assert 'value="slow_burn"' in html
+    assert 'onchange="updateArcSelection(this)"' in html
+
+    # 4. Drag-and-drop track rows container contract
+    assert 'id="playlist-tracks-list"' in html
+
+    # 5. Seed tracks in DB and generate a preview to test Step 4 draggable rows
+    with get_connection(db_file) as conn:
+        for tid in (1, 2, 3):
+            insert_track(
+                conn,
+                path=f"/music/test_{tid}.flac",
+                mtime=1700000000.0 + tid,
+                size=1000000,
+                file_hash=f"hash_{tid}",
+                duration=200.0,
+                bitrate=921600,
+                title=f"Track {tid}",
+                artist="Artist A",
+                album="Album A",
+                track_no=tid,
+                genre="Electronic",
+            )
+            insert_or_replace_features(
+                conn,
+                track_id=tid,
+                analyzer_version="1.0.0",
+                bpm=120.0 + tid,
+                key="A",
+                scale="minor",
+                loudness=-10.0,
+                danceability=0.7,
+                energy=0.5 + tid * 0.1,
+                mood_scores_json=json.dumps({"happy": 0.5}),
+                embedding_blob=np.zeros(128, dtype=np.float32).tobytes(),
+            )
+
+    resp_preview = client.post(
+        "/api/playlist/builder/preview",
+        data={
+            "seed_track_id": 1,
+            "arc": "energy_ramp",
+            "limit": 3,
+            "max_bpm_delta": 15.0,
+            "name": "Stitch Test Sequence",
+        },
+    )
+    assert resp_preview.status_code == 200
+    preview_html = resp_preview.text
+    assert "playlist-track-row" in preview_html
+    assert 'draggable="true"' in preview_html
+    assert "data-track-id=" in preview_html
+    assert "data-position=" in preview_html
+    assert "drag-handle" in preview_html or "drag_indicator" in preview_html
 
 
