@@ -292,11 +292,9 @@ def get_connection(db_path: Path, timeout: float = 10.0) -> sqlite3.Connection:
     Returns:
         sqlite3.Connection: Connection with WAL mode and row factory enabled.
     """
-    db_p = Path(db_path)
-    base_dir = db_p.parent.resolve()
-    resolved_path = (base_dir / db_p.name).resolve()
-    if not resolved_path.is_relative_to(base_dir):
-        raise ValueError("Path traversal attempt detected")
+    resolved_path = Path(db_path).expanduser().resolve()
+    if resolved_path.name != "vibeplay.db":
+        raise ValueError("Invalid database filename")
     resolved_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(resolved_path, timeout=timeout)
     conn.row_factory = sqlite3.Row
