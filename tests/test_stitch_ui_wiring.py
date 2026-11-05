@@ -530,3 +530,78 @@ def test_boombox_capsule_transport_bar_layout_and_wiring(wiring_env):
     assert 'id="global-volume-slider"' in html
     assert 'id="volume-readout"' in html
     assert "vol-db-readout" in html
+
+
+def test_multipane_settings_modal_and_theme_customizer_wiring(client: TestClient):
+    """Verify multi-pane settings modal, 6 sidebar tabs, 9 theme customizer cards, and swatch dots."""
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Dialog element is present and hidden by default (no 'open' attribute)
+    assert '<dialog id="settings-dialog"' in html
+    match = re.search(r'<dialog\s+id="settings-dialog"[^>]*>', html)
+    assert match is not None
+    dialog_tag = match.group(0)
+    assert "open" not in dialog_tag.split()  # not open by default
+
+    # 2. Stitch Modal Header & Badges
+    assert "Settings &amp; Theme Customizer" in html or "Settings & Theme Customizer" in html
+    assert "v2.4 Audiophile Edition" in html
+    assert 'onclick="closeSettingsDialog()"' in html
+    assert 'id="modal-close-trigger"' in html
+
+    # 3. Left Sidebar Tabs and Tab Switching triggers
+    assert 'class="settings-tabs-bar"' in html
+    for tab_id in ["theme", "transport", "dsp", "analyzer", "plugins", "ai"]:
+        assert f'id="tab-btn-{tab_id}"' in html
+        assert f'onclick="switchSettingsTab(\'{tab_id}\')"' in html
+
+    # 4. Pinned DAC chip
+    assert "settings-sidebar-dac-chip" in html
+    assert "FiiO KA15" in html
+    assert "System Ready • Direct" in html
+
+    # 5. Theme Presets 3x3 Grid
+    assert "theme-cards-grid" in html
+    assert "grid grid-cols-3 gap-3" in html
+    assert "9 Presets Available" in html
+
+    # 6. All 9 Theme Cards with applyTheme triggers, data-theme-card attributes, and swatch dots
+    theme_ids = [
+        "god-of-ink",
+        "wine",
+        "obsidian",
+        "swimming-with-the-whales",
+        "mint-city",
+        "slate-audiophile",
+        "beyond-the-boundary",
+        "the-unknown",
+        "castle-in-the-sky",
+    ]
+    for tid in theme_ids:
+        assert f'onclick="applyTheme(\'{tid}\')"' in html
+        assert f'data-theme-card="{tid}"' in html
+        assert f'id="theme-{tid}"' in html
+
+    # Verify swatch dots are present
+    assert "theme-swatch-dot" in html
+    assert "swatch-ink-navy" in html
+    assert "swatch-ink-slate" in html
+    assert "swatch-ink-pri" in html
+    assert "swatch-wine-base" in html
+    assert "swatch-wine-rose" in html
+    assert "swatch-obs-base" in html
+    assert "swatch-whale-ocean" in html
+    assert "swatch-mint-charcoal" in html
+    assert "swatch-slate-pri" in html
+    assert "swatch-beyond-cyan" in html
+    assert "swatch-unknown-orange" in html
+    assert "swatch-castle-celadon" in html
+
+    # 7. Modal Footer
+    assert 'id="modal-cancel-btn"' in html
+    assert 'id="modal-save-btn"' in html
+    assert 'onclick="saveDesktopSettings(true)"' in html
+    assert "Save &amp; Chill" in html or "Save & Chill" in html
+

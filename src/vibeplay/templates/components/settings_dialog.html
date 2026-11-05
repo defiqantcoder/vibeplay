@@ -1,244 +1,335 @@
-<!-- Settings Popover & Hardware Controls Floating Panel (Hi-Fi Lounge Design System) -->
-<dialog id="settings-dialog" class="settings-dialog" closedby="any" aria-labelledby="settings-dialog-title">
-  <div class="settings-container">
-    <!-- Header -->
-    <div class="settings-header">
-      <div class="settings-title-group">
-        <div class="settings-icon-badge">⚙️</div>
-        <div>
-          <h2 id="settings-dialog-title" class="settings-title">Preferences &amp; Hardware Controls</h2>
-          <div class="settings-subtitle">vibeplay Engine &amp; Audio Hardware Architecture</div>
+<!-- Settings Popover & Hardware Controls Floating Panel (Hi-Fi Lounge Design System - Stitch 9-Preset Theme Customizer) -->
+<dialog id="settings-dialog" class="settings-dialog p-0 border-0 bg-transparent rounded-[22px] backdrop:bg-surface-container-lowest/80 backdrop:backdrop-blur-md" closedby="any" aria-labelledby="modal-settings-title">
+  <!-- Centered Dialog Shell -->
+  <div aria-labelledby="modal-settings-title" aria-modal="true" class="settings-container w-[960px] h-[640px] max-w-full max-h-[94vh] bg-surface-container-low rounded-[22px] shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden relative isolate ring-1 ring-outline-variant/30" role="dialog">
+    <!-- Top Inner Glow Accent Strip -->
+    <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-80 z-20 pointer-events-none"></div>
+
+    <!-- Modal Header -->
+    <div class="settings-header h-[66px] px-6 bg-surface-container-low flex items-center justify-between flex-shrink-0 z-10 relative">
+      <div class="settings-title-group flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[22px]" style="font-variation-settings: 'FILL' 1;">tune</span>
+          <h2 class="settings-title font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold" id="modal-settings-title">
+            Settings &amp; Theme Customizer
+          </h2>
         </div>
+        <span class="font-label-sm text-label-sm bg-primary-container/15 text-primary-container px-2.5 py-1 rounded-full font-semibold flex items-center gap-1 shadow-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+          v2.4 Audiophile Edition
+        </span>
       </div>
-      <button type="button" class="btn-close-modal" onclick="closeSettingsDialog()" title="Close (Esc)">✕</button>
+      <button aria-label="Close Settings" class="btn-close-modal w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-all shadow-sm" id="modal-close-trigger" type="button" onclick="closeSettingsDialog()" title="Close (Esc)">
+        <span class="material-symbols-outlined text-[19px]">close</span>
+      </button>
+      <div class="absolute bottom-0 left-0 right-0 h-[1px] bg-surface-container-highest"></div>
     </div>
 
     <!-- Two-Pane Interior Body -->
-    <div class="settings-two-pane-body">
+    <div class="settings-two-pane-body flex-1 flex min-h-0 bg-surface-container-low relative">
       <!-- Left Sidebar Navigation Tabs -->
       <nav aria-label="Settings Categories" class="settings-tabs-bar" role="tablist">
-        <div class="settings-sidebar-tabs">
+        <div class="settings-sidebar-tabs flex flex-col gap-1.5">
           <!-- Tab 1: Themes & Appearance -->
-          <button type="button" class="settings-sidebar-tab active" id="tab-btn-theme" onclick="switchSettingsTab('theme')">
-            <span class="sidebar-tab-icon">🎨</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">Theme Engine</span>
-              <span class="sidebar-tab-badge badge-cyan">9 Presets</span>
+          <button type="button" class="settings-sidebar-tab active w-full text-left font-label-md text-label-md rounded-xl font-semibold px-3 py-2.5 flex items-center gap-2.5 bg-primary-container/15 text-primary shadow-[0_0_16px_rgba(6,182,212,0.25)] transition-all group" id="tab-btn-theme" onclick="switchSettingsTab('theme')">
+            <span class="sidebar-tab-icon text-[16px]">🎨</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 leading-tight">
+              <span class="sidebar-tab-title font-semibold">Theme Engine</span>
+              <span class="sidebar-tab-badge badge-cyan font-label-sm text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">9 Presets</span>
             </div>
           </button>
 
           <!-- Tab 2: ALSA Transport -->
-          <button type="button" class="settings-sidebar-tab" id="tab-btn-transport" onclick="switchSettingsTab('transport')">
-            <span class="sidebar-tab-icon">🎧</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">ALSA Transport</span>
-              <span class="sidebar-tab-badge badge-green">Bit-Perfect Direct</span>
+          <button type="button" class="settings-sidebar-tab w-full text-left font-label-md text-label-md rounded-xl font-medium px-3 py-2 flex items-center gap-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all group" id="tab-btn-transport" onclick="switchSettingsTab('transport')">
+            <span class="sidebar-tab-icon text-[16px]">🎧</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 min-w-0">
+              <span class="sidebar-tab-title font-semibold truncate leading-tight">ALSA Transport</span>
+              <span class="sidebar-tab-badge badge-green font-label-sm text-[9px] text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">Bit-Perfect Direct</span>
             </div>
           </button>
 
           <!-- Tab 3: DSP & Signal -->
-          <button type="button" class="settings-sidebar-tab" id="tab-btn-dsp" onclick="switchSettingsTab('dsp')">
-            <span class="sidebar-tab-icon">🎛️</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">DSP &amp; Profiles</span>
-              <span class="sidebar-tab-badge badge-amber">PEQ &amp; HRTF</span>
+          <button type="button" class="settings-sidebar-tab w-full text-left font-label-md text-label-md rounded-xl font-medium px-3 py-2 flex items-center gap-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all group" id="tab-btn-dsp" onclick="switchSettingsTab('dsp')">
+            <span class="sidebar-tab-icon text-[16px]">🎛️</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 min-w-0">
+              <span class="sidebar-tab-title font-semibold truncate leading-tight">DSP &amp; Profiles</span>
+              <span class="sidebar-tab-badge badge-amber font-label-sm text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">PEQ &amp; HRTF</span>
             </div>
           </button>
 
           <!-- Tab 4: Feature Engine -->
-          <button type="button" class="settings-sidebar-tab" id="tab-btn-analyzer" onclick="switchSettingsTab('analyzer')">
-            <span class="sidebar-tab-icon">⚡</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">Feature Engine</span>
-              <span class="sidebar-tab-badge badge-cyan">BPM &amp; DNA</span>
+          <button type="button" class="settings-sidebar-tab w-full text-left font-label-md text-label-md rounded-xl font-medium px-3 py-2 flex items-center gap-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all group" id="tab-btn-analyzer" onclick="switchSettingsTab('analyzer')">
+            <span class="sidebar-tab-icon text-[16px]">⚡</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 min-w-0">
+              <span class="sidebar-tab-title font-semibold truncate leading-tight">Feature Engine</span>
+              <span class="sidebar-tab-badge badge-cyan font-label-sm text-[9px] text-secondary bg-secondary/10 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">BPM &amp; DNA</span>
             </div>
           </button>
 
           <!-- Tab 5: Add-on Toybox -->
-          <button type="button" class="settings-sidebar-tab" id="tab-btn-plugins" onclick="switchSettingsTab('plugins')">
-            <span class="sidebar-tab-icon">🧩</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">Add-on Toybox</span>
-              <span class="sidebar-tab-badge badge-muted">Modular Gadgets</span>
+          <button type="button" class="settings-sidebar-tab w-full text-left font-label-md text-label-md rounded-xl font-medium px-3 py-2 flex items-center gap-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all group" id="tab-btn-plugins" onclick="switchSettingsTab('plugins')">
+            <span class="sidebar-tab-icon text-[16px]">🧩</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 min-w-0">
+              <span class="sidebar-tab-title font-semibold truncate leading-tight">Add-on Toybox</span>
+              <span class="sidebar-tab-badge badge-muted font-label-sm text-[9px] text-outline bg-surface-container-highest px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">Modular Gadgets</span>
             </div>
           </button>
 
-          <!-- Tab 6: AI & Metadata Integrations -->
-          <button type="button" class="settings-sidebar-tab" id="tab-btn-ai" onclick="switchSettingsTab('ai')">
-            <span class="sidebar-tab-icon">🤖</span>
-            <div class="sidebar-tab-text">
-              <span class="sidebar-tab-title">AI &amp; Integrations</span>
-              <span class="sidebar-tab-badge badge-primary">Gemini &amp; API Keys</span>
+          <!-- Tab 6: AI & Integrations -->
+          <button type="button" class="settings-sidebar-tab w-full text-left font-label-md text-label-md rounded-xl font-medium px-3 py-2 flex items-center gap-2.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all group" id="tab-btn-ai" onclick="switchSettingsTab('ai')">
+            <span class="sidebar-tab-icon text-[16px]">🤖</span>
+            <div class="sidebar-tab-text flex flex-col flex-1 min-w-0">
+              <span class="sidebar-tab-title font-semibold truncate leading-tight">AI &amp; Integrations</span>
+              <span class="sidebar-tab-badge badge-primary font-label-sm text-[9px] text-primary bg-primary/10 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-normal">Gemini &amp; API Keys</span>
             </div>
           </button>
         </div>
 
         <!-- Bottom Pinned DAC Status Chip -->
-        <div class="settings-sidebar-dac-chip">
-          <span class="w-2.5 h-2.5 rounded-full bg-[var(--status-ok,var(--tertiary))] shadow-[0_0_8px_var(--status-ok,var(--tertiary))] animate-pulse"></span>
+        <div class="settings-sidebar-dac-chip p-2.5 rounded-xl bg-surface-container-lowest flex items-center gap-2.5 border border-outline-variant/30 shadow-inner">
+          <span class="w-2.5 h-2.5 rounded-full bg-tertiary shadow-[0_0_8px_var(--tertiary)] flex-shrink-0 animate-pulse"></span>
           <div class="flex flex-col min-w-0">
-            <span class="text-xs font-bold text-[var(--text-primary)] truncate">FiiO KA15</span>
-            <span class="text-[10px] font-mono text-[var(--status-ok,var(--tertiary))] truncate">System Ready • Direct</span>
+            <span class="font-label-sm text-label-sm text-on-surface font-semibold truncate leading-tight">FiiO KA15</span>
+            <span class="font-label-sm text-[10px] text-tertiary font-mono truncate leading-tight">System Ready • Direct</span>
           </div>
         </div>
       </nav>
 
       <!-- Right Scrollable Content Pane -->
-      <main class="settings-content-pane">
+      <main class="settings-content-pane flex-1 p-5 overflow-y-auto space-y-6 bg-surface-container-low" style="scrollbar-width: thin; scrollbar-color: var(--outline-variant) transparent;">
         <!-- 1. Theme Engine Tab (Active by default for high visual impact) -->
         <div class="settings-panel active" id="panel-theme">
-          <div class="settings-pane-header">
-            <div class="flex items-center gap-2">
-              <span class="text-base font-bold text-[var(--text-primary)]">Theme Presets</span>
-              <span class="text-xs px-2.5 py-0.5 rounded-full bg-[var(--primary)]/15 text-[var(--primary)] font-mono font-semibold">9 Presets Available</span>
+          <!-- Section: Theme Presets (9 Presets Available) -->
+          <section class="space-y-3">
+            <div class="flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="font-label-lg text-label-lg text-on-surface font-bold tracking-tight">Theme Presets</span>
+                <span class="font-label-sm text-label-sm text-primary-container px-2 py-0.5 rounded-full bg-primary-container/15 font-semibold">9 Presets Available</span>
+              </div>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">Handcrafted color profiles for every listening atmosphere. Selections auto-sync to local storage.</p>
             </div>
-            <p class="text-xs text-[var(--text-muted)] mt-1">
-              Handcrafted color profiles for every listening atmosphere. Selections auto-sync to local storage.
-            </p>
-          </div>
 
-          <!-- 3x3 Theme Presets Grid -->
-          <div class="theme-cards-grid">
-            <!-- 1. God of Ink -->
-            <div class="theme-card" onclick="applyTheme('god-of-ink')" data-theme-card="god-of-ink">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">God of Ink</span>
-                  <span class="theme-card-sub">Default Cozy</span>
+            <!-- 9 Real Theme Presets 3x3 Grid -->
+            <div class="theme-cards-grid grid grid-cols-3 gap-3">
+              <!-- 1. God of Ink (Active / Default) -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container-lowest border-2 border-primary-container flex flex-col justify-between gap-2.5 shadow-[0_0_18px_rgba(6,182,212,0.28)] relative overflow-hidden transition-all duration-200" id="theme-god-of-ink" role="button" tabindex="0" onclick="applyTheme('god-of-ink')" data-theme-card="god-of-ink">
+                <div class="absolute inset-0 bg-primary-container/10 pointer-events-none"></div>
+                <div class="theme-card-top flex items-start justify-between relative z-10">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">God of Ink</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-primary font-mono truncate">Default Cozy</span>
+                  </div>
+                  <span class="theme-card-badge-active font-label-sm text-[9px] bg-primary-container text-surface-container-lowest px-1.5 py-0.5 rounded-md font-bold shadow-sm whitespace-nowrap">
+                    Active ✨
+                  </span>
                 </div>
-                <span class="theme-card-badge-active">Active ✨</span>
-              </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-ink-navy" title="Navy"></span>
-                <span class="theme-swatch-dot swatch-ink-slate" title="Slate"></span>
-                <span class="theme-swatch-dot swatch-ink-pri" title="Periwinkle"></span>
-              </div>
-            </div>
-
-            <!-- 2. Wine -->
-            <div class="theme-card" onclick="applyTheme('wine')" data-theme-card="wine">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Wine</span>
-                  <span class="theme-card-sub">Uncut Amethyst</span>
+                <div class="flex items-center justify-between pt-1 relative z-10">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-ink-navy w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Deep Navy (#0a0f1d)"></span>
+                    <span class="theme-swatch-dot swatch-ink-slate w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Slate (#1e293b)"></span>
+                    <span class="theme-swatch-dot swatch-ink-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Periwinkle (#818cf8)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-primary-container font-mono">#0a0f1d</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-wine-base" title="Wine"></span>
-                <span class="theme-swatch-dot swatch-wine-pri" title="Uncut Amethyst"></span>
-                <span class="theme-swatch-dot swatch-wine-rose" title="Velvet Rose"></span>
-              </div>
-            </div>
 
-            <!-- 3. Obsidian -->
-            <div class="theme-card" onclick="applyTheme('obsidian')" data-theme-card="obsidian">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Obsidian</span>
-                  <span class="theme-card-sub">Purple &amp; Lavender</span>
+              <!-- 2. Wine -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-wine" role="button" tabindex="0" onclick="applyTheme('wine')" data-theme-card="wine">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Wine</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Uncut Amethyst</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-wine-base w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Deep Wine (#230c18)"></span>
+                    <span class="theme-swatch-dot swatch-wine-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Uncut Amethyst (#581c87)"></span>
+                    <span class="theme-swatch-dot swatch-wine-rose w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Rosé (#f43f5e)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#230c18</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-obs-base" title="Obsidian"></span>
-                <span class="theme-swatch-dot swatch-obs-pri" title="Purple"></span>
-                <span class="theme-swatch-dot swatch-obs-glow" title="Lavender"></span>
-              </div>
-            </div>
 
-            <!-- 4. Swimming with the Whales -->
-            <div class="theme-card" onclick="applyTheme('swimming-with-the-whales')" data-theme-card="swimming-with-the-whales">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Swimming with the Whales</span>
-                  <span class="theme-card-sub">Ocean, Cobalt &amp; Blue</span>
+              <!-- 3. Obsidian -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-obsidian" role="button" tabindex="0" onclick="applyTheme('obsidian')" data-theme-card="obsidian">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Obsidian</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Purple &amp; Lavender</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-obs-base w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Pitch Obsidian (#0d0b14)"></span>
+                    <span class="theme-swatch-dot swatch-obs-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Deep Purple (#3b185f)"></span>
+                    <span class="theme-swatch-dot swatch-obs-glow w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Lavender (#c084fc)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#0d0b14</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-whale-ocean" title="Ocean"></span>
-                <span class="theme-swatch-dot swatch-whale-cobalt" title="Cobalt"></span>
-                <span class="theme-swatch-dot swatch-whale-pri" title="Blue"></span>
-              </div>
-            </div>
 
-            <!-- 5. Mint City -->
-            <div class="theme-card" onclick="applyTheme('mint-city')" data-theme-card="mint-city">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Mint City</span>
-                  <span class="theme-card-sub">Plum, Teal &amp; Mint</span>
+              <!-- 4. Swimming with the Whales -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-swimming-with-the-whales" role="button" tabindex="0" onclick="applyTheme('swimming-with-the-whales')" data-theme-card="swimming-with-the-whales">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Swimming with the Whales</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Ocean &amp; Cobalt</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-whale-ocean w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Abyssal Blue (#031926)"></span>
+                    <span class="theme-swatch-dot swatch-whale-cobalt w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Deep Cobalt (#0f4c81)"></span>
+                    <span class="theme-swatch-dot swatch-whale-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Luminous Cyan Blue (#38bdf8)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#031926</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-mint-plum" title="Plum"></span>
-                <span class="theme-swatch-dot swatch-mint-charcoal" title="Charcoal"></span>
-                <span class="theme-swatch-dot swatch-mint-pri" title="Teal"></span>
-                <span class="theme-swatch-dot swatch-mint-glow" title="Mint"></span>
-              </div>
-            </div>
 
-            <!-- 6. Slate Audiophile -->
-            <div class="theme-card" onclick="applyTheme('slate-audiophile')" data-theme-card="slate-audiophile">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Slate Audiophile</span>
-                  <span class="theme-card-sub">Studio Neutral &amp; Emerald</span>
+              <!-- 5. Mint City -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-mint-city" role="button" tabindex="0" onclick="applyTheme('mint-city')" data-theme-card="mint-city">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Mint City</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Plum &amp; Mint</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-mint-charcoal w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Dark Charcoal (#18181b)"></span>
+                    <span class="theme-swatch-dot swatch-mint-plum w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Plum (#4c1d95)"></span>
+                    <span class="theme-swatch-dot swatch-mint-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Teal (#0d9488)"></span>
+                    <span class="theme-swatch-dot swatch-mint-glow w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Mint (#34d399)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#18181b</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-slate-pri" title="Studio Neutral"></span>
-                <span class="theme-swatch-dot swatch-slate-sec" title="Emerald"></span>
-                <span class="theme-swatch-dot swatch-slate-green" title="Glow"></span>
-              </div>
-            </div>
 
-            <!-- 7. Beyond the Boundary -->
-            <div class="theme-card" onclick="applyTheme('beyond-the-boundary')" data-theme-card="beyond-the-boundary">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Beyond the Boundary</span>
-                  <span class="theme-card-sub">Midnight &amp; Neon Cyan</span>
+              <!-- 6. Slate Audiophile -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-slate-audiophile" role="button" tabindex="0" onclick="applyTheme('slate-audiophile')" data-theme-card="slate-audiophile">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Slate Audiophile</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Monochrome Slate</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-slate-pri w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Pure Slate (#0f172a)"></span>
+                    <span class="theme-swatch-dot swatch-slate-sec w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Neutral Charcoal (#334155)"></span>
+                    <span class="theme-swatch-dot swatch-slate-green w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Muted Silver (#94a3b8)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#0f172a</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-beyond-abyss" title="Midnight"></span>
-                <span class="theme-swatch-dot swatch-beyond-cyan" title="Neon Cyan"></span>
-                <span class="theme-swatch-dot swatch-beyond-plum" title="Amethyst Plum"></span>
-              </div>
-            </div>
 
-            <!-- 8. The Unknown -->
-            <div class="theme-card" onclick="applyTheme('the-unknown')" data-theme-card="the-unknown">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">The Unknown</span>
-                  <span class="theme-card-sub">Obsidian &amp; Electric Orange</span>
+              <!-- 7. Beyond the Boundary -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-beyond-the-boundary" role="button" tabindex="0" onclick="applyTheme('beyond-the-boundary')" data-theme-card="beyond-the-boundary">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Beyond the Boundary</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Neon Cyan &amp; Mint</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-beyond-abyss w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Midnight Black (#09090b)"></span>
+                    <span class="theme-swatch-dot swatch-beyond-cyan w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Neon Cyan (#06b6d4)"></span>
+                    <span class="theme-swatch-dot swatch-beyond-plum w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Electric Mint (#10b981)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#09090b</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-unknown-wine" title="Obsidian Magenta"></span>
-                <span class="theme-swatch-dot swatch-unknown-orange" title="Electric Orange"></span>
-                <span class="theme-swatch-dot swatch-unknown-amber" title="Golden Amber"></span>
-              </div>
-            </div>
 
-            <!-- 9. Castle In The Sky -->
-            <div class="theme-card" onclick="applyTheme('castle-in-the-sky')" data-theme-card="castle-in-the-sky">
-              <div class="theme-card-top">
-                <div class="theme-card-title-group">
-                  <span class="theme-card-title">Castle In The Sky</span>
-                  <span class="theme-card-sub">Mahogany &amp; Celadon Mint</span>
+              <!-- 8. The Unknown -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-the-unknown" role="button" tabindex="0" onclick="applyTheme('the-unknown')" data-theme-card="the-unknown">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">The Unknown</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Magenta &amp; Orange</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-unknown-wine w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Obsidian (#110712)"></span>
+                    <span class="theme-swatch-dot swatch-unknown-orange w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Obsidian Magenta (#a21caf)"></span>
+                    <span class="theme-swatch-dot swatch-unknown-amber w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Electric Orange (#f97316)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#110712</span>
                 </div>
               </div>
-              <div class="theme-card-swatches">
-                <span class="theme-swatch-dot swatch-castle-terracotta" title="Terracotta"></span>
-                <span class="theme-swatch-dot swatch-castle-celadon" title="Celadon"></span>
-                <span class="theme-swatch-dot swatch-castle-apricot" title="Apricot"></span>
+
+              <!-- 9. Castle In The Sky -->
+              <div class="theme-card cursor-pointer p-3 rounded-xl bg-surface-container border border-outline-variant/30 hover:border-outline/50 hover:bg-surface-container-high flex flex-col justify-between gap-2.5 relative transition-all duration-200 shadow-sm" id="theme-castle-in-the-sky" role="button" tabindex="0" onclick="applyTheme('castle-in-the-sky')" data-theme-card="castle-in-the-sky">
+                <div class="theme-card-top flex items-start justify-between">
+                  <div class="theme-card-title-group flex flex-col min-w-0">
+                    <span class="theme-card-title font-label-md text-label-md text-on-surface font-bold truncate">Castle In The Sky</span>
+                    <span class="theme-card-sub font-label-sm text-[10px] text-on-surface-variant font-mono truncate">Celadon &amp; Peach</span>
+                  </div>
+                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container-highest border border-outline-variant/40 flex items-center justify-center"></div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="theme-card-swatches flex items-center -space-x-1">
+                    <span class="theme-swatch-dot swatch-castle-terracotta w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Mahogany (#3f1d1d)"></span>
+                    <span class="theme-swatch-dot swatch-castle-celadon w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Celadon Green (#86efac)"></span>
+                    <span class="theme-swatch-dot swatch-castle-apricot w-5 h-5 rounded-full ring-1 ring-outline-variant/30 shadow-sm" title="Apricot Peach (#fdba74)"></span>
+                  </div>
+                  <span class="font-label-sm text-[10px] text-outline font-mono">#3f1d1d</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Color Customizer & Contrast Controls -->
-          <div class="panel-grid-2" style="margin-top: 1.5rem;">
+          <!-- Section 2: Library Crate Density (Stitch) -->
+          <section class="space-y-2 pt-3 border-t border-surface-container-highest/60">
+            <div class="flex items-center justify-between">
+              <span class="font-label-md text-label-md text-on-surface font-bold tracking-tight">Library Crate Density</span>
+              <span class="font-label-sm text-[11px] text-on-surface-variant font-mono">Adjust spacing &amp; sleeve display size</span>
+            </div>
+            <div class="bg-surface-container-lowest p-1 rounded-xl flex items-center justify-between border border-outline-variant/30 shadow-inner">
+              <button class="flex-1 py-1.5 px-3 rounded-lg bg-primary-container text-surface-container-lowest font-label-md text-label-md font-bold text-center shadow-[0_0_12px_rgba(6,182,212,0.35)] transition-all" type="button">
+                Cozy &amp; Spaced 🛋️
+              </button>
+              <button class="flex-1 py-1.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md font-medium text-center transition-all" type="button">
+                Just Right ☕
+              </button>
+              <button class="flex-1 py-1.5 px-3 rounded-lg text-on-surface-variant hover:text-on-surface font-label-md text-label-md font-medium text-center transition-all" type="button">
+                Compact Crate 📦
+              </button>
+            </div>
+          </section>
+
+          <!-- Section 3: Cover Art Feel & Visual Accents (Stitch) -->
+          <section class="bg-surface-container p-3 rounded-xl border border-outline-variant/30 shadow-sm flex items-start gap-3">
+            <label class="relative flex items-center cursor-pointer pt-0.5">
+              <input checked="" class="sr-only peer" id="ambient-glow-toggle" type="checkbox"/>
+              <div class="w-5 h-5 rounded-md bg-surface-container-lowest flex items-center justify-center border border-outline-variant/50 peer-checked:bg-primary-container peer-checked:border-primary-container shadow-inner transition-colors">
+                <span class="material-symbols-outlined text-surface-container-lowest text-[16px] font-bold">check</span>
+              </div>
+            </label>
+            <div class="flex flex-col flex-1">
+              <label class="font-label-md text-label-md text-on-surface font-bold cursor-pointer select-none" for="ambient-glow-toggle">
+                Show glowing ambient backlights behind album covers
+              </label>
+              <p class="font-body-sm text-[11px] text-on-surface-variant mt-0.5 leading-snug">
+                Casts a dynamic color aura that tracks with the dominant tone of the currently playing high-resolution vinyl sleeve.
+              </p>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center flex-shrink-0 text-primary">
+              <span class="material-symbols-outlined text-[18px]">wb_twilight</span>
+            </div>
+          </section>
+
+          <!-- Color Customizer & Contrast Controls (Phase 3 Integration) -->
+          <div class="panel-grid-2 pt-3 border-t border-surface-container-highest/60">
             <div class="panel-section">
               <label class="section-label" for="cfg-custom-accent">Custom Accent Color Override</label>
               <span id="custom-accent-hint" class="section-help" style="display:block; margin-bottom: 0.25rem;">Format: 6-digit hex (#RRGGBB)</span>
@@ -273,7 +364,7 @@
         </div>
 
         <!-- 2. ALSA Hardware Transport Tab -->
-        <div class="settings-panel" id="panel-transport">
+        <div class="settings-panel" id="panel-transport" style="display: none;">
           <div class="panel-grid-2">
             <div class="panel-section">
               <label class="section-label" for="cfg-alsa-device">Direct ALSA Hardware Device</label>
@@ -369,7 +460,7 @@
         </div>
 
         <!-- 3. DSP & Signal Chain Tab -->
-        <div class="settings-panel" id="panel-dsp">
+        <div class="settings-panel" id="panel-dsp" style="display: none;">
           <div class="panel-section">
             <label class="section-label">Audio Transport Routing Profile</label>
             <div class="profile-cards-grid">
@@ -440,7 +531,7 @@
         </div>
 
         <!-- 4. Feature Extraction Engine Tab -->
-        <div class="settings-panel" id="panel-analyzer">
+        <div class="settings-panel" id="panel-analyzer" style="display: none;">
           <div class="panel-grid-2">
             <div class="panel-section">
               <label class="section-label" for="cfg-analyzer-backend">Analyzer Architecture</label>
@@ -489,7 +580,7 @@
         </div>
 
         <!-- 5. Add-on Toybox Tab -->
-        <div class="settings-panel" id="panel-plugins">
+        <div class="settings-panel" id="panel-plugins" style="display: none;">
           <div class="panel-section" style="padding: 1rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; margin-bottom: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
@@ -528,7 +619,7 @@
         </div>
 
         <!-- 6. AI & Metadata Integrations Tab -->
-        <div class="settings-panel" id="panel-ai">
+        <div class="settings-panel" id="panel-ai" style="display: none;">
           <div class="panel-grid-2">
             <div class="panel-section">
               <label class="section-label" for="cfg-gemini-key">Google Gemini API Key</label>
@@ -594,11 +685,20 @@
       </main>
     </div>
 
-    <!-- Footer -->
-    <div class="settings-footer">
-      <span class="text-muted text-xs" id="settings-save-status">Settings apply instantly and persist to disk &amp; local storage.</span>
-      <div class="settings-footer-actions">
-        <button type="button" class="btn-primary" onclick="saveDesktopSettings(true)">Done</button>
+    <!-- Modal Footer -->
+    <div class="settings-footer h-[62px] px-6 bg-surface-container flex items-center justify-between flex-shrink-0 rounded-b-[22px] relative z-10 border-t border-surface-container-highest">
+      <div class="flex items-center gap-2 text-on-surface-variant">
+        <span class="text-[14px]">⚙️</span>
+        <span class="font-label-sm text-label-sm font-mono text-outline" id="settings-save-status">Settings automatically synced to local storage</span>
+      </div>
+      <div class="settings-footer-actions flex items-center gap-2.5">
+        <button class="px-4 py-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md font-semibold transition-all" id="modal-cancel-btn" type="button" onclick="closeSettingsDialog()">
+          Cancel
+        </button>
+        <button class="btn-primary px-5 py-2 rounded-full bg-primary-container hover:bg-primary text-surface-container-lowest font-label-md text-label-md font-bold shadow-[0_0_16px_rgba(6,182,212,0.4)] hover:shadow-[0_0_24px_rgba(6,182,212,0.6)] active:scale-95 transition-all flex items-center gap-1.5" id="modal-save-btn" type="button" onclick="saveDesktopSettings(true)">
+          <span>Save &amp; Chill</span>
+          <span>✨</span>
+        </button>
       </div>
     </div>
   </div>
