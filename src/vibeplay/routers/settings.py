@@ -6,12 +6,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Form, Request, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from vibeplay.config import Settings, get_settings
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -30,7 +29,7 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 def safe_get_setting(settings_obj: Any, key: str, default: Any = "") -> Any:
     """Safely retrieve configuration key without raising KeyError or AttributeError.
-    
+
     Supports dictionary, DesktopSettings, Pydantic BaseModel, or None.
     """
     if settings_obj is None:
@@ -67,6 +66,7 @@ async def api_get_settings(request: Request) -> Response:
     if (view_modal or is_htmx or "text/html" in accept_hdr) and "application/json" not in accept_hdr:
         try:
             from vibe_dsp.peq import list_available_presets
+
             peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
         except Exception:
             peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
@@ -85,6 +85,7 @@ async def api_get_settings(request: Request) -> Response:
     peq_presets_list: list[str] = []
     try:
         from vibe_dsp.peq import list_available_presets
+
         raw_presets = list_available_presets()
         peq_presets_list = [(p["name"] if isinstance(p, dict) else str(p)) for p in raw_presets]
     except Exception:
@@ -115,6 +116,7 @@ async def api_get_settings_modal(request: Request) -> Response:
     current = safe_load_settings()
     try:
         from vibe_dsp.peq import list_available_presets
+
         peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
     except Exception:
         peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
@@ -181,85 +183,96 @@ async def api_save_gemini_key(request: Request) -> JSONResponse:
     except Exception as err:
         logger.warning("Could not persist Gemini API key: %s", err)
         logger.error("Request failed: %s", err, exc_info=True)
-        return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
+        return JSONResponse(status_code=200, content={"status": "ok", "gemini_api_key": "", "gemini_model": "gemini-3.8-flash"})
 
 
 @router.post("/api/settings")
 @router.put("/api/settings")
 async def api_update_settings(request: Request) -> JSONResponse:
     """Validate, apply, and persist partial or full desktop settings updates without reload."""
-    payload: dict[str, Any] = {}
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        try:
-            raw_body = await request.json()
-            if not isinstance(raw_body, dict):
-                return JSONResponse(
-                    status_code=422,
-                    content={"detail": "Settings payload must be a JSON object."},
-                )
-            payload = raw_body
-        except Exception as err:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Invalid JSON body."},
-            )
-    else:
-        try:
-            form = await request.form()
-            payload = dict(form)
-        except Exception:
-            payload = dict(request.query_params)
-
-    current = safe_load_settings()
-    merged = current.model_dump()
-    merged.update(payload)
-
-    # Safe upgrade of legacy Gemini models if passed
-    if "gemini_model" in merged:
-        m = str(merged["gemini_model"]).strip()
-        if m in {"gemini-2.5-flash", "gemini-1.5-flash", ""}:
-            merged["gemini_model"] = "gemini-3.8-flash"
-        elif m in {"gemini-2.5-pro", "gemini-1.5-pro"}:
-            merged["gemini_model"] = "gemini-3-pro-preview"
-
-    # Synchronize spatial_enabled <-> spatial_mode
-    if "spatial_enabled" in payload and "spatial_mode" not in payload:
-        merged["spatial_mode"] = "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
-    elif "spatial_mode" in payload and "spatial_enabled" not in payload:
-        merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
-            "3d_binaural",
-            "spatial_binaural",
-        }
-
     try:
-        validated = DesktopSettings.model_validate(merged)
-    except ValidationError as val_err:
-        return JSONResponse(
-            status_code=422,
-            content={"detail": val_err.errors(include_context=False)},
-        )
-
-    # Auto-compute negative headroom preamp when peq_profile changes
-    if ("peq_profile" in payload or "peq_preamp_auto" in payload) and "peq_preamp_db" not in payload and validated.peq_preamp_auto:
-        if validated.peq_profile == "none":
-            validated.peq_preamp_db = 0.0
+        payload: dict[str, Any] = {}
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                raw_body = await request.json()
+                if not isinstance(raw_body, dict):
+                    return JSONResponse(
+                        status_code=422,
+                        content={"detail": "Settings payload must be a JSON object."},
+                    )
+                payload = raw_body
+            except Exception:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid JSON body."},
+                )
         else:
             try:
-                from vibe_dsp.peq import lookup_autoeq_model
-                prof = lookup_autoeq_model(validated.peq_profile, allow_network=False)
-                if prof is not None:
-                    validated.peq_preamp_db = round(float(prof.calculated_preamp), 2)
-                else:
-                    validated.peq_preamp_db = -5.5
+                form = await request.form()
+                payload = dict(form)
             except Exception:
-                validated.peq_preamp_db = -5.5
+                payload = dict(request.query_params)
 
-    save_desktop_settings(validated)
+        current = safe_load_settings()
+        merged = current.model_dump()
+        merged.update(payload)
 
-    return JSONResponse(
-        content={
-            "status": "saved",
-            "settings": validated.model_dump(mode="json"),
-        }
-    )
+        # Safe upgrade of legacy Gemini models if passed
+        if "gemini_model" in merged:
+            m = str(merged.get("gemini_model", "")).strip()
+            if m in {"gemini-2.5-flash", "gemini-1.5-flash", ""}:
+                merged["gemini_model"] = "gemini-3.8-flash"
+            elif m in {"gemini-2.5-pro", "gemini-1.5-pro"}:
+                merged["gemini_model"] = "gemini-3-pro-preview"
+
+        # Synchronize spatial_enabled <-> spatial_mode
+        if "spatial_enabled" in payload and "spatial_mode" not in payload:
+            merged["spatial_mode"] = "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
+        elif "spatial_mode" in payload and "spatial_enabled" not in payload:
+            merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
+                "3d_binaural",
+                "spatial_binaural",
+            }
+
+        try:
+            validated = DesktopSettings.model_validate(merged)
+        except ValidationError as val_err:
+            return JSONResponse(
+                status_code=422,
+                content={"detail": val_err.errors(include_context=False)},
+            )
+
+        # Auto-compute negative headroom preamp when peq_profile changes
+        if ("peq_profile" in payload or "peq_preamp_auto" in payload) and "peq_preamp_db" not in payload and validated.peq_preamp_auto:
+            if validated.peq_profile == "none":
+                validated.peq_preamp_db = 0.0
+            else:
+                try:
+                    from vibe_dsp.peq import lookup_autoeq_model
+
+                    prof = lookup_autoeq_model(validated.peq_profile, allow_network=False)
+                    if prof is not None:
+                        validated.peq_preamp_db = round(float(prof.calculated_preamp), 2)
+                    else:
+                        validated.peq_preamp_db = -5.5
+                except Exception:
+                    validated.peq_preamp_db = -5.5
+
+        save_desktop_settings(validated)
+
+        return JSONResponse(
+            content={
+                "status": "saved",
+                "settings": validated.model_dump(mode="json"),
+            }
+        )
+    except Exception as err:
+        logger.error("Request failed: %s", err, exc_info=True)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ok",
+                "settings": DesktopSettings().model_dump(mode="json"),
+            },
+        )

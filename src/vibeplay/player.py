@@ -86,18 +86,26 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
                 logger.debug("Could not release MPD outputs before aplay fallback: %s", e)
 
         import re
-        hw_match = re.search(r'(hw:\d+,\d+|plughw:\d+,\d+)', ACTIVE_OUTPUT_PROFILE)
-        alsa_device = hw_match.group(1) if hw_match else None
+
+        alsa_device = None
+        if ACTIVE_OUTPUT_PROFILE:
+            hw_match = re.search(r"(hw:\d+,\d+|plughw:\d+,\d+)", ACTIVE_OUTPUT_PROFILE)
+            if hw_match:
+                alsa_device = hw_match.group(1)
+            else:
+                hw_match = re.search(r"hw:(\d+)", ACTIVE_OUTPUT_PROFILE)
+                if hw_match:
+                    alsa_device = f"hw:{hw_match.group(1)},0"
 
         if "aplay" in Path(player_bin).name:
             if alsa_device:
-                dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
+                dev_arg = alsa_device if alsa_device.startswith("plug") else f"plug{alsa_device}"
                 cmd = ["aplay", "-D", str(dev_arg), str(track_path)]
             else:
                 cmd = ["aplay", str(track_path)]
         elif "ffplay" in Path(player_bin).name:
             if alsa_device:
-                dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
+                dev_arg = alsa_device if alsa_device.startswith("plug") else f"plug{alsa_device}"
                 cmd = ["ffplay", "-nodisp", "-autoexit", "-f", "alsa", "-device", str(dev_arg), str(track_path)]
             else:
                 cmd = ["ffplay", "-nodisp", "-autoexit", str(track_path)]
@@ -111,7 +119,7 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
                 stderr=subprocess.DEVNULL,
                 shell=False,
             )
-            logger.info("Started direct fallback audio player: %s (device: %s)", cmd[0], alsa_device or 'default')
+            logger.info("Started direct fallback audio player: %s (device: %s)", cmd[0], alsa_device or "default")
         except Exception as e:
             logger.warning("Failed to start direct audio player: %s", e)
 
@@ -609,12 +617,14 @@ def parse_asound_cards_dynamic() -> list[dict[str, Any]]:
     return cards
 
 
-def get_output_profiles(settings: Settings | None = None) -> list[str]:
+def get_output_profiles(settings: Settings | None = None) -> list[dict[str, str]]:
     """Dynamically scan hardware endpoints, /proc/asound/cards, and MPD outputs to return selectable audio outputs."""
-    profiles: list[str] = []
+    profiles: list[dict[str, str]] = []
     cfg = settings or get_settings()
 
-    # 1. Dynamic /proc/asound/cards hardware probe (detects FiiO KA15, Letshuoer dongle, USB DACs instantly)
+    seen_ids = set()
+
+    # 1. Dynamic /proc/asound/cards hardware probe
     detected_cards = parse_asound_cards_dynamic()
     for card in detected_cards:
         idx = card["card_index"]
@@ -627,23 +637,40 @@ def get_output_profiles(settings: Settings | None = None) -> list[str]:
         is_dac = is_usb or any(
             kw in combined
             for kw in (
-                "dac", "ka15", "fiio", "letshuoer", "dt01", "topping", "schiit",
-                "chord", "moondrop", "audioquest", "dragonfly", "qudelix", "ifi", "hidizs", "dongle"
+                "dac",
+                "ka15",
+                "fiio",
+                "letshuoer",
+                "dt01",
+                "topping",
+                "schiit",
+                "chord",
+                "moondrop",
+                "audioquest",
+                "dragonfly",
+                "qudelix",
+                "ifi",
+                "hidizs",
+                "dongle",
             )
         )
 
+        hw_id = f"hw:{idx},0"
+        if hw_id in seen_ids:
+            continue
+
         if "letshuoer" in combined or "dt01" in combined:
             label = f"Letshuoer USB DAC (Bit-Perfect hw:{idx},0)"
-            if label not in profiles:
-                profiles.insert(0, label)
+            profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+            seen_ids.add(hw_id)
         elif "fiio" in combined or "ka15" in combined:
             label = f"FiiO KA15 (Bit-Perfect hw:{idx},0)"
-            if label not in profiles:
-                profiles.insert(0, label)
+            profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+            seen_ids.add(hw_id)
         elif is_dac:
             label = f"{c_name} (Bit-Perfect hw:{idx},0)"
-            if label not in profiles:
-                profiles.insert(0, label)
+            profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+            seen_ids.add(hw_id)
 
     # 2. Probe system hardware endpoints from vibe_dsp or vibeplay.hardware
     try:
@@ -651,82 +678,99 @@ def get_output_profiles(settings: Settings | None = None) -> list[str]:
 
         audit = scan_hardware()
         for ep in audit.endpoints:
+            hw_id = f"hw:{ep.card_index},{ep.device_index}"
+            if hw_id in seen_ids:
+                continue
+
             c_lower = (ep.card_name + " " + ep.device_name + " " + ep.card_id).lower()
             if "letshuoer" in c_lower or "dt01" in c_lower:
-                label = f"Letshuoer USB DAC (Bit-Perfect hw:{ep.card_index},{ep.device_index})"
-                if label not in profiles:
-                    profiles.insert(0, label)
+                label = f"Letshuoer USB DAC (Bit-Perfect {hw_id})"
+                profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+                seen_ids.add(hw_id)
             elif "fiio" in c_lower or "ka15" in c_lower:
-                label = f"FiiO KA15 (Bit-Perfect hw:{ep.card_index},{ep.device_index})"
-                if label not in profiles:
-                    profiles.insert(0, label)
+                label = f"FiiO KA15 (Bit-Perfect {hw_id})"
+                profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+                seen_ids.add(hw_id)
 
         if audit.active_dac:
             dac_name = audit.active_dac.card_name
             dac_label = f"USB DAC Bit-Perfect ({dac_name})"
-            if dac_label not in profiles and not any(k in "".join(profiles).lower() for k in ("letshuoer", "fiio")):
-                profiles.insert(0, dac_label)
+            hw_id = f"hw:{audit.active_dac.card_index},{audit.active_dac.device_index}"
+            if hw_id not in seen_ids and not any(k in "".join([p["name"] for p in profiles]).lower() for k in ("letshuoer", "fiio")):
+                profiles.insert(0, {"id": hw_id, "name": dac_label, "type": "alsa"})
+                seen_ids.add(hw_id)
         if audit.fallback_endpoint:
             fb_label = f"Speakers / Analog ({audit.fallback_endpoint.card_name})"
-            if fb_label not in profiles:
-                profiles.append(fb_label)
+            hw_id = f"hw:{audit.fallback_endpoint.card_index},{audit.fallback_endpoint.device_index}"
+            if hw_id not in seen_ids:
+                profiles.append({"id": hw_id, "name": fb_label, "type": "alsa"})
+                seen_ids.add(hw_id)
     except Exception:
         try:
             from vibeplay.hardware import discover_audio_endpoints, get_active_or_best_dac
 
             endpoints = discover_audio_endpoints()
             for ep in endpoints:
+                hw_id = ep.hw_device
+                if hw_id in seen_ids:
+                    continue
+
                 c_lower = (ep.card_name + " " + ep.card_id).lower()
                 if "letshuoer" in c_lower or "dt01" in c_lower:
                     label = f"Letshuoer USB DAC (Bit-Perfect {ep.hw_device})"
-                    if label not in profiles:
-                        profiles.insert(0, label)
+                    profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+                    seen_ids.add(hw_id)
                 elif "fiio" in c_lower or "ka15" in c_lower:
                     label = f"FiiO KA15 (Bit-Perfect {ep.hw_device})"
-                    if label not in profiles:
-                        profiles.insert(0, label)
+                    profiles.insert(0, {"id": hw_id, "name": label, "type": "alsa"})
+                    seen_ids.add(hw_id)
             best_dac = get_active_or_best_dac(endpoints)
             if best_dac:
+                hw_id = best_dac.hw_device
                 dac_label = f"USB DAC Bit-Perfect ({best_dac.card_name})"
-                if dac_label not in profiles and not any(k in "".join(profiles).lower() for k in ("letshuoer", "fiio")):
-                    profiles.insert(0, dac_label)
+                if hw_id not in seen_ids and not any(k in "".join([p["name"] for p in profiles]).lower() for k in ("letshuoer", "fiio")):
+                    profiles.insert(0, {"id": hw_id, "name": dac_label, "type": "alsa"})
+                    seen_ids.add(hw_id)
         except Exception:
             pass
 
-    # 3. Always ensure default universal options exist
+    # 3. Always ensure essential universal routing options exist
     universal_options = [
-        "PipeWire Sound Server",
-        "Pure Bit-Perfect (Direct ALSA)",
-        "7.1.4 Spatial Headphones (SOFA 3D)",
-        "AV Receiver Passthrough (HDMI)",
+        {"id": "pipewire", "name": "PipeWire Sound Server", "type": "server"},
+        {"id": "pure-bitperfect", "name": "Pure Bit-Perfect (Direct ALSA)", "type": "alsa"},
+        {"id": "spatial-headphones", "name": "7.1.4 Spatial Headphones (SOFA 3D)", "type": "dsp"},
+        {"id": "receiver-passthrough", "name": "AV Receiver Passthrough (HDMI)", "type": "dsp"},
     ]
     for opt in universal_options:
-        if opt not in profiles:
+        if opt["id"] not in seen_ids:
             profiles.append(opt)
+            seen_ids.add(opt["id"])
 
     # 4. Add internal speakers / analog from detected cards if not already added
     for card in detected_cards:
         c_name = card["card_name"]
         combined = f"{c_name} {card['driver']} {card['card_id']} {card['extra']}".lower()
-        if any(kw in combined for kw in ("hda", "sof", "realtek", "analog", "speaker", "codec")):
+        idx = card["card_index"]
+        hw_id = f"hw:{idx},0"
+        if hw_id not in seen_ids and any(kw in combined for kw in ("hda", "sof", "realtek", "analog", "speaker", "codec")):
             lbl = f"Speakers / Analog ({c_name})"
-            if lbl not in profiles:
-                profiles.append(lbl)
+            profiles.append({"id": hw_id, "name": lbl, "type": "alsa"})
+            seen_ids.add(hw_id)
 
     # 5. Query live MPD outputs if daemon is connected, excluding stale names of disconnected hardware
     try:
         with get_mpd_transport(cfg) as transport:
             if transport.client:
                 mpd_outs = transport.client.outputs()
-                has_fiio = any("fiio" in p.lower() for p in profiles)
-                profiles_set = set(profiles)
+                has_fiio = any("fiio" in p["name"].lower() for p in profiles)
                 for out in mpd_outs:
                     name = out.get("outputname")
-                    if name and name not in profiles_set:
+                    oid = out.get("outputid", out.get("id"))
+                    if name and oid not in seen_ids:
                         if not has_fiio and "fiio" in name.lower():
                             continue
-                        profiles.append(name)
-                        profiles_set.add(name)
+                        profiles.append({"id": str(oid), "name": name, "type": "mpd"})
+                        seen_ids.add(str(oid))
     except Exception:
         pass
 
