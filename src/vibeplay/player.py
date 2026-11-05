@@ -763,16 +763,14 @@ def get_output_profiles(settings: Settings | None = None) -> list[dict[str, str]
             if transport.client:
                 mpd_outs = transport.client.outputs()
                 has_fiio = any("fiio" in p["name"].lower() for p in profiles)
-                seen_names = {p["name"].lower() for p in profiles}
                 for out in mpd_outs:
                     name = out.get("outputname")
-                    oid = str(out.get("outputid", out.get("id")))
-                    if name and oid not in seen_ids and name.lower() not in seen_names:
+                    oid = out.get("outputid", out.get("id"))
+                    if name and oid not in seen_ids:
                         if not has_fiio and "fiio" in name.lower():
                             continue
-                        profiles.append({"id": oid, "name": name, "type": "mpd"})
-                        seen_ids.add(oid)
-                        seen_names.add(name.lower())
+                        profiles.append({"id": str(oid), "name": name, "type": "mpd"})
+                        seen_ids.add(str(oid))
     except Exception:
         pass
 
