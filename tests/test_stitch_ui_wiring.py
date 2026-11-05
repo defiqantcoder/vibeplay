@@ -405,3 +405,70 @@ def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
     assert 'playing-bars' in html or 'play_arrow' in html
 
 
+def test_record_crate_visual_vinyl_sleeve_cards_and_grooves(wiring_env):
+    """Verify Record Crate exact Stitch vinyl sleeves, groove circles, center label chips, and HTMX play triggers."""
+    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+
+    db_file, client = wiring_env
+
+    with get_connection(db_file) as conn:
+        t_id = insert_track(
+            conn,
+            path="/music/vinyl_rip_01.flac",
+            title="Warm Wurlitzer Solitudes",
+            artist="Hanna Vane",
+            album="Electric Rain",
+            duration=225,
+            mtime=1.0,
+            size=8000,
+            file_hash="hash_hanna_wurlitzer",
+        )
+        insert_or_replace_features(
+            conn,
+            track_id=t_id,
+            analyzer_version="1.0.0",
+            bpm=92.0,
+            key="C",
+            scale="major",
+            loudness=-8.5,
+            danceability=0.55,
+            energy=0.62,
+            mood_scores_json="{}",
+            embedding_blob=b"\x00" * 32,
+        )
+
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Crate container and header elements
+    assert "master-record-crate-bay" in html
+    assert "crate-bay-header" in html
+    assert "The Record Crate" in html
+    assert "TAPES" in html
+    assert "crate-mood-chip" in html
+
+    # 2. Vinyl grid and sleeve housing
+    assert "vinyl-crate-grid" in html
+    assert "vinyl-sleeve-card" in html
+    assert "vinyl-sleeve-housing" in html
+
+    # 3. Peeking vinyl record with concentric grooves & center label chip
+    assert "vinyl-disc-peeking" in html
+    assert "vinyl-groove-circle" in html
+    assert "vinyl-center-label-chip" in html
+    assert "33⅓" in html
+    assert "RPM" in html
+
+    # 4. Sleeve jacket front cover, key pill, and play trigger
+    assert "vinyl-jacket-front" in html
+    assert "jacket-key-pill" in html
+    assert f'hx-post="/api/player/play-track/{t_id}"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+    assert 'onclick="selectTrackRow(this,' in html
+
+    # 5. Track metadata
+    assert "vinyl-meta-group" in html
+    assert "Warm Wurlitzer Solitudes" in html
+    assert "Hanna Vane" in html
+    assert "03:45" in html or "vinyl-specs-row" in html

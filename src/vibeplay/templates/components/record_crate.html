@@ -38,48 +38,86 @@
          hx-target="#transport-footer-container"
          hx-swap="innerHTML"
          hx-trigger="click"
+         onclick="selectTrackRow(this, '{{ track.track_id }}')"
          oncontextmenu="openTrackContextMenu(event, {{ track.track_id }}, '{{ (track.title or 'Unknown')|replace('\'', '\\\'') }}', '{{ (track.artist or 'Unknown')|replace('\'', '\\\'') }}'); return false;">
       <!-- Sleeve with Peeking Vinyl Record -->
       <div class="vinyl-sleeve-housing">
         <!-- Vinyl Record Peeking out from inside jacket -->
         <div class="vinyl-disc-peeking" aria-hidden="true">
-          <div class="vinyl-disc-grooves"></div>
-          <div class="vinyl-disc-label">
-            <span class="vinyl-rpm">33⅓</span>
-            <div class="vinyl-spindle-hole"></div>
+          <div class="vinyl-groove-circle" style="inset: 6px;"></div>
+          <div class="vinyl-groove-circle" style="inset: 18px;"></div>
+          <div class="vinyl-groove-circle" style="inset: 30px;"></div>
+          <div class="vinyl-center-label-chip">
+            <span>33⅓</span>
+            <span style="font-size: 6px;">RPM</span>
           </div>
         </div>
 
         <!-- Sleeve Jacket Front Cover -->
         <div class="vinyl-jacket-front">
-          <div class="jacket-icon-well">
+          <img class="absolute inset-0 w-full h-full object-cover rounded-[11px] group-hover:scale-105 transition-transform duration-500"
+               src="{{ track.cover_url or '/static/album_art/default.png' }}"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+               alt="{{ track.title or 'Album Cover' }}"/>
+          <div class="jacket-icon-well absolute inset-0 items-center justify-center bg-surface-container-highest/60 rounded-[11px]" style="display: none;">
             <span class="text-3xl select-none">🎵</span>
           </div>
-          <div class="jacket-key-pill font-mono">
-            <span>{{ track.camelot or track.key or '8A' }}</span>
-            <span class="pill-dot">•</span>
-            <span>{{ track.bpm|round(0)|int if track.bpm else 120 }} BPM</span>
+          <div class="absolute inset-0 bg-gradient-to-t from-surface-dim/80 via-surface-dim/20 to-transparent rounded-[11px] pointer-events-none"></div>
+
+          <!-- Top Row Badges -->
+          <div class="relative z-10 flex items-center justify-between w-full">
+            <div class="jacket-key-pill font-mono flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur-md text-[10px] text-secondary">
+              <span>{{ track.camelot or track.key or '8A' }}</span>
+              <span class="pill-dot">•</span>
+              <span>{{ track.bpm|round(0)|int if track.bpm else 120 }} BPM</span>
+            </div>
+            {% if playback and playback.track_id == track.track_id %}
+            <div class="jacket-now-playing-tag flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 backdrop-blur-md text-[10px] text-primary font-mono font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+              <span>SPINNING</span>
+            </div>
+            {% endif %}
           </div>
-          {% if playback and playback.track_id == track.track_id %}
-          <div class="jacket-now-playing-tag">
-            <span class="pulse-dot-cyan"></span>
-            <span>SPINNING</span>
-          </div>
-          {% endif %}
+
+          <!-- Hover Play Action Button -->
+          <button class="relative z-10 self-center w-10 h-10 rounded-full bg-primary-container text-surface-container-lowest flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 active:scale-95"
+                  type="button"
+                  hx-post="/api/player/play-track/{{ track.track_id }}"
+                  hx-target="#transport-footer-container"
+                  hx-swap="innerHTML"
+                  hx-trigger="click"
+                  onclick="event.stopPropagation()"
+                  title="Play Track">
+            <span class="material-symbols-outlined text-[22px]">play_arrow</span>
+          </button>
         </div>
       </div>
 
       <!-- Track Information -->
-      <div class="vinyl-meta-group">
-        <h4 class="vinyl-title truncate font-bold">
+      <div class="vinyl-meta-group mt-2">
+        <h4 class="vinyl-title truncate font-bold text-on-surface text-body-md group-hover:text-primary transition-colors">
           {{ track.title or 'Unknown Title' }}
         </h4>
-        <span class="vinyl-artist truncate text-muted">
+        <span class="vinyl-artist truncate text-on-surface-variant text-body-sm block">
           {{ track.artist or 'Unknown Artist' }}
         </span>
-        <div class="vinyl-specs-row font-mono text-muted">
-          <span class="quality-tag">FLAC ✨</span>
-          <span>{{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) if track.duration else "3:45" }}</span>
+        <div class="vinyl-specs-row font-mono text-on-surface-variant flex items-center justify-between text-label-sm pt-1">
+          <span class="quality-tag text-secondary">
+            {% if track.bit_depth and track.bit_depth > 16 %}
+              {{ (track.sample_rate // 1000)|int if track.sample_rate else 96 }}k/{{ track.bit_depth }}b 👑
+            {% elif track.path and track.path.endswith('.dsd') or track.path and track.path.endswith('.dsf') %}
+              DSD 11.2M 👑
+            {% else %}
+              FLAC ✨
+            {% endif %}
+          </span>
+          <span>
+            {% if track.duration %}
+              {{ (track.duration // 60)|int }}:{{ "%02d"|format((track.duration % 60)|int) }}
+            {% else %}
+              03:45
+            {% endif %}
+          </span>
         </div>
       </div>
     </div>
