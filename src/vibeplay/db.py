@@ -292,13 +292,23 @@ def get_connection(db_path: Path, timeout: float = 10.0) -> sqlite3.Connection:
     Returns:
         sqlite3.Connection: Connection with WAL mode and row factory enabled.
     """
-    db_p = Path(db_path)
-    base_dir = db_p.parent.resolve()
-    resolved_path = (base_dir / db_p.name).resolve()
-    if not resolved_path.is_relative_to(base_dir):
-        raise ValueError("Path traversal attempt detected")
-    resolved_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(resolved_path, timeout=timeout)
+    db_p = Path(db_path).expanduser()
+
+    # Restrict database file location to a trusted application root.
+    safe_root = (Path.cwd() / "data").resolve()
+    safe_root.mkdir(parents=True, exist_ok=True)
+
+    # Keep only the filename to avoid honoring caller-controlled directories.
+    candidate = (safe_root / db_p.name).resolve(strict=False)
+    if candidate.suffix.lower() != ".db":
+        raise ValueError("Invalid database file extension")
+    try:
+        candidate.relative_to(safe_root)
+    except ValueError as exc:
+        raise ValueError("Path traversal attempt detected") from exc
+
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(candidate, timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA journal_mode = WAL;")
