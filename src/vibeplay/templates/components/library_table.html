@@ -147,13 +147,10 @@
           <td class="px-3 py-3 align-middle">
             <div class="flex items-center gap-3">
               <div class="relative w-9 h-9 rounded-md overflow-hidden flex-shrink-0 bg-surface-container-highest shadow-sm">
-                {% if track.cover_url %}
-                <img class="w-full h-full object-cover" src="{{ track.cover_url }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ track.title }}"/>
-                {% else %}
-                <div class="w-full h-full bg-surface-container-high flex items-center justify-center text-primary font-headline-sm font-bold text-[14px]">
-                  {{ (track.title[:2] if track.title else 'VP')|upper }}
-                </div>
-                {% endif %}
+                <img class="w-full h-full object-cover"
+                     src="/api/library/cover/{{ track.track_id or track.id }}"
+                     onerror="this.onerror=null; this.src='/static/icons/vinyl_placeholder.svg';"
+                     alt="{{ track.title }}"/>
               </div>
               <div class="flex flex-col min-w-0">
                 <span class="font-headline-sm text-label-lg font-bold {% if is_playing %}text-primary flex items-center gap-1.5{% else %}text-on-surface group-hover:text-primary transition-colors{% endif %} truncate">
@@ -162,7 +159,9 @@
                   <span class="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
                   {% endif %}
                 </span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant truncate">{{ track.genre or 'Lossless Master' }}</span>
+                <span class="font-label-sm text-label-sm text-on-surface-variant truncate">
+                  {{ track.genre or 'Lossless Master' }} • {% if track.sample_rate %}{{ (track.sample_rate / 1000)|round|int }} kHz{% else %}44.1 kHz{% endif %}
+                </span>
               </div>
             </div>
           </td>
@@ -181,7 +180,7 @@
             </span>
             {% elif track.sample_rate and track.sample_rate > 48000 %}
             <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-semibold shadow-sm inline-flex items-center gap-1">
-              96k/24b 👑
+              {{ track.sample_rate // 1000 }}kHz / {{ track.bit_depth }}-bit 👑
             </span>
             {% elif fpath.endswith('.mp3') %}
             <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-medium inline-flex items-center">
@@ -189,7 +188,7 @@
             </span>
             {% else %}
             <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-primary-container/15 text-primary font-medium inline-flex items-center gap-1">
-              FLAC ✨
+              {% if track.sample_rate %}{{ (track.sample_rate / 1000)|round|int }} kHz / {{ track.bit_depth if track.bit_depth else 16 }}-bit{% else %}44.1 kHz / 16-bit{% endif %} ✨
             </span>
             {% endif %}
           </td>

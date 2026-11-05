@@ -45,14 +45,16 @@ def test_top_navigation_tabs_and_view_separation(client: TestClient):
     assert 'id="nav-btn-bigscreen"' in html
 
     # 2. Distinct Screen Tab Sections
-    assert 'id="tab-library"' in html
-    assert 'id="tab-builder"' in html
-    assert 'id="tab-crate"' in html
+    assert 'id="view-lounge"' in html
+    assert 'id="view-library"' in html
+    assert 'id="view-generator"' in html
+    assert 'id="view-crate"' in html
 
-    # 3. Default Visibility: Library visible by default, others isolated/hidden
-    assert '<section id="tab-library" style="display: block;">' in html
-    assert '<section id="tab-crate" style="display: none;">' in html
-    assert '<section id="tab-builder" style="display: none;">' in html
+    # 3. Default Visibility: Lounge visible by default, others isolated/hidden
+    assert '<section id="view-lounge" class="view-panel active">' in html
+    assert '<section id="view-library" class="view-panel" style="display: none;">' in html
+    assert '<section id="view-generator" class="view-panel" style="display: none;">' in html
+    assert '<section id="view-crate" class="view-panel" style="display: none;">' in html
 
     # 4. Workspace inspector drawer is hidden by default
     assert 'id="workspace-inspector-drawer"' in html
@@ -338,17 +340,10 @@ def test_lofi_lounge_hero_sections_and_crate_wiring(wiring_env):
     assert "Rainy Kissa Midnight" in html
     assert "Ryo Trio" in html
 
-    # 5. Lounge Listeners (Social Crate Deck)
-    assert "Social Crate Deck" in html
-    assert "Lounge Listeners" in html
-    assert "Currently in the Lounge" in html
-    assert "Yuki M." in html
-    assert "Sennheiser HD600" in html
-    assert "Marcus L." in html
-    assert "Audeze LCD-2" in html
-    assert "Elena S." in html
-    assert "Focal Clear" in html
-    assert "Share Deck Sync URL" in html
+    # 5. Verify Social Crate Deck mock markup was stripped from production template
+    assert "Yuki M." not in html
+    assert "Marcus L." not in html
+    assert "Elena S." not in html
 
 
 def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
@@ -416,7 +411,7 @@ def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
     assert "Aura Reflections" in html
     assert "Kiasmos" in html
     assert "Flown" in html
-    assert "FLAC ✨" in html or "96k/24b 👑" in html
+    assert "FLAC ✨" in html or "96k/24b 👑" in html or "96kHz" in html
     assert "124 bpm ⚡" in html
     assert "8A / A Minor" in html
     assert "78%" in html

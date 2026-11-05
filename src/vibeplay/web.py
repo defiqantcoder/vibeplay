@@ -165,6 +165,17 @@ def get_filtered_tracks(
         row_dict["duration"] = float(row_dict["duration"]) if row_dict["duration"] else 0.0
         row_dict["genre"] = _format_genre(row_dict["genre"])
 
+        if row_dict.get("path") and ("sample_rate" not in row_dict or not row_dict.get("sample_rate")):
+            try:
+                from vibeplay.player import get_audio_file_technical_info
+
+                tech = get_audio_file_technical_info(row_dict["path"])
+                row_dict["sample_rate"] = tech.get("sample_rate")
+                row_dict["bit_depth"] = tech.get("bits_per_sample")
+                row_dict["codec"] = tech.get("codec")
+            except Exception:
+                pass
+
         # Filter by key/camelot if requested
         if key_filter:
             track_key = str(row_dict["key"] or "").upper()

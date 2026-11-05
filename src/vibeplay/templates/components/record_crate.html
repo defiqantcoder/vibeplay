@@ -56,8 +56,8 @@
         <!-- Sleeve Jacket Front Cover -->
         <div class="vinyl-jacket-front">
           <img class="absolute inset-0 w-full h-full object-cover rounded-[11px] group-hover:scale-105 transition-transform duration-500"
-               src="{{ track.cover_url or '/static/album_art/default.png' }}"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+               src="/api/library/cover/{{ track.track_id or track.id }}"
+               onerror="this.onerror=null; this.src='/static/icons/vinyl_placeholder.svg';"
                alt="{{ track.title or 'Album Cover' }}"/>
           <div class="jacket-icon-well absolute inset-0 items-center justify-center bg-surface-container-highest/60 rounded-[11px]" style="display: none;">
             <span class="text-3xl select-none">🎵</span>
@@ -104,8 +104,10 @@
         <div class="vinyl-specs-row font-mono text-on-surface-variant flex items-center justify-between text-label-sm pt-1">
           <span class="quality-tag text-secondary">
             {% if track.bit_depth and track.bit_depth > 16 %}
-              {{ (track.sample_rate // 1000)|int if track.sample_rate else 96 }}k/{{ track.bit_depth }}b 👑
-            {% elif track.path and track.path.endswith('.dsd') or track.path and track.path.endswith('.dsf') %}
+              {{ track.sample_rate // 1000 if track.sample_rate else 96 }}kHz / {{ track.bit_depth }}-bit 👑
+            {% elif track.sample_rate %}
+              {% if track.sample_rate %}{{ (track.sample_rate / 1000)|round|int }} kHz{% else %}44.1 kHz{% endif %}
+            {% elif track.path and (track.path.endswith('.dsd') or track.path.endswith('.dsf')) %}
               DSD 11.2M 👑
             {% else %}
               FLAC ✨

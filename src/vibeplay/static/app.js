@@ -1,37 +1,43 @@
 /* vibeplay — Audiophile Precision Console Client-side Interactions */
 
-// Tab Navigation
-function showTab(tabId) {
-  let target = tabId;
-  if (target === 'table' || target === 'lounge') target = 'library';
-  if (!target) target = 'library';
+// Tab & Screen Navigation (Enforce Screen Separation)
+function showTab(viewId) {
+  if (!viewId) viewId = 'lounge';
+  const clean = String(viewId).replace(/^view-/, '').replace(/^tab-/, '');
 
-  const tabs = ['lounge', 'crate', 'library', 'builder', 'clusters'];
-  tabs.forEach(t => {
-    const section = document.getElementById(`tab-${t}`);
-    const btn = document.getElementById(`nav-btn-${t}`);
-    const sideBtn = document.getElementById(`side-nav-${t}`);
-    if (section) {
-      if (t === target) {
-        section.style.display = 'block';
-      } else {
-        section.style.display = 'none';
-      }
-    }
-    if (btn) {
-      if (t === target || (target === 'library' && (t === 'lounge' || t === 'library'))) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    }
-    if (sideBtn) {
-      if (t === target || (target === 'library' && (t === 'lounge' || t === 'library'))) {
-        sideBtn.classList.add('active');
-      } else {
-        sideBtn.classList.remove('active');
-      }
-    }
+  // Map view aliases (builder -> generator)
+  let targetView = clean;
+  if (clean === 'builder') targetView = 'generator';
+
+  // 1. Hide all .view-panel sections and clear active state
+  const panels = document.querySelectorAll('.view-panel');
+  panels.forEach(p => {
+    p.style.display = 'none';
+    p.classList.remove('active');
+  });
+
+  // 2. Locate targeted element (supports view-*, tab-*, or raw id)
+  const targetElement = document.getElementById(`view-${targetView}`)
+                     || document.getElementById(`view-${clean}`)
+                     || document.getElementById(`tab-${clean}`)
+                     || document.getElementById(viewId);
+
+  if (targetElement) {
+    targetElement.style.display = 'block';
+    targetElement.classList.add('active');
+  }
+
+  // 3. Update top and sidebar navigation active states
+  const navKeys = ['lounge', 'crate', 'library', 'builder', 'generator'];
+  navKeys.forEach(key => {
+    const btn = document.getElementById(`nav-btn-${key}`);
+    const sideBtn = document.getElementById(`side-nav-${key}`);
+    const isActive = (key === clean)
+      || (targetView === 'generator' && (key === 'builder' || key === 'generator'))
+      || (clean === 'generator' && key === 'builder')
+      || (clean === 'builder' && key === 'generator');
+    if (btn) btn.classList.toggle('active', isActive);
+    if (sideBtn) sideBtn.classList.toggle('active', isActive);
   });
 }
 window.showTab = showTab;

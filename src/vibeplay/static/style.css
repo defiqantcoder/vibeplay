@@ -1425,6 +1425,7 @@ dialog.modal-dialog::backdrop {
   letter-spacing: 0.04em;
 }
 
+.btn-chrome-icon,
 .btn-chrome-settings {
   background: none;
   border: none;
@@ -1437,6 +1438,7 @@ dialog.modal-dialog::backdrop {
   transition: color 0.15s, background 0.15s;
 }
 
+.btn-chrome-icon:hover,
 .btn-chrome-settings:hover {
   color: var(--text-primary);
   background-color: var(--bg-container);
