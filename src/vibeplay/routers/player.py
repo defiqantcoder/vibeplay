@@ -120,11 +120,13 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
 
         accept_header = request.headers.get("accept", "")
         if "application/json" in accept_header or request.query_params.get("format") == "json":
+            # Avoid returning directly user-controlled string; use an internal identifier if possible,
+            # or rely on FastAPI's JSONResponse handling.
             return JSONResponse(
                 status_code=200,
                 content={
                     "status": "ok",
-                    "active_profile": safe_profile,
+                    "active_profile": str(playback.get("active_profile", "pure-bitperfect")),
                     "playback": playback,
                 },
             )
