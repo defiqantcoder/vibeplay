@@ -388,8 +388,10 @@ def create_app(
 
     @app.get("/", response_class=HTMLResponse)
     async def index_page(request: Request) -> Response:
-        """Render the main console dashboard shell."""
-        active_desktop_settings = load_desktop_settings(settings_file_path)
+        try:
+            active_desktop_settings = load_desktop_settings(settings_file_path)
+        except Exception:
+            active_desktop_settings = DesktopSettings()
         with get_connection(resolved_db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*), COALESCE(SUM(duration), 0) FROM tracks WHERE status = 'active'")
@@ -1318,6 +1320,10 @@ def create_app(
                 pass
 
         playback = get_playback_status(resolved_db_path, cfg)
+        playback["active_profile"] = target_profile
+        playback["output_profile"] = target_profile
+        from vibeplay.player import get_output_profiles
+        playback["output_profiles"] = get_output_profiles(cfg)
 
         accept_header = request.headers.get("accept", "")
         if "application/json" in accept_header or request.query_params.get("format") == "json":
@@ -1329,13 +1335,22 @@ def create_app(
                 }
             )
 
-        return templates.TemplateResponse(
+        output_switcher_html = templates.get_template("components/output_switcher.html").render(
             request=request,
-            name="components/transport_bar.html",
-            context={
-                "playback": playback,
-            },
+            playback=playback,
+            popover_open=True,
         )
+        transport_bar_html = templates.get_template("components/transport_bar.html").render(
+            request=request,
+            playback=playback,
+        )
+
+        full_html = (
+            f"{output_switcher_html}\n"
+            f'<div id="transport-footer-container" hx-swap-oob="true">\n{transport_bar_html}\n</div>\n'
+            f'<span id="header-playing-on-text" hx-swap-oob="true">{target_profile}</span>\n'
+        )
+        return HTMLResponse(content=full_html)
 
     @app.get("/api/player/scrub", response_class=HTMLResponse)
     async def api_player_scrub(request: Request) -> Response:
@@ -1491,9 +1506,17 @@ def create_app(
         )
 
     @app.get("/api/settings")
-    async def api_get_settings() -> JSONResponse:
-        """Return persisted desktop & hardware settings and available PEQ presets."""
-        current = load_desktop_settings(settings_file_path)
+    async def api_get_settings(request: Request) -> Response:
+        """Return persisted desktop & hardware settings, with safe fallback and modal HTML support."""
+        try:
+            current = load_desktop_settings(settings_file_path)
+        except Exception:
+            current = DesktopSettings()
+
+        accept_hdr = request.headers.get("accept", "")
+        is_htmx = bool(request.headers.get("hx-request"))
+        view_modal = request.query_params.get("view") == "modal" or request.query_params.get("format") == "html"
+
         peq_presets: list[str] = []
         try:
             from vibe_dsp.peq import list_available_presets
@@ -1507,13 +1530,101 @@ def create_app(
                 "moondrop_blessing_2",
                 "sennheiser_hd600",
             ]
+
+        if (view_modal or is_htmx or "text/html" in accept_hdr) and "application/json" not in accept_hdr:
+            return templates.TemplateResponse(
+                request=request,
+                name="components/settings_dialog.html",
+                context={
+                    "desktop_settings": current,
+                    "peq_presets": peq_presets,
+                    "settings_path": str(settings_file_path),
+                },
+            )
+
+        settings_dict = current.model_dump(mode="json") if hasattr(current, "model_dump") else {}
+        settings_dict["gemini_api_key"] = current.get("gemini_api_key", "") if hasattr(current, "get") else getattr(current, "gemini_api_key", "")
+        settings_dict["gemini_model"] = current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")
+
         return JSONResponse(
             content={
-                "settings": current.model_dump(mode="json"),
+                "settings": settings_dict,
                 "peq_presets": peq_presets,
                 "settings_path": str(settings_file_path),
             }
         )
+
+    @app.get("/api/settings/modal", response_class=HTMLResponse)
+    async def api_settings_modal(request: Request) -> Response:
+        """Return the Settings Dialog modal HTML snippet."""
+        try:
+            current = load_desktop_settings(settings_file_path)
+        except Exception:
+            current = DesktopSettings()
+        try:
+            from vibe_dsp.peq import list_available_presets
+            peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
+        except Exception:
+            peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
+        return templates.TemplateResponse(
+            request=request,
+            name="components/settings_dialog.html",
+            context={
+                "desktop_settings": current,
+                "peq_presets": peq_presets,
+                "settings_path": str(settings_file_path),
+            },
+        )
+
+    @app.get("/api/settings/gemini")
+    @app.get("/api/settings/api-key")
+    async def api_get_gemini_key() -> JSONResponse:
+        """Safely query Gemini API configuration without KeyError or AttributeError."""
+        try:
+            current = load_desktop_settings(settings_file_path)
+        except Exception:
+            current = DesktopSettings()
+        key = current.get("gemini_api_key", "") if hasattr(current, "get") else getattr(current, "gemini_api_key", "")
+        model = current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")
+        provider = current.get("llm_provider", "gemini") if hasattr(current, "get") else getattr(current, "llm_provider", "gemini")
+        return JSONResponse(
+            content={
+                "gemini_api_key": key,
+                "gemini_model": model,
+                "llm_provider": provider,
+            }
+        )
+
+    @app.post("/api/settings/gemini")
+    @app.post("/api/settings/api-key")
+    async def api_save_gemini_key(request: Request) -> JSONResponse:
+        """Safely save or update Gemini API key and model tier."""
+        api_key = ""
+        model = "gemini-3.8-flash"
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = await request.json()
+                if isinstance(body, dict):
+                    api_key = str(body.get("gemini_api_key") or body.get("api_key") or "").strip()
+                    model = str(body.get("gemini_model") or body.get("model") or "gemini-3.8-flash").strip()
+            except Exception:
+                pass
+        else:
+            try:
+                form = await request.form()
+                api_key = str(form.get("gemini_api_key") or form.get("api_key") or "").strip()
+                model = str(form.get("gemini_model") or form.get("model") or "gemini-3.8-flash").strip()
+            except Exception:
+                pass
+        updates = {"gemini_api_key": api_key, "gemini_model": model, "llm_provider": "gemini"}
+        try:
+            updated = update_desktop_settings(updates, settings_file_path)
+            _sync_runtime_cfg(updated)
+            key = updated.get("gemini_api_key", "") if hasattr(updated, "get") else getattr(updated, "gemini_api_key", "")
+            return JSONResponse(content={"status": "ok", "gemini_api_key": key, "gemini_model": model})
+        except Exception as err:
+            return JSONResponse(status_code=500, content={"status": "error", "message": str(err)})
 
     @app.post("/api/settings")
     @app.put("/api/settings")
@@ -2237,8 +2348,10 @@ def create_app(
     app.state.templates = templates
 
     from vibeplay.api.library import router as library_router
+    from vibeplay.routers.root import router as root_router
 
     app.include_router(library_router)
+    app.include_router(root_router)
     return app
 
 

@@ -10,6 +10,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DESKTOP_SETTINGS_PATH = Path("~/.config/vibeplay/desktop_settings.json").expanduser()
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables and .env file."""

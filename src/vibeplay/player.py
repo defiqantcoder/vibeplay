@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 import subprocess
 import threading
@@ -456,8 +457,35 @@ def play_track(
         with get_mpd_transport(cfg) as mpd_client:
             mpd_client.clear()
             mpd_client.add(track_path)
-            mpd_client.play(0)
+            try:
+                mpd_client.play(0)
+            except Exception as play_err:
+                logger.warning(
+                    "MPD play(0) failed on primary output (%s); trying PipeWire fallback before direct playback",
+                    play_err,
+                )
+                if mpd_client.client:
+                    _try_enable_pipewire_fallback(mpd_client.client)
+                    mpd_client.play(0)
+
             status = mpd_client.status()
+            if status.get("error") or status.get("state") != "play":
+                error_msg = status.get("error", "MPD state not playing")
+                logger.warning(
+                    "MPD playback lock failed (%s); automatically falling back to direct audio player (aplay/pw-play)",
+                    error_msg,
+                )
+                _start_fallback_playback(track_path, settings=cfg)
+                return {
+                    "track_id": track_id,
+                    "title": row["title"] or Path(track_path).stem,
+                    "artist": row["artist"] or "Unknown Artist",
+                    "status": status,
+                    "state": "play",
+                    "fallback": True,
+                    "error": error_msg,
+                }
+
             _stop_fallback_playback()
             return {
                 "track_id": track_id,
@@ -468,10 +496,10 @@ def play_track(
             }
     except Exception as err:
         logger.warning(
-            "Could not send play command to MPD (%s); falling back to direct audio player",
+            "Could not send play command to MPD (%s); falling back to direct audio player (aplay/pw-play)",
             err,
         )
-        _start_fallback_playback(track_path)
+        _start_fallback_playback(track_path, settings=cfg)
         return {
             "track_id": track_id,
             "title": row["title"] or Path(track_path).stem,
@@ -519,12 +547,87 @@ def _try_enable_pipewire_fallback(client: Any) -> bool:
     return False
 
 
-def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
-    """Dynamically scan hardware endpoints and MPD outputs to return selectable audio outputs."""
+def parse_asound_cards_dynamic() -> list[dict[str, Any]]:
+    """Dynamically parse /proc/asound/cards into structured card records."""
+    cards_path = Path("/proc/asound/cards")
+    if not cards_path.exists():
+        return []
+    try:
+        content = cards_path.read_text(encoding="utf-8", errors="replace")
+    except Exception as err:
+        logger.debug("Failed reading /proc/asound/cards: %s", err)
+        return []
+
+    cards: list[dict[str, Any]] = []
+    card_header = re.compile(r"^\s*(\d+)\s+\[([^\]]+)\]:\s*(.*)$")
+    current_card: dict[str, Any] | None = None
+
+    for line in content.splitlines():
+        match = card_header.match(line)
+        if match:
+            if current_card is not None:
+                cards.append(current_card)
+            c_idx = int(match.group(1))
+            c_id = match.group(2).strip()
+            rest = match.group(3).strip()
+            if " - " in rest:
+                driver, name = rest.split(" - ", 1)
+            else:
+                driver, name = rest, rest
+            current_card = {
+                "card_index": c_idx,
+                "card_id": c_id,
+                "driver": driver.strip(),
+                "card_name": name.strip(),
+                "extra": "",
+            }
+        elif current_card is not None and line.startswith(" "):
+            detail = line.strip()
+            if detail:
+                current_card["extra"] = (current_card["extra"] + " " + detail).strip()
+
+    if current_card is not None:
+        cards.append(current_card)
+    return cards
+
+
+def get_output_profiles(settings: Settings | None = None) -> list[str]:
+    """Dynamically scan hardware endpoints, /proc/asound/cards, and MPD outputs to return selectable audio outputs."""
     profiles: list[str] = []
     cfg = settings or get_settings()
 
-    # 1. Probe system hardware endpoints first
+    # 1. Dynamic /proc/asound/cards hardware probe (detects FiiO KA15, Letshuoer dongle, USB DACs instantly)
+    detected_cards = parse_asound_cards_dynamic()
+    for card in detected_cards:
+        idx = card["card_index"]
+        c_name = card["card_name"]
+        driver = card["driver"]
+        extra = card["extra"]
+        combined = f"{c_name} {driver} {card['card_id']} {extra}".lower()
+
+        is_usb = "usb" in driver.lower() or "usb" in combined
+        is_dac = is_usb or any(
+            kw in combined
+            for kw in (
+                "dac", "ka15", "fiio", "letshuoer", "dt01", "topping", "schiit",
+                "chord", "moondrop", "audioquest", "dragonfly", "qudelix", "ifi", "hidizs", "dongle"
+            )
+        )
+
+        if "letshuoer" in combined or "dt01" in combined:
+            label = f"Letshuoer USB DAC (Bit-Perfect hw:{idx},0)"
+            if label not in profiles:
+                profiles.insert(0, label)
+        elif "fiio" in combined or "ka15" in combined:
+            label = f"FiiO KA15 (Bit-Perfect hw:{idx},0)"
+            if label not in profiles:
+                profiles.insert(0, label)
+        elif is_dac:
+            label = f"{c_name} (Bit-Perfect hw:{idx},0)"
+            if label not in profiles:
+                profiles.insert(0, label)
+
+    # 2. Probe system hardware endpoints from vibe_dsp or vibeplay.hardware
     try:
         from vibe_dsp.hardware import scan_hardware
 
@@ -535,11 +638,15 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
                 label = f"Letshuoer USB DAC (Bit-Perfect hw:{ep.card_index},{ep.device_index})"
                 if label not in profiles:
                     profiles.insert(0, label)
+            elif "fiio" in c_lower or "ka15" in c_lower:
+                label = f"FiiO KA15 (Bit-Perfect hw:{ep.card_index},{ep.device_index})"
+                if label not in profiles:
+                    profiles.insert(0, label)
 
         if audit.active_dac:
             dac_name = audit.active_dac.card_name
             dac_label = f"USB DAC Bit-Perfect ({dac_name})"
-            if dac_label not in profiles and "letshuoer" not in "".join(profiles).lower():
+            if dac_label not in profiles and not any(k in "".join(profiles).lower() for k in ("letshuoer", "fiio")):
                 profiles.insert(0, dac_label)
         if audit.fallback_endpoint:
             fb_label = f"Speakers / Analog ({audit.fallback_endpoint.card_name})"
@@ -556,15 +663,19 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
                     label = f"Letshuoer USB DAC (Bit-Perfect {ep.hw_device})"
                     if label not in profiles:
                         profiles.insert(0, label)
+                elif "fiio" in c_lower or "ka15" in c_lower:
+                    label = f"FiiO KA15 (Bit-Perfect {ep.hw_device})"
+                    if label not in profiles:
+                        profiles.insert(0, label)
             best_dac = get_active_or_best_dac(endpoints)
             if best_dac:
                 dac_label = f"USB DAC Bit-Perfect ({best_dac.card_name})"
-                if dac_label not in profiles and "letshuoer" not in "".join(profiles).lower():
+                if dac_label not in profiles and not any(k in "".join(profiles).lower() for k in ("letshuoer", "fiio")):
                     profiles.insert(0, dac_label)
         except Exception:
             pass
 
-    # 2. Always ensure default universal options exist
+    # 3. Always ensure default universal options exist
     universal_options = [
         "PipeWire Sound Server",
         "Pure Bit-Perfect (Direct ALSA)",
@@ -575,7 +686,16 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
         if opt not in profiles:
             profiles.append(opt)
 
-    # 3. Query live MPD outputs if daemon is connected, excluding stale names of disconnected hardware
+    # 4. Add internal speakers / analog from detected cards if not already added
+    for card in detected_cards:
+        c_name = card["card_name"]
+        combined = f"{c_name} {card['driver']} {card['card_id']} {card['extra']}".lower()
+        if any(kw in combined for kw in ("hda", "sof", "realtek", "analog", "speaker", "codec")):
+            lbl = f"Speakers / Analog ({c_name})"
+            if lbl not in profiles:
+                profiles.append(lbl)
+
+    # 5. Query live MPD outputs if daemon is connected, excluding stale names of disconnected hardware
     try:
         with get_mpd_transport(cfg) as transport:
             if transport.client:
@@ -593,6 +713,9 @@ def get_dynamic_output_profiles(settings: Settings | None = None) -> list[str]:
         pass
 
     return profiles
+
+
+get_dynamic_output_profiles = get_output_profiles
 
 
 def get_active_output_profile(settings: Settings | None = None) -> str:
@@ -669,6 +792,11 @@ def set_output_profile(profile_name: str, settings: Settings | None = None) -> s
                     o_name = str(out.get("outputname", "")).lower()
                     if "letshuoer" in p_lower and (
                         "letshuoer" in o_name or "dt01" in o_name or "hw:1,0" in o_name or "dac" in o_name or "direct" in o_name or "alsa" in o_name
+                    ):
+                        target_id = str(out.get("outputid", out.get("id")))
+                        break
+                    elif ("fiio" in p_lower or "ka15" in p_lower) and (
+                        "fiio" in o_name or "ka15" in o_name or "dac" in o_name or "direct" in o_name or "alsa" in o_name
                     ):
                         target_id = str(out.get("outputid", out.get("id")))
                         break
@@ -967,6 +1095,10 @@ def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
         return {"volume": target_vol, "error": str(err)}
 
 
+set_volume = set_volume_level
+step_volume = adjust_volume_step
+
+
 def _fetch_track_metadata(
     file_path: str, cur: dict[str, Any], db_path: Path | None
 ) -> tuple[int | None, str, str, str, int | None, int | None, int | None]:
@@ -1184,8 +1316,9 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
                 "bit_perfect": bit_perfect,
                 "buffer_health": buffer_health,
                 "jitter_ppm": 0.02,
+                "active_profile": get_active_output_profile(cfg),
                 "output_profile": get_active_output_profile(cfg),
-                "output_profiles": get_dynamic_output_profiles(cfg),
+                "output_profiles": get_output_profiles(cfg),
                 "daemon_online": True,
             }
     except Exception:
@@ -1209,8 +1342,9 @@ def get_playback_status(db_path: Path | None = None, settings: Settings | None =
             "bit_perfect": False,
             "buffer_health": "Standby (Direct ALSA Ready)",
             "jitter_ppm": 0.02,
+            "active_profile": get_active_output_profile(cfg),
             "output_profile": get_active_output_profile(cfg),
-            "output_profiles": get_dynamic_output_profiles(cfg),
+            "output_profiles": get_output_profiles(cfg),
             "daemon_online": False,
         }
 

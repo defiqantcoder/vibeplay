@@ -1,5 +1,5 @@
 <!-- Sound Output Switcher Popover (Stitch Hi-Fi Lounge Specification) -->
-<div id="output-switcher-popover" class="output-switcher-popover fixed bottom-24 right-8 w-[320px] rounded-[18px] bg-[#1e1e24] border border-[#2a2a35] shadow-2xl shadow-black/90 p-4 z-50 text-left cursor-default backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 hidden">
+<div id="output-switcher-popover" class="output-switcher-popover fixed bottom-24 right-8 w-[320px] rounded-[18px] bg-[#1e1e24] border border-[#2a2a35] shadow-2xl shadow-black/90 p-4 z-50 text-left cursor-default backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 {% if not popover_open %}hidden{% endif %}">
   <!-- Header -->
   <div class="mb-3">
     <div class="flex items-center justify-between">
@@ -21,19 +21,24 @@
 
   <!-- Device Selection List -->
   <div class="space-y-2 select-none">
-    {% set active_prof = (playback.output_profile if playback and playback.output_profile else '')|lower %}
-    {% set matching_profiles = [] %}
+    {% set active_raw = (playback.active_profile or playback.output_profile or '') %}
+    {% set active_prof = active_raw|lower|trim %}
+    {% set ns = namespace(found=false) %}
     {% for p in playback.output_profiles %}
-      {% set p_low = p|lower %}
-      {% if (p_low == active_prof) or (active_prof and (active_prof in p_low or p_low in active_prof)) or ('direct alsa' in active_prof and 'direct alsa' in p_low) or ('bit-perfect' in active_prof and 'bit-perfect' in p_low) or ('spatial' in active_prof and 'spatial' in p_low) or ('pipewire' in active_prof and 'pipewire' in p_low) %}
-        {% set _ = matching_profiles.append(p) %}
+      {% if p == active_raw or p|lower|trim == active_prof %}
+        {% set ns.found = true %}
       {% endif %}
     {% endfor %}
     {% for profile in playback.output_profiles %}
-    {% set is_active = (profile == matching_profiles[0]) if matching_profiles else loop.first %}
+      {% set p_low = profile|lower|trim %}
+      {% if ns.found %}
+        {% set is_active = (profile == active_raw or p_low == active_prof) %}
+      {% else %}
+        {% set is_active = (active_prof == 'pure-bitperfect' and ('pure bit-perfect' in p_low or 'direct alsa' in p_low)) or (active_prof == 'spatial-headphones' and 'spatial' in p_low) or (active_prof == 'receiver-passthrough' and ('receiver' in p_low or 'hdmi' in p_low)) or (loop.first) %}
+      {% endif %}
     {% if is_active %}
     <!-- Active Device Card -->
-    <div class="output-device-card p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
+    <div class="output-device-card active p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
          hx-post="/api/player/output"
          hx-vals='{"profile": "{{ profile }}"}'
          hx-target="#transport-footer-container"
@@ -98,7 +103,7 @@
     {% endif %}
     {% else %}
     <!-- Fallback Card if output_profiles is empty -->
-    <div class="output-device-card p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
+    <div class="output-device-card active p-2.5 rounded-[12px] bg-[#06b6d4]/10 border-2 border-[#06b6d4] flex items-start gap-2.5 cursor-pointer shadow-sm relative group"
          hx-post="/api/player/output"
          hx-vals='{"profile": "Pure Bit-Perfect (Direct ALSA)"}'
          hx-target="#transport-footer-container"
@@ -111,7 +116,7 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-1">
-          <span class="text-[13px] font-bold text-white truncate">🎧 FiiO KA15 USB DAC</span>
+          <span class="text-[13px] font-bold text-white truncate">🎧 Pure Bit-Perfect (Direct ALSA)</span>
           <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 shrink-0 flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-[#10b981] glow-green inline-block"></span>Active
           </span>

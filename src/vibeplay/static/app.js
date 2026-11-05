@@ -443,7 +443,7 @@ function togglePasswordVisibility(inputId, btn) {
 
 function testAiConnection() {
   const key = document.getElementById('cfg-gemini-key')?.value || '';
-  const model = document.getElementById('cfg-gemini-model')?.value || 'gemini-2.5-flash';
+  const model = document.getElementById('cfg-gemini-model')?.value || 'gemini-3.8-flash';
   const statusEl = document.getElementById('ai-test-status');
   if (statusEl) {
     statusEl.textContent = 'Testing connection...';
@@ -522,7 +522,7 @@ function gatherSettingsFormPayload() {
     contrast_mode: getVal('cfg-contrast-mode', 'standard'),
     llm_provider: getVal('cfg-llm-provider', 'gemini'),
     gemini_api_key: getVal('cfg-gemini-key', ''),
-    gemini_model: getVal('cfg-gemini-model', 'gemini-2.5-flash'),
+    gemini_model: getVal('cfg-gemini-model', 'gemini-3.8-flash'),
     acoustid_api_key: getVal('cfg-acoustid-key', ''),
     musicbrainz_contact: getVal('cfg-musicbrainz-contact', ''),
     hide_telemetry_hud: getChecked('cfg-hide-telemetry-hud', false),
@@ -829,37 +829,94 @@ function triggerPrevTrack() {
   }
 }
 
-function triggerMuteToggle() {
-  if (window.htmx) {
-    htmx.ajax('POST', '/api/player/mute-toggle', {
-      target: '#transport-footer-container',
-      swap: 'innerHTML',
-    });
+let volumeDebounceTimer = null;
+let lastUnmutedVolume = 75;
+
+function applyVolumeOptimistic(newVol) {
+  newVol = Math.max(0, Math.min(100, Math.round(newVol)));
+  const slider = document.getElementById('global-volume-slider');
+  const readout = document.getElementById('volume-readout');
+  if (slider) {
+    slider.value = newVol;
+    slider.style.transform = 'scale(1.04)';
+    setTimeout(() => {
+      if (slider) slider.style.transform = '';
+    }, 150);
   }
+  if (readout) {
+    readout.textContent = newVol + '%';
+  }
+  return newVol;
 }
+
+function triggerMuteToggle() {
+  const slider = document.getElementById('global-volume-slider');
+  let current = slider ? parseInt(slider.value, 10) : 75;
+  if (isNaN(current)) current = 75;
+  let targetVol = 0;
+  if (current > 0) {
+    lastUnmutedVolume = current;
+    targetVol = 0;
+  } else {
+    targetVol = lastUnmutedVolume > 0 ? lastUnmutedVolume : 75;
+  }
+  const newVol = applyVolumeOptimistic(targetVol);
+
+  if (volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
+  volumeDebounceTimer = setTimeout(() => {
+    if (window.htmx) {
+      htmx.ajax('POST', '/api/player/volume', {
+        values: { volume: newVol },
+        target: '#transport-footer-container',
+        swap: 'innerHTML',
+      });
+    } else {
+      fetch('/api/player/volume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `volume=${newVol}`,
+      }).catch(() => {});
+    }
+  }, 50);
+}
+window.triggerMuteToggle = triggerMuteToggle;
 
 function adjustVolume(delta) {
-  if (window.htmx) {
-    htmx.ajax('POST', `/api/player/volume-step?delta=${delta}`, {
-      target: '#transport-footer-container',
-      swap: 'innerHTML',
-    });
-  }
-}
+  const slider = document.getElementById('global-volume-slider');
+  let current = slider ? parseInt(slider.value, 10) : 75;
+  if (isNaN(current)) current = 75;
+  const newVol = applyVolumeOptimistic(current + delta);
 
-let volumeDebounceTimer = null;
+  if (volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
+  volumeDebounceTimer = setTimeout(() => {
+    if (window.htmx) {
+      htmx.ajax('POST', '/api/player/volume', {
+        values: { volume: newVol },
+        target: '#transport-footer-container',
+        swap: 'innerHTML',
+      });
+    } else {
+      fetch('/api/player/volume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `volume=${newVol}`,
+      }).catch(() => {});
+    }
+  }, 50);
+}
+window.adjustVolume = adjustVolume;
+
 function handleVolumeInput(slider) {
   const val = parseInt(slider.value, 10);
-  const readout = document.getElementById('volume-readout');
-  if (readout) readout.textContent = val + '%';
+  applyVolumeOptimistic(val);
   if (volumeDebounceTimer) clearTimeout(volumeDebounceTimer);
   volumeDebounceTimer = setTimeout(() => {
     fetch('/api/player/volume', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `volume=${val}`
+      body: `volume=${val}`,
     }).catch(() => {});
-  }, 40);
+  }, 50);
 }
 
 function toggleTelemetryHud() {
@@ -2607,38 +2664,21 @@ document.addEventListener('keydown', (event) => {
   // Volume Down: F5 or AudioVolumeDown
   if (key === 'F5' || code === 'F5' || key === 'AudioVolumeDown') {
     event.preventDefault();
-    if (window.htmx) {
-      htmx.ajax('POST', '/api/player/volume-step', {
-        target: '#transport-footer-container',
-        swap: 'innerHTML',
-        values: { delta: -5 }
-      });
-    }
+    adjustVolume(-5);
     return;
   }
 
   // Volume Mute/Unmute: F6 or AudioVolumeMute
   if (key === 'F6' || code === 'F6' || key === 'AudioVolumeMute') {
     event.preventDefault();
-    if (window.htmx) {
-      htmx.ajax('POST', '/api/player/mute-toggle', {
-        target: '#transport-footer-container',
-        swap: 'innerHTML'
-      });
-    }
+    triggerMuteToggle();
     return;
   }
 
   // Volume Up: F7 or AudioVolumeUp
   if (key === 'F7' || code === 'F7' || key === 'AudioVolumeUp') {
     event.preventDefault();
-    if (window.htmx) {
-      htmx.ajax('POST', '/api/player/volume-step', {
-        target: '#transport-footer-container',
-        swap: 'innerHTML',
-        values: { delta: 5 }
-      });
-    }
+    adjustVolume(5);
     return;
   }
 

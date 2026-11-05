@@ -162,7 +162,7 @@ class DesktopSettings(BaseModel):
         description="API key for optional Gemini LLM integration",
     )
     gemini_model: str = Field(
-        default="gemini-2.5-flash",
+        default="gemini-3.8-flash",
         description="Model name for Gemini provider",
     )
     acoustid_api_key: str = Field(
@@ -282,6 +282,16 @@ class DesktopSettings(BaseModel):
     def validate_gemini_api_key(cls, v: str) -> str:
         return str(v).strip()
 
+    @field_validator("gemini_model")
+    @classmethod
+    def validate_gemini_model(cls, v: str) -> str:
+        cleaned = str(v).strip()
+        if cleaned in {"gemini-2.5-flash", "gemini-1.5-flash", ""}:
+            return "gemini-3.8-flash"
+        if cleaned in {"gemini-2.5-pro", "gemini-1.5-pro"}:
+            return "gemini-3-pro-preview"
+        return cleaned
+
     @field_validator("acoustid_api_key")
     @classmethod
     def validate_acoustid_api_key(cls, v: str) -> str:
@@ -291,6 +301,20 @@ class DesktopSettings(BaseModel):
     @classmethod
     def validate_musicbrainz_contact(cls, v: str) -> str:
         return str(v).strip()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Safe dictionary-like getter for configuration keys."""
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        """Safe dictionary subscript access."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key)
+
+    def __contains__(self, key: str) -> bool:
+        """Support 'key in settings' membership checks."""
+        return hasattr(self, key)
 
 
 def load_desktop_settings(path: Path | None = None) -> DesktopSettings:
