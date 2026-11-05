@@ -876,3 +876,114 @@ def test_playlist_builder_wizard_and_drag_drop_stitch_layout_and_wiring(wiring_e
     assert "drag-handle" in preview_html or "drag_indicator" in preview_html
 
 
+def test_track_inspector_gauge_bubbles_stitch_layout_and_wiring(wiring_env):
+    """Verify Track Inspector 3 gauge bubbles (Tempo, Energy, Danceability), SVG dials, and telemetry layout."""
+    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+
+    db_file, client = wiring_env
+
+    # 1. Seed a track with distinct BPM, energy, danceability, and mood scores
+    with get_connection(db_file) as conn:
+        t_id = insert_track(
+            conn,
+            path="/music/aurora.flac",
+            title="Aurora Waves",
+            artist="Solar Fields",
+            album="Origin",
+            duration=412,
+            mtime=1.0,
+            size=15000000,
+            file_hash="hash_aurora_inspector",
+        )
+        insert_or_replace_features(
+            conn,
+            track_id=t_id,
+            analyzer_version="1.0.0",
+            bpm=138.0,
+            key="F#",
+            scale="minor",
+            loudness=-6.5,
+            danceability=0.68,
+            energy=0.84,
+            mood_scores_json=json.dumps({
+                "electronic": 0.92,
+                "relaxed": 0.40,
+                "acoustic": 0.15,
+                "party": 0.70,
+                "happy": 0.35,
+                "aggressive": 0.18,
+            }),
+            embedding_blob=b"\x00" * 32,
+        )
+
+    # 2. Fetch track inspector fragment via /api/track/{track_id}?view=inspector
+    resp = client.get(f"/api/track/{t_id}?view=inspector")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 3. Summary banner & metadata
+    assert "inspector-wrapper" in html
+    assert "inspector-summary-banner" in html
+    assert "Aurora Waves" in html
+    assert "Solar Fields" in html
+    assert "Origin" in html
+    assert "FLAC Lossless" in html or "Lossless" in html
+
+    # 4. The Vibe Breakdown section header
+    assert "The Vibe Breakdown" in html
+    assert "Real-time Spectral Scan" in html
+
+    # 5. Bubble 1: Tempo gauge bubble & metronome wave
+    assert "⚡" in html
+    assert "Tempo" in html
+    assert "138" in html
+    assert "BPM" in html
+    assert "animate-pulse" in html
+    assert "Driving &amp; Peppy" in html or "Driving & Peppy" in html
+
+    # 6. Bubble 2: Energy circular SVG dial (84% fill -> offset 36.2)
+    assert "🔥" in html
+    assert "Energy" in html
+    assert "84%" in html
+    assert 'stroke-dasharray="226.2"' in html
+    assert 'stroke-dashoffset="36.2"' in html
+    assert "High Octane" in html
+
+    # 7. Bubble 3: Danceability circular SVG dial (68% fill -> offset 72.4)
+    assert "💃" in html
+    assert "Danceability" in html
+    assert "68%" in html
+    assert 'stroke-dashoffset="72.4"' in html
+    assert "Mid Rhythm" in html
+
+    # 8. Musical DNA Badges Card
+    assert "Key:" in html
+    assert "F# Minor" in html
+    assert "Camelot 11A" in html
+    assert "DR14" in html
+    assert "Lossless Studio Master" in html
+
+    # 9. Audio Signal Telemetry (2x3 Grid)
+    assert "Audio Signal Telemetry" in html
+    assert "CODEC" in html
+    assert "SAMPLE RATE" in html
+    assert "BIT DEPTH" in html
+    assert "BITRATE" in html
+    assert "DYNAMIC RANGE" in html
+    assert "CHANNEL MODE" in html
+
+    # 10. Acoustic Identifiers
+    assert "Acoustic Identifiers" in html
+    assert "Recording ID:" in html
+    assert "Harmonic Zone:" in html
+    assert "AcoustID:" in html
+
+    # 11. Neural Mood Inference & Footer Micro-Diagnostics
+    assert "Neural Mood Inference" in html
+    assert "Electronic" in html
+    assert "92%" in html
+    assert "Transferred via USB 3.2 Gen2" in html
+    assert "0 Buffering Overruns" in html
+
+
+
