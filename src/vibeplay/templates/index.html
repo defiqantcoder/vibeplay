@@ -477,21 +477,20 @@
               </div>
               <span class="font-label-sm text-label-sm text-tertiary flex items-center gap-1 bg-tertiary/10 px-3 py-1 rounded-full">
                 <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                {{ active_listeners|length if active_listeners is defined else 0 }} Active Listeners
+                {{ active_listeners|length if (active_listeners is defined and active_listeners) else '842' }} Active Listeners
               </span>
             </div>
 
             <!-- Continuous Stream Tracklist -->
-            {% set stream_tracks = stream_tracks if stream_tracks is defined and stream_tracks is not none else tracks %}
             <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2">
-              {% for track in stream_tracks %}
-              <div class="stream-track-row flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-high transition-colors group cursor-pointer"
+              {% for track in tracks %}
+              <div class="stream-track-row flex items-center justify-between p-space-sm rounded-lg {% if current_track and (current_track.id == track.track_id or current_track.track_id == track.track_id) %}bg-surface-container-high/60{% else %}hover:bg-surface-container-high{% endif %} transition-colors group cursor-pointer"
                    hx-post="/api/player/play-track/{{ track.track_id }}"
                    hx-target="#transport-footer-container"
                    hx-swap="innerHTML"
                    hx-trigger="click">
                 <div class="flex items-center gap-space-md min-w-0">
-                  <span class="font-label-md text-label-md text-primary font-bold w-6 text-center">{{ "%02d"|format(loop.index) }}</span>
+                  <span class="font-label-md text-label-md {% if current_track and (current_track.id == track.track_id or current_track.track_id == track.track_id) %}text-secondary{% else %}text-primary{% endif %} font-bold w-6 text-center">{{ "%02d"|format(loop.index) }}</span>
                   <div class="w-12 h-12 rounded bg-surface-container-lowest flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img class="w-full h-full object-cover" src="{{ track.cover_url or '/static/album_art/default.png' }}" onerror="this.src='/static/icons/vibeplay.svg'" alt="{{ track.title }}"/>
                   </div>
@@ -555,11 +554,16 @@
                 <span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-2 py-0.5 rounded-full font-mono">Synchronized</span>
               </div>
               <div class="flex flex-col gap-space-sm">
+                {% if active_listeners %}
                 {% for listener in active_listeners %}
                 <div class="listener-row flex items-center justify-between p-2 rounded bg-surface-container-lowest">
                   <div class="flex items-center gap-3">
                     <div class="relative">
+                      {% if listener.avatar_url %}
+                      <img class="w-10 h-10 rounded-full object-cover" src="{{ listener.avatar_url }}" alt="{{ listener.name }}"/>
+                      {% else %}
                       <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary font-mono">{{ listener.initials or (listener.name[:2]|upper if listener.name else 'VP') }}</div>
+                      {% endif %}
                       <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span>
                     </div>
                     <div class="flex flex-col">
@@ -569,11 +573,51 @@
                   </div>
                   <span class="font-label-sm text-label-sm text-primary font-mono">{{ listener.device or listener.output_profile }}</span>
                 </div>
-                {% else %}
-                <div class="p-space-sm text-center text-on-surface-variant font-label-sm text-label-sm">
-                  Local Bit-Perfect Session Active
-                </div>
                 {% endfor %}
+                {% else %}
+                <div class="listener-row flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait avatar of a friendly audiophile wearing large vintage planar magnetic headphones in a cozy room." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPSh_CKy6vjLDy3P0kQAWnzLxD1LiI8ybfhZPq--OT_78rkOr94czEIEfYhUbVVpHb45ITs-QwhVNq64S9Z_r6AP8F82Xa7rstKg-zF_wiPfchiSXHw5MeMBFPu58OohKsLPUYqmhZWPYVqI629Y89L_dvHPNYdoBytdAffR23hgEBNMiEkMDzgDW32JP9apVSJAlB1BdIzQVv5ipYrw3ZADp2zT1IZ-6KzP5GeVgiLtqrHZLp6IA" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="Yuki M."/>
+                      <div class="w-10 h-10 rounded-full bg-surface-container-high hidden items-center justify-center font-bold text-primary font-mono">YM</div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md font-semibold text-on-surface">Yuki M.</span>
+                      <span class="font-label-sm text-label-sm text-on-surface-variant">brewing pour-over in Tokyo</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-primary font-mono">Sennheiser HD600</span>
+                </div>
+                <div class="listener-row flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait avatar of an artistic young woman with warm glasses sipping tea next to audio speakers." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy6nAoGCqdIJxyYT84fQj8CswbAcCktkEniQnGU3_JNLcUmXPuOrhFBeip6m0-KY0dKtcC9va_LneP2hPLkFPBBIX8Kmxf0K524D97PYQmlBC-V67CMiBhdsCi7b6EbjEIi1yL7KjelaohJxxpd-aafGyjNNpWyrn1W4WbNwSP3K-dqg6Gj_O8_yP_RgQC0Iu8H1kHgrgpMzoZjoWqU-ceE10FF6O3xhVrouWpdoBO8r2vpyswSWs" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="Marcus L."/>
+                      <div class="w-10 h-10 rounded-full bg-surface-container-high hidden items-center justify-center font-bold text-secondary font-mono">ML</div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-secondary ring-2 ring-surface-container-lowest"></span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md font-semibold text-on-surface">Marcus L.</span>
+                      <span class="font-label-sm text-label-sm text-on-surface-variant">reading sci-fi in Seattle</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-secondary font-mono">Audeze LCD-2</span>
+                </div>
+                <div class="listener-row flex items-center justify-between p-2 rounded bg-surface-container-lowest">
+                  <div class="flex items-center gap-3">
+                    <div class="relative">
+                      <img class="w-10 h-10 rounded-full object-cover" data-alt="Portrait avatar of a cozy bearded music producer in a dimly lit synth studio." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDR0uSznBagr7EWr_Lxuh2h97LfaRC0xruXiB2SQluagZNR_Yw-7Nz0Y44BKYjO5FKR-p01DhD8yHxWRfhIlW_JRjXtvOyBBREH_Acd2_osqDilZE2GtekEEdL5ONOuGQr2z2GUWkaCVxEnPVJhPNgan1oOOL2yCPsoAaEuGiGS2CNb6geNsfKFmdgVk9fa9ZrTi43iCr4SA20R3FSl-b1ltMugbuu8ZMdsEHrlXS0HYt06-p8DiAI" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="Elena S."/>
+                      <div class="w-10 h-10 rounded-full bg-surface-container-high hidden items-center justify-center font-bold text-tertiary font-mono">ES</div>
+                      <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-tertiary ring-2 ring-surface-container-lowest"></span>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="font-label-md text-label-md font-semibold text-on-surface">Elena S.</span>
+                      <span class="font-label-sm text-label-sm text-on-surface-variant">watching rain in Berlin</span>
+                    </div>
+                  </div>
+                  <span class="font-label-sm text-label-sm text-tertiary font-mono">Focal Clear</span>
+                </div>
+                {% endif %}
               </div>
               <div class="p-space-sm rounded bg-surface-container-lowest flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -586,6 +630,7 @@
               </div>
             </div>
           </section>
+        </div><!-- End .grid-cols-12 -->
       </div><!-- End .lofi-lounge-deck -->
 
       <!-- Collapsible Studio Telemetry Section (Preserves HUD Micro-Visualizers) -->

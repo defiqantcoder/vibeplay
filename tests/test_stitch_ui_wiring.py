@@ -253,3 +253,81 @@ def test_all_template_onclick_handlers_exist_in_app_js():
             missing.append(fn)
 
     assert not missing, f"The following functions are called in templates but missing from app.js: {missing}"
+
+
+def test_lofi_lounge_hero_sections_and_crate_wiring(wiring_env):
+    """Verify Lo-Fi Lounge hero turntable, crate shelves 01 & 02, and lounge listeners."""
+    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+
+    db_file, client = wiring_env
+
+    with get_connection(db_file) as conn:
+        t1 = insert_track(
+            conn,
+            path="/music/jazz/01_rainy_kissa.flac",
+            title="Rainy Kissa Midnight",
+            artist="Ryo Trio",
+            album="Tokyo Kissa Sessions",
+            duration=240,
+            mtime=1.0,
+            size=5000,
+            file_hash="hash_kissa_1",
+        )
+        insert_or_replace_features(
+            conn,
+            track_id=t1,
+            analyzer_version="1.0.0",
+            bpm=88.0,
+            key="A",
+            scale="minor",
+            loudness=-9.0,
+            danceability=0.6,
+            energy=0.45,
+            mood_scores_json="{}",
+            embedding_blob=b"\x00" * 32,
+        )
+
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Main Lofi Lounge Deck Container
+    assert "lofi-lounge-deck" in html
+    assert "hero-turntable-deck" in html or "turntable-vinyl-container" in html
+    assert "turntable-spinning-disc" in html
+    assert "turntable-tonearm" in html
+
+    # 2. Tactile Hi-Fi Potentiometers & DSP
+    assert "Tactile Hi-Fi Potentiometers" in html
+    assert "Tube Warmth" in html
+    assert "Master Gain" in html
+    assert "Acoustic Room &amp; DSP" in html or "Acoustic Room & DSP" in html
+
+    # 3. Crate Shelf 01 with vinyl sleeve and peeking disc
+    assert "Crate Shelf 01" in html
+    assert "Warm Analog Tapes &amp; Late Night Jazz" in html or "Warm Analog Tapes & Late Night Jazz" in html
+    assert "vinyl-sleeve-card" in html
+    assert "vinyl-disc-peeking" in html
+    assert f'hx-post="/api/player/play-track/{t1}"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+
+    # 4. Crate Shelf 02 (Continuous Stream Deck)
+    assert "Crate Shelf 02" in html
+    assert "Continuous Stream Deck" in html
+    assert "Lo-Fi Chillhop &amp; Synth Breezes" in html or "Lo-Fi Chillhop & Synth Breezes" in html
+    assert "stream-track-row" in html
+    assert "Rainy Kissa Midnight" in html
+    assert "Ryo Trio" in html
+
+    # 5. Lounge Listeners (Social Crate Deck)
+    assert "Social Crate Deck" in html
+    assert "Lounge Listeners" in html
+    assert "Currently in the Lounge" in html
+    assert "Yuki M." in html
+    assert "Sennheiser HD600" in html
+    assert "Marcus L." in html
+    assert "Audeze LCD-2" in html
+    assert "Elena S." in html
+    assert "Focal Clear" in html
+    assert "Share Deck Sync URL" in html
+
