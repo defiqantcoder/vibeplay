@@ -34,7 +34,12 @@ class PlaybackError(Exception):
 
 
 def _normalize_output_profile(profile_name: str) -> str:
-    """Map user-provided profile labels to a strict internal allowlist."""
+    """Map a profile label to an internal profile ID.
+
+    Matching ignores case and surrounding whitespace. Known labels are matched
+    first, then labels containing "spatial", "receiver", or "hdmi" (in that
+    order). Blank and unrecognized labels map to "pure-bitperfect".
+    """
     p_lower = str(profile_name or "").strip().lower()
     if not p_lower:
         return "pure-bitperfect"
@@ -786,7 +791,15 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
 
 
 def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
-    """Set the active hardware audio output profile and dynamically configure MPD outputs."""
+    """Set the active profile and attempt to configure DSP and MPD outputs.
+
+    The label is normalized to an internal profile ID; blank or unrecognized
+    labels select "pure-bitperfect". MPD output selection can also use the
+    original label for an exact name match, falling back to the first output
+    when no match is found. The active profile is returned even if DSP or MPD
+    configuration fails. Errors loading default settings propagate after the
+    active profile has been updated.
+    """
     global ACTIVE_OUTPUT_PROFILE
     normalized_profile = _normalize_output_profile(profile_name)
     ACTIVE_OUTPUT_PROFILE = normalized_profile
