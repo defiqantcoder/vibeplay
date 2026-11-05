@@ -378,6 +378,11 @@ function toggleSettingsDialog(initialTab = null) {
   if (!dialog) return;
 
   if (dialog.open) {
+    if (initialTab) {
+      switchSettingsTab(initialTab);
+      closeAllMenus();
+      return;
+    }
     dialog.close();
   } else {
     loadDesktopSettingsFromServer();
@@ -388,6 +393,9 @@ function toggleSettingsDialog(initialTab = null) {
       dialog.showModal();
     } else {
       dialog.setAttribute('open', '');
+    }
+    if (initialTab) {
+      switchSettingsTab(initialTab);
     }
   }
   closeAllMenus();
@@ -1906,11 +1914,23 @@ window.syncFullscreenPlayback = syncFullscreenPlayback;
 
 // 1. The Add-on Toybox Modal (Screen 1)
 function openToyboxModal() {
+  const modal = document.getElementById('addon-toybox-modal');
+  if (modal && typeof modal.showModal === 'function') {
+    try {
+      if (!modal.open) modal.showModal();
+    } catch (_) {}
+  }
   const el = document.getElementById('toybox-backdrop');
   if (el) el.classList.remove('hidden');
 }
 
 function closeToyboxModal() {
+  const modal = document.getElementById('addon-toybox-modal');
+  if (modal && typeof modal.close === 'function') {
+    try {
+      if (modal.open) modal.close();
+    } catch (_) {}
+  }
   const el = document.getElementById('toybox-backdrop');
   if (el) el.classList.add('hidden');
 }

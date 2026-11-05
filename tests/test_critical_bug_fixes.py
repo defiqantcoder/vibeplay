@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,7 +15,6 @@ from vibeplay.player import (
     get_active_output_profile,
     get_output_profiles,
     play_track,
-    set_output_profile,
 )
 from vibeplay.routers.root import safe_get_setting as root_safe_get
 from vibeplay.routers.settings import safe_get_setting as settings_safe_get
