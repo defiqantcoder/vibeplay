@@ -331,3 +331,77 @@ def test_lofi_lounge_hero_sections_and_crate_wiring(wiring_env):
     assert "Focal Clear" in html
     assert "Share Deck Sync URL" in html
 
+
+def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
+    """Verify library table exact Stitch layout, headers, quality pills, energy bars, and row wiring."""
+    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+
+    db_file, client = wiring_env
+
+    with get_connection(db_file) as conn:
+        t_id = insert_track(
+            conn,
+            path="/music/flown.flac",
+            title="Aura Reflections",
+            artist="Kiasmos",
+            album="Flown",
+            duration=348,
+            mtime=1.0,
+            size=12000,
+            file_hash="hash_kiasmos_aura",
+        )
+        insert_or_replace_features(
+            conn,
+            track_id=t_id,
+            analyzer_version="1.0.0",
+            bpm=124.0,
+            key="A",
+            scale="minor",
+            loudness=-7.8,
+            danceability=0.74,
+            energy=0.78,
+            mood_scores_json="{}",
+            embedding_blob=b"\x00" * 32,
+        )
+
+    # Fetch table partial via GET /api/library/table
+    resp = client.get("/api/library/table")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # 1. Exact Stitch table layout & classes
+    assert 'id="crate-table"' in html
+    assert 'min-w-[1100px]' in html
+    assert 'id="crate-table-body"' in html
+
+    # 2. <th> headers with sorting triggers
+    assert 'hx-get="/api/library/table?sort=' in html
+    assert 'hx-target="#library-table-container"' in html
+    assert "Title 🔤" in html
+    assert "Artist" in html
+    assert "Album" in html
+    assert "Quality" in html
+    assert "Tempo ⚡" in html
+    assert "Vibe Key" in html
+    assert "Energy Bar" in html
+    assert "Length" in html
+    assert "Actions" in html
+
+    # 3. Track row styling & attributes
+    assert "track-row" in html
+    assert f'data-track-id="{t_id}"' in html
+    assert f'hx-post="/api/player/play-track/{t_id}"' in html
+    assert 'hx-target="#transport-footer-container"' in html
+
+    # 4. Row components: Quality pills, energy bar, length
+    assert "Aura Reflections" in html
+    assert "Kiasmos" in html
+    assert "Flown" in html
+    assert "FLAC ✨" in html or "96k/24b 👑" in html
+    assert "124 bpm ⚡" in html
+    assert "8A / A Minor" in html
+    assert "78%" in html
+    assert "05:48" in html
+    assert 'playing-bars' in html or 'play_arrow' in html
+
+

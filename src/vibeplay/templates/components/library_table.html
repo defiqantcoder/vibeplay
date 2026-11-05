@@ -14,7 +14,7 @@
               hx-swap="innerHTML"
               hx-include="form.filter-bar">
             <span class="text-outline">#</span>
-            {% if current_sort == 'id_asc' %}<span style="color: var(--primary);">▲</span>{% elif current_sort == 'id_desc' %}<span style="color: var(--primary);">▼</span>{% endif %}
+            {% if current_sort == 'id_asc' %}<span class="material-symbols-outlined text-[14px] align-middle text-primary">arrow_upward</span>{% elif current_sort == 'id_desc' %}<span class="material-symbols-outlined text-[14px] align-middle text-primary">arrow_downward</span>{% endif %}
           </th>
           <th class="px-3 py-2 font-medium cursor-pointer group hover:text-on-surface"
               title="Sort by Title"
@@ -59,7 +59,10 @@
               hx-target="#library-table-container"
               hx-swap="innerHTML"
               hx-include="form.filter-bar">
-            <span>Quality</span>
+            <div class="flex items-center gap-1 {% if current_sort in ['format_asc', 'format_desc'] %}text-primary{% endif %} th-sort-wrapper">
+              <span>Quality</span>
+              {% if current_sort == 'format_asc' %}<span class="material-symbols-outlined text-[14px]">arrow_upward</span>{% elif current_sort == 'format_desc' %}<span class="material-symbols-outlined text-[14px]">arrow_downward</span>{% endif %}
+            </div>
           </th>
           <th class="px-3 py-2 font-medium cursor-pointer group hover:text-on-surface"
               title="Sort by Tempo (BPM)"
@@ -92,7 +95,10 @@
               hx-target="#library-table-container"
               hx-swap="innerHTML"
               hx-include="form.filter-bar">
-            <span>Energy Bar</span>
+            <div class="flex items-center gap-1 {% if current_sort in ['energy_asc', 'energy_desc'] %}text-primary{% endif %} th-sort-wrapper">
+              <span>Energy Bar</span>
+              {% if current_sort == 'energy_asc' %}<span class="material-symbols-outlined text-[14px]">arrow_upward</span>{% elif current_sort == 'energy_desc' %}<span class="material-symbols-outlined text-[14px]">arrow_downward</span>{% endif %}
+            </div>
           </th>
           <th class="px-3 py-2 font-medium cursor-pointer hover:text-on-surface"
               title="Sort by Length"
@@ -101,7 +107,10 @@
               hx-target="#library-table-container"
               hx-swap="innerHTML"
               hx-include="form.filter-bar">
-            <span>Length</span>
+            <div class="flex items-center gap-1 {% if current_sort in ['duration_asc', 'duration_desc'] %}text-primary{% endif %} th-sort-wrapper">
+              <span>Length</span>
+              {% if current_sort == 'duration_asc' %}<span class="material-symbols-outlined text-[14px]">arrow_upward</span>{% elif current_sort == 'duration_desc' %}<span class="material-symbols-outlined text-[14px]">arrow_downward</span>{% endif %}
+            </div>
           </th>
           <th class="w-28 px-4 py-2 font-medium text-right">Actions</th>
         </tr>
@@ -109,7 +118,7 @@
       <!-- Table Body Rows -->
       <tbody class="divide-y divide-surface-container-highest/20 font-body-sm text-body-sm" id="crate-table-body">
         {% for track in tracks %}
-        {% set is_playing = (playback and playback.track_id == track.track_id) %}
+        {% set is_playing = (playback and (playback.track_id == track.track_id or playback.track_id == track.id or (playback.track_id|string == track.track_id|string))) %}
         <tr class="track-row group cursor-pointer {% if is_playing %}bg-primary-container/10 active-playing-row{% endif %} transition-all hover:bg-surface-container-high"
             data-playing="{{ 'true' if is_playing else 'false' }}"
             data-track-id="{{ track.track_id }}"
@@ -174,6 +183,10 @@
             <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary font-semibold shadow-sm inline-flex items-center gap-1">
               96k/24b 👑
             </span>
+            {% elif fpath.endswith('.mp3') %}
+            <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-medium inline-flex items-center">
+              MP3 320
+            </span>
             {% else %}
             <span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-primary-container/15 text-primary font-medium inline-flex items-center gap-1">
               FLAC ✨
@@ -203,7 +216,7 @@
             {% set energy_pct = (track.energy * 100)|round(0)|int %}
             <div class="flex items-center gap-2">
               <div class="w-24 h-2 bg-surface-container-highest rounded-full overflow-hidden">
-                <div class="h-full {% if energy_pct >= 80 %}bg-secondary-container{% elif energy_pct >= 55 %}bg-primary-container{% else %}bg-tertiary{% endif %} rounded-full" style="width: {{ energy_pct }}%;"></div>
+                <div class="h-full {% if energy_pct >= 80 %}bg-secondary-container shadow-[0_0_8px_#ee9800]{% elif energy_pct >= 55 %}bg-primary-container shadow-[0_0_8px_#06b6d4]{% else %}bg-tertiary shadow-[0_0_8px_#4edea3]{% endif %} rounded-full" style="width: {{ energy_pct }}%;"></div>
               </div>
               <span class="font-label-sm text-label-sm text-outline">{{ energy_pct }}%</span>
             </div>
