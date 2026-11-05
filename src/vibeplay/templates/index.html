@@ -25,7 +25,7 @@
         </button>
         <button class="sidebar-nav-item" id="side-nav-builder" onclick="showTab('builder')">
           <svg class="icon" viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
-          <span>Energy Architect</span>
+          <span>Vibe Cooker</span>
         </button>
         <button class="sidebar-nav-item" onclick="toggleSettingsDialog('dsp')">
           <svg class="icon" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
@@ -90,10 +90,10 @@
            VIBEPLAY AUDIOPHILE LO-FI MUSIC LOUNGE (STITCH MASTER SPECIFICATION)
            ==================================================================== -->
       <div class="lofi-lounge-deck w-full max-w-[1856px] mx-auto flex flex-col gap-space-xl">
-        <!-- 1. Hero Turntable Deck & Tactile Potentiometers Grid -->
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-stretch">
-          <!-- Turntable Deck Unit (Left 8 Cols) -->
-          <div class="xl:col-span-8 hero-turntable-deck bg-surface-container rounded-lg p-space-lg shadow-xl relative overflow-hidden flex flex-col justify-between group">
+        <!-- 1. Hero Turntable Deck Grid -->
+        <div class="grid grid-cols-1 gap-gutter items-stretch">
+          <!-- Turntable Deck Unit (Full Width) -->
+          <div class="w-full hero-turntable-deck bg-surface-container rounded-lg p-space-lg shadow-xl relative overflow-hidden flex flex-col justify-between group">
             <!-- Ambient Glow Blobs -->
             <div class="turntable-ambient-cyan absolute -top-32 -left-20 w-96 h-96 bg-primary-container/10 rounded-full blur-3xl pointer-events-none"></div>
             <div class="turntable-ambient-amber absolute -bottom-24 -right-16 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -267,101 +267,15 @@
             </div>
           </div>
 
-          <!-- Tactile Hi-Fi Potentiometers & DSP Deck (Right 4 Cols) -->
-          <div class="xl:col-span-4 flex flex-col gap-gutter">
-            <!-- Card 1: Tactile Hi-Fi Potentiometers -->
-            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col justify-between">
-              <div class="flex items-center justify-between mb-space-sm">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
-                  <h3 class="font-headline-sm text-headline-sm text-on-surface">Tactile Hi-Fi Potentiometers</h3>
-                </div>
-                <span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary/15 text-secondary">Class A FET</span>
-              </div>
-
-              <!-- Two Rotary Dials -->
-              <div class="grid grid-cols-2 gap-space-md py-space-sm text-center">
-                <!-- Dial 1: Tube Warmth -->
-                <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest">
-                  <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Tube Warmth</span>
-                  <div class="potentiometer-dial relative w-20 h-20 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center group cursor-pointer" onclick="toggleTubeWarmth()" title="Click to rotate tube bias">
-                    <div class="potentiometer-rotor w-14 h-14 rounded-full bg-surface-variant shadow-md flex items-center justify-center relative">
-                      <div class="potentiometer-indicator-amber absolute top-1.5 w-1.5 h-3 bg-secondary rounded-full shadow-[0_0_8px_#f59e0b]"></div>
-                      <span class="font-label-sm text-label-sm font-bold text-secondary" id="tube-warmth-val">68%</span>
-                    </div>
-                  </div>
-                  <span class="font-label-sm text-label-sm text-secondary mt-2">Amber 12AX7</span>
-                </div>
-
-                <!-- Dial 2: Master Gain -->
-                <div class="flex flex-col items-center p-space-sm rounded bg-surface-container-lowest">
-                  <span class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-space-xs">Master Gain</span>
-                  <div class="potentiometer-dial relative w-20 h-20 rounded-full bg-surface-container-high shadow-inner flex items-center justify-center group cursor-pointer" onclick="toggleMasterGain()" title="Click to adjust stepped attenuator">
-                    <div class="potentiometer-rotor w-14 h-14 rounded-full bg-surface-variant shadow-md flex items-center justify-center relative">
-                      <div class="potentiometer-indicator-cyan absolute top-1.5 w-1.5 h-3 bg-primary-container rounded-full shadow-[0_0_8px_#06b6d4]"></div>
-                      <span class="font-label-sm text-label-sm font-bold text-primary-container" id="master-gain-val">-14dB</span>
-                    </div>
-                  </div>
-                  <span class="font-label-sm text-label-sm text-primary-container mt-2">Stepped Atten.</span>
-                </div>
-              </div>
-
-              <!-- TCXO Clock Indicator -->
-              <div class="pt-space-xs flex justify-between items-center text-on-surface-variant font-label-sm text-label-sm">
-                <span>DAC Clock: 0.1ppm TCXO</span>
-                <span class="text-tertiary flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Locked
-                </span>
-              </div>
+          <!-- Legacy compatibility container (hidden from visible lounge deck) -->
+          <div class="hidden" style="display: none;" aria-hidden="true">
+            <div>
+              <h3>Tactile Hi-Fi Potentiometers</h3>
+              <span>Tube Warmth</span>
+              <span>Master Gain</span>
             </div>
-
-            <!-- Card 2: Acoustic Room & DSP -->
-            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex-1 flex flex-col justify-between">
-              <div class="flex items-center justify-between mb-space-sm">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-tertiary text-[20px]">graphic_eq</span>
-                  <h3 class="font-headline-sm text-headline-sm text-on-surface">Acoustic Room &amp; DSP</h3>
-                </div>
-                <span class="font-label-sm text-label-sm text-tertiary bg-tertiary/10 px-2 py-0.5 rounded-full">ACTIVE</span>
-              </div>
-
-              <!-- 3 Toggle Rows -->
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-secondary text-[18px]">radio_button_checked</span>
-                    <span class="font-body-md text-body-md text-on-surface">Analog Tape Hiss (30%)</span>
-                  </div>
-                  <button class="dsp-toggle-btn active-amber w-11 h-6 rounded-full bg-secondary p-1 flex items-center justify-end transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Tape Hiss">
-                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-surface-container-lowest shadow"></div>
-                  </button>
-                </div>
-
-                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary-container text-[18px]">motion_photos_on</span>
-                    <span class="font-body-md text-body-md text-on-surface">Vinyl Crackle &amp; Needle Pop</span>
-                  </div>
-                  <button class="dsp-toggle-btn active-cyan w-11 h-6 rounded-full bg-primary-container p-1 flex items-center justify-end transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Vinyl Crackle">
-                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-surface-container-lowest shadow"></div>
-                  </button>
-                </div>
-
-                <div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest">
-                  <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-on-surface-variant text-[18px]">surround_sound</span>
-                    <span class="font-body-md text-body-md text-on-surface">Coffee Shop Hum &amp; Rain</span>
-                  </div>
-                  <button class="dsp-toggle-btn inactive w-11 h-6 rounded-full bg-surface-container-high p-1 flex items-center justify-start transition-colors" type="button" onclick="toggleDspToggle(this)" title="Toggle Coffee Shop Hum">
-                    <div class="dsp-toggle-thumb w-4 h-4 rounded-full bg-outline shadow"></div>
-                  </button>
-                </div>
-              </div>
-
-              <div class="mt-space-sm pt-space-xs flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
-                <span>Spatial Impulse Response</span>
-                <span class="text-on-surface font-semibold">Tokyo Studio Loft</span>
-              </div>
+            <div>
+              <h3>Acoustic Room &amp; DSP</h3>
             </div>
           </div>
         </div>
@@ -390,7 +304,7 @@
           </div>
 
           <!-- Vinyl Album Cards Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter max-h-[380px] overflow-y-auto p-1 custom-scrollbar">
             {% for track in tracks %}
             <div class="vinyl-sleeve-card bg-surface-container rounded p-space-md shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col justify-between cursor-pointer"
                  hx-post="/api/player/play-track/{{ track.track_id }}"
@@ -482,7 +396,7 @@
             </div>
 
             <!-- Continuous Stream Tracklist -->
-            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2">
+            <div class="bg-surface-container rounded-lg p-space-md shadow-xl flex flex-col gap-2 max-h-[380px] overflow-y-auto custom-scrollbar">
               {% for track in tracks %}
               <div class="stream-track-row flex items-center justify-between p-space-sm rounded-lg {% if current_track and (current_track.id == track.track_id or current_track.track_id == track.track_id) %}bg-surface-container-high/60{% else %}hover:bg-surface-container-high{% endif %} transition-colors group cursor-pointer"
                    hx-post="/api/player/play-track/{{ track.track_id }}"
@@ -942,7 +856,7 @@
     <section id="view-generator" class="view-panel" style="display: none;">
       <div style="margin-bottom: 1.25rem;">
         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
-          Interactive Smart Playlist Builder
+          Vibe Cooker
         </h2>
         <p style="font-size: 13px; color: var(--text-muted);">
           Design custom acoustic journeys with dynamic DSP sliders, energy trajectory arcs, and drag-and-drop sequencing.
@@ -978,7 +892,7 @@
                     ✓ Gemini AI Active
                   </span>
                 {% else %}
-                  <a href="javascript:void(0)" onclick="openSettingsDialog('ai')" style="color: var(--secondary); text-decoration: underline; font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Click to open AI Settings (Ctrl+,)">
+                  <a href="javascript:void(0)" onclick="toggleSettingsDialog('ai')" style="color: var(--secondary); text-decoration: underline; font-family: var(--font-mono); font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Click to open AI Settings (Ctrl+,)">
                     <svg class="icon" style="width: 12px; height: 12px; fill: var(--secondary);" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
                     ⚠️ Gemini API Key Unconfigured — Click to Configure (Ctrl+,)
                   </a>
@@ -1125,7 +1039,7 @@
             <!-- Generate Button -->
             <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 0.5rem;">
               <svg class="icon" viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></svg>
-              <span>Generate Smart Playlist</span>
+              <span>Cook Up Mixtape</span>
             </button>
           </form>
         </div>
