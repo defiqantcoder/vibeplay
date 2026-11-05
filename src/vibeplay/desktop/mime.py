@@ -162,10 +162,16 @@ def parse_desktop_uri(raw: str) -> Path:
             raise ValueError(f"Unsupported URI scheme '{parsed.scheme}': only local 'file://' URIs are allowed.")
         if parsed.netloc and parsed.netloc.lower() not in ("", "localhost"):
             raise ValueError(f"Remote file URI host '{parsed.netloc}' is not allowed.")
-        decoded_path = unquote(parsed.path)
-        return Path(decoded_path).expanduser().resolve()
+        target_raw = unquote(parsed.path)
+    else:
+        target_raw = cleaned
 
-    return Path(cleaned).expanduser().resolve()
+    from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+    try:
+        return resolve_within(target_raw, allowed_media_roots())
+    except (PermissionError, ValueError) as err:
+        raise ValueError("Path traversal attempt detected") from err
 
 
 def classify_mime_target(raw: str | Path) -> MimeOpenTarget:

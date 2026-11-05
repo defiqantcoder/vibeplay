@@ -57,7 +57,7 @@ def validate_loopback_host(host: str) -> str:
     return host.strip()
 
 
-_SYSTEM_MEDIA_ROOTS: tuple[str, ...] = ("/media", "/mnt", "/run/media")
+_SYSTEM_MEDIA_ROOTS: tuple[str, ...] = ("/media", "/mnt", "/run/media", "/music")
 
 
 def allowed_media_roots(*extra: Path | str | None) -> list[Path]:
@@ -79,20 +79,33 @@ def allowed_media_roots(*extra: Path | str | None) -> list[Path]:
     return roots
 
 
+class PathTraversalError(PermissionError, ValueError):
+    """Raised when a path escapes permitted boundaries or contains malicious sequences."""
+    pass
+
+
 def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Path:
     """Resolve ``path`` (following symlinks) and require it to live inside one of ``roots``.
 
     Raises:
-        PermissionError: If the path contains NUL bytes or escapes every allowed root.
+        PathTraversalError: If the path contains NUL bytes or escapes every allowed root.
     """
     raw = str(path)
     if "\x00" in raw:
-        raise PermissionError("Path contains invalid characters.")
-    resolved = Path(raw).expanduser().resolve()
+        raise PathTraversalError("Path contains invalid characters.")
+    target_p = Path(raw).expanduser()
     for root in roots:
-        if resolved.is_relative_to(Path(root).resolve()):
-            return resolved
-    raise PermissionError("Path is outside permitted directories.")
+        base_dir = Path(root).resolve()
+        try:
+            if target_p.is_absolute():
+                resolved_path = target_p.resolve()
+            else:
+                resolved_path = (base_dir / target_p).resolve()
+            if resolved_path.is_relative_to(base_dir):
+                return resolved_path
+        except (ValueError, RuntimeError):
+            continue
+    raise PathTraversalError("Path traversal attempt detected: path is outside permitted directories.")
 
 
 def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:

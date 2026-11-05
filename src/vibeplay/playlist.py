@@ -927,23 +927,23 @@ def parse_natural_language_prompt(prompt: str) -> NaturalLanguageQuery:
     query = NaturalLanguageQuery(raw_prompt=prompt.strip())
 
     # 1. BPM parsing
-    range_match = re.search(r"(?:between|from)?\s*(\d+(?:\.\d+)?)\s*(?:-|to|and)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+    range_match = re.search(r"\b(\d{2,3}(?:\.\d+)?)\s*(?:-|to|and)\s*(\d{2,3}(?:\.\d+)?)\s*bpm\b", p)
     if range_match:
         b1, b2 = float(range_match.group(1)), float(range_match.group(2))
         query.bpm_min = min(b1, b2)
         query.bpm_max = max(b1, b2)
     else:
-        around_match = re.search(r"(?:around|about|~)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+        around_match = re.search(r"\b(?:around|about|~)\s*(\d{2,3}(?:\.\d+)?)\s*bpm\b", p)
         if around_match:
             target = float(around_match.group(1))
             query.bpm_min = target - 5.0
             query.bpm_max = target + 5.0
         else:
-            above_match = re.search(r"(?:above|over|>|>=)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+            above_match = re.search(r"\b(?:above|over|>|>=)\s*(\d{2,3}(?:\.\d+)?)\s*bpm\b", p)
             if above_match:
                 query.bpm_min = float(above_match.group(1))
             else:
-                under_match = re.search(r"(?:under|below|<|<=)\s*(\d+(?:\.\d+)?)\s*bpm", p)
+                under_match = re.search(r"\b(?:under|below|<|<=)\s*(\d{2,3}(?:\.\d+)?)\s*bpm\b", p)
                 if under_match:
                     query.bpm_max = float(under_match.group(1))
                 else:

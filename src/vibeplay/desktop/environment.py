@@ -179,7 +179,7 @@ def find_free_loopback_port(
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                s.bind((safe_host, candidate_port))
+                s.bind(("127.0.0.1", candidate_port))
                 return candidate_port
             except OSError:
                 continue

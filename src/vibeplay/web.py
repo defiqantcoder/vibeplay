@@ -1358,12 +1358,15 @@ def create_app(
             playback=playback,
         )
 
-        full_html = (
-            f"{output_switcher_html}\n"
-            f'<div id="transport-footer-container" hx-swap-oob="true">\n{transport_bar_html}\n</div>\n'
-            f'<span id="header-playing-on-text" hx-swap-oob="true">{html.escape(str(target_profile))}</span>\n'
+        return templates.TemplateResponse(
+            request=request,
+            name="components/output_switcher_response.html",
+            context={
+                "output_switcher_html": output_switcher_html,
+                "transport_bar_html": transport_bar_html,
+                "active_profile": str(target_profile),
+            },
         )
-        return HTMLResponse(content=full_html)
 
     @app.get("/api/player/scrub", response_class=HTMLResponse)
     async def api_player_scrub(request: Request) -> Response:
@@ -2255,23 +2258,21 @@ def create_app(
                 form = await request.form()
                 scan_path_str = str(form.get("path", "")).strip() or None
 
+            from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
             if not scan_path_str:
                 music_dir_val = getattr(cfg, "music_dir", None)
                 scan_path = Path(music_dir_val).expanduser() if music_dir_val else Path.home() / "Music"
                 if not scan_path.exists():
                     scan_path = Path.cwd()
             else:
-                scan_path = Path(scan_path_str).expanduser().resolve()
-
-            from vibeplay.desktop.security import allowed_media_roots, resolve_within
-
-            try:
-                scan_path = resolve_within(scan_path, allowed_media_roots(getattr(cfg, "music_dir", None)))
-            except PermissionError:
-                return JSONResponse(
-                    status_code=403,
-                    content={"error": "Path is outside permitted directories."},
-                )
+                try:
+                    scan_path = resolve_within(scan_path_str, allowed_media_roots(getattr(cfg, "music_dir", None)))
+                except (PermissionError, ValueError):
+                    return JSONResponse(
+                        status_code=403,
+                        content={"error": "Path traversal attempt detected"},
+                    )
 
             if not scan_path.exists() or not scan_path.is_dir():
                 return JSONResponse(

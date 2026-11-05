@@ -89,24 +89,29 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
         hw_match = re.search(r'(hw:\d+,\d+|plughw:\d+,\d+)', ACTIVE_OUTPUT_PROFILE)
         alsa_device = hw_match.group(1) if hw_match else None
 
-        args = [player_bin, str(track_path)]
         if "aplay" in Path(player_bin).name:
             if alsa_device:
                 dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
-                args = [player_bin, "-D", dev_arg, str(track_path)]
-        elif "ffplay" in player_bin:
-            args = [player_bin, "-nodisp", "-autoexit"]
+                cmd = ["aplay", "-D", str(dev_arg), str(track_path)]
+            else:
+                cmd = ["aplay", str(track_path)]
+        elif "ffplay" in Path(player_bin).name:
             if alsa_device:
                 dev_arg = alsa_device if alsa_device.startswith("plughw:") else f"plug{alsa_device}"
-                args.extend(["-f", "alsa", "-device", dev_arg])
-            args.append(str(track_path))
+                cmd = ["ffplay", "-nodisp", "-autoexit", "-f", "alsa", "-device", str(dev_arg), str(track_path)]
+            else:
+                cmd = ["ffplay", "-nodisp", "-autoexit", str(track_path)]
+        else:
+            cmd = ["pw-play", str(track_path)]
+
         try:
             _FALLBACK_PROC = subprocess.Popen(
-                args,
+                cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                shell=False,
             )
-            logger.info("Started direct fallback audio player: %s (device: %s)", player_bin, alsa_device or 'default')
+            logger.info("Started direct fallback audio player: %s (device: %s)", cmd[0], alsa_device or 'default')
         except Exception as e:
             logger.warning("Failed to start direct audio player: %s", e)
 
@@ -1125,6 +1130,15 @@ def _fetch_track_metadata(
     native_channels: int | None = None
 
     if file_path:
+        from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+        try:
+            safe_file = resolve_within(file_path, allowed_media_roots())
+            file_path = str(safe_file)
+        except (PermissionError, ValueError):
+            file_path = ""
+
+    if file_path:
         try:
             tech_info = _extract_audio_file_technical_info(file_path)
             native_channels = tech_info.get("channels")
@@ -1133,18 +1147,24 @@ def _fetch_track_metadata(
         except Exception:
             pass
 
-    if file_path and db_path and db_path.exists():
+    if file_path and db_path:
         try:
-            with get_connection(db_path) as conn:
-                row = conn.execute(
-                    """
-                    SELECT t.id, t.title, t.artist, t.album, t.sample_rate, t.bit_depth
-                    FROM tracks t
-                    WHERE t.path = ? OR t.path LIKE ?
-                    LIMIT 1
-                    """,
-                    (file_path, f"%{Path(file_path).name}"),
-                ).fetchone()
+            db_p = Path(db_path)
+            base_dir = db_p.parent.resolve()
+            resolved_db = (base_dir / db_p.name).resolve()
+            if not resolved_db.is_relative_to(base_dir):
+                raise ValueError("Path traversal attempt detected")
+            if resolved_db.exists():
+                with get_connection(resolved_db) as conn:
+                    row = conn.execute(
+                        """
+                        SELECT t.id, t.title, t.artist, t.album, t.sample_rate, t.bit_depth
+                        FROM tracks t
+                        WHERE t.path = ? OR t.path LIKE ?
+                        LIMIT 1
+                        """,
+                        (file_path, f"%{Path(file_path).name}"),
+                    ).fetchone()
                 if row:
                     track_db_id = row[0]
                     if row[1]:
@@ -1367,7 +1387,13 @@ def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
     """Extract raw audio stream metadata (sample rate, bit depth, codec, channels)."""
     import mutagen
 
-    path = Path(path_str).expanduser()
+    from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+    try:
+        path = resolve_within(path_str, allowed_media_roots())
+    except (PermissionError, ValueError):
+        path = Path(path_str).expanduser()
+
     ext = path.suffix.lower()
     codec = "Audio"
     sample_rate = 44100
@@ -1396,8 +1422,13 @@ def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
         bits_per_sample = 24
         sample_rate = 48000
 
-    if path.exists() and path.is_file():
-        try:
+    try:
+        is_safe = False
+        for root in allowed_media_roots():
+            if path.resolve().is_relative_to(root.resolve()):
+                is_safe = True
+                break
+        if is_safe and path.exists() and path.is_file():
             audio = mutagen.File(str(path))
             if audio is not None and hasattr(audio, "info"):
                 info = audio.info
@@ -1409,8 +1440,8 @@ def _extract_audio_file_technical_info(path_str: str) -> dict[str, Any]:
                     channels = info.channels
                 if hasattr(info, "bitrate") and info.bitrate:
                     bitrate = info.bitrate
-        except Exception as err:
-            logger.debug("Could not read audio header for %s: %s", path, err)
+    except Exception as err:
+        logger.debug("Could not read audio header for %s: %s", path, err)
 
     return {
         "codec": codec,

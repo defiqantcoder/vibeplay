@@ -134,12 +134,15 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
         playback=playback,
     )
 
-    full_html = (
-        f"{output_switcher_html}\n"
-        f'<div id="transport-footer-container" hx-swap-oob="true">\n{transport_bar_html}\n</div>\n'
-        f'<span id="header-playing-on-text" hx-swap-oob="true">{html.escape(str(target_profile))}</span>\n'
+    return templates.TemplateResponse(
+        request=request,
+        name="components/output_switcher_response.html",
+        context={
+            "output_switcher_html": output_switcher_html,
+            "transport_bar_html": transport_bar_html,
+            "active_profile": str(target_profile),
+        },
     )
-    return HTMLResponse(content=full_html)
 
 
 @router.post("/volume", response_class=HTMLResponse)
