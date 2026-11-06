@@ -18,12 +18,12 @@
 
 - [About](#-about)
 - [Core Features](#-core-features)
-- [UI & Views](#-ui--views)
+- [UI & Views](#️-ui--views-ubuntu-app--web-app)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
 - [Usage](#-usage)
   - [CLI Reference](#cli-reference)
-  - [Keyboard Shortcuts](#keyboard-shortcuts)
+  - [Keyboard Shortcuts](#keyboard-shortcuts-desktop--web-app)
 - [Architecture Overview](#-architecture-overview)
 - [Development & Testing](#-development--testing)
 - [License](#-license)
@@ -63,10 +63,10 @@ The desktop and web applications share the same responsive, HTML5/HTMX-powered i
 | **Boombox Capsule** | Bottom Bar | Responsive transport footer docking flush on standard displays and expanding into a floating capsule on high-DPI displays. |
 | **Record Crate** | View Switcher (\`📦\`) | Flip through vinyl sleeves with peeking vinyl discs, mood filters, and 1-click playback. |
 | **Master Table** | View Switcher (\`📋\`) | Precision sortable library table with clickable column headers and right-click context menu. |
-| **Fullscreen Now-Playing** | <kbd>F8</kbd> / \`⛶\` Button | Dedicated full-window turntable view featuring rotating vinyl animation and a real-time 60fps audio visualizer. |
+| **Fullscreen Now-Playing** | \`⛶\` Button | Dedicated full-window turntable view featuring rotating vinyl animation and a real-time 60fps audio visualizer. |
 | **EQ Studio** | \`EQ\` Button | 5-band parametric equalizer with interactive SVG frequency response curve. |
 | **Track Inspector** | \`Inspect\` Button | Deep acoustic analysis deck featuring Camelot harmonic key wheels, tempo, and mood bars. |
-| **Playlist Builder** | <kbd>F7</kbd> / \`Vibe Builder\` | Natural language search prompt and 4-step guided wizard with energy arcs. |
+| **Playlist Builder** | \`Vibe Builder\` | Natural language search prompt and 4-step guided wizard with energy arcs. |
 | **Add-on Toybox** | \`Toybox\` Button | Inspect installed add-ons, toggle active plugins, and review system hooks. |
 | **Sound Output Switcher** | \`Output\` Button | Popover for smart DAC discovery, listing available ALSA direct endpoints and PipeWire sinks. |
 | **DAC Alert Modal** | Automatic | Automatic failover warning modal if a USB DAC is unplugged during playback. |
@@ -76,7 +76,7 @@ The desktop and web applications share the same responsive, HTML5/HTMX-powered i
 
 ## 📦 Prerequisites
 
-To run or build vibeplay, ensure your system has the required dependencies:
+To run or build vibeplay, ensure your system has the required dependencies. On Ubuntu 24.04, the source install uses PyGObject 3.50 with GTK 3 and WebKit2GTK 4.1. Building PyGObject and Pycairo requires the GObject introspection and Cairo development libraries, pkg-config, Python headers, and a C compiler listed below:
 
 ```text
 sudo apt update && sudo apt install -y \
@@ -86,6 +86,12 @@ sudo apt update && sudo apt install -y \
     mpd \
     libwebkit2gtk-4.1-dev \
     libgirepository1.0-dev \
+    libcairo2-dev \
+    pkg-config \
+    python3-dev \
+    build-essential \
+    gir1.2-gtk-3.0 \
+    gir1.2-webkit2-4.1 \
     libasound2-dev \
     libnotify-bin
 ```
@@ -125,7 +131,7 @@ For fast iteration without rebuilding native binaries:
 
 ```text
 # Install Astral uv (fast Python package manager)
-curl -LsSf https://astral.sh/uv/install.sh | source /dev/stdin
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 git clone https://github.com/defiqantcoder/vibeplay.git
 cd vibeplay
@@ -151,7 +157,7 @@ uv run vibeplay serve
 *   \`scan\`: Scan music directory recursively, index audio files, and extract tags.
 *   \`enrich\`: Fingerprint audio tracks and query MusicBrainz for canonical metadata.
 *   \`analyze\`: Analyze audio files to extract acoustic features, rhythm, and embeddings.
-*   \`clusters\`: Compute normalized vibe vectors and generate track clusters.
+*   \`clusters\`: Check that the database file exists (exit with an error if missing), print its path, and display guidance to use natural-language prompts or acoustic feature queries for smart playlists.
 *   \`playlist\`: Generate a cohesive smart playlist based on seeds, vibe, cluster, energy arc, or AI prompt.
 *   \`tag\`: Batch-tag audio tracks with mood and genre descriptors using an LLM.
 *   \`duplicates\`: Find likely duplicate tracks in the library.
@@ -176,14 +182,14 @@ uv run vibeplay serve
 
 | Shortcut | Action |
 | :--- | :--- |
-| <kbd>Space</kbd> / <kbd>F9</kbd> | Toggle active audio playback |
-| <kbd>F10</kbd> / <kbd>F11</kbd> | Skip to previous / next queued track |
-| <kbd>F8</kbd> | Toggle fullscreen now-playing view with 60fps visualizer |
+| <kbd>Space</kbd> / <kbd>F10</kbd> | Toggle active audio playback |
+| <kbd>F8</kbd> / <kbd>F9</kbd> | Skip to previous queued track |
+| <kbd>F11</kbd> | Skip to next queued track |
 | <kbd>Ctrl</kbd> + <kbd>O</kbd> | Open local file or music folder dialog |
 | <kbd>Ctrl</kbd> + <kbd>,</kbd> | Open Preferences / DSP dialog |
 | <kbd>Ctrl</kbd> + <kbd>R</kbd> | Refresh music library and extract tags |
-| <kbd>F5</kbd> | Switch to Library Master Console |
-| <kbd>F7</kbd> | Switch to Natural Language & Guided Playlist Builder |
+| <kbd>F5</kbd> | Decrease volume |
+| <kbd>F7</kbd> | Increase volume |
 | <kbd>?</kbd> | Open keyboard shortcuts help modal |
 | <kbd>Esc</kbd> | Close active modal, dialog, or popover |
 
@@ -219,8 +225,8 @@ uv run pytest
 uv run pytest --cov=src/vibeplay --cov-report=term-missing
 
 # Run code formatting and linting
-uv run ruff check
-uv run ruff format
+uv run --with ruff ruff check
+uv run --with ruff ruff format
 ```
 
 ---
