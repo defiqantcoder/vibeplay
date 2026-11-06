@@ -1297,7 +1297,21 @@ def _evaluate_bit_perfect_status(
 
 
 def get_playback_status(db_path: Path | None = None, settings: Settings | None = None) -> dict[str, Any]:
-    """Retrieve real-time player telemetry, DAC buffer health, and active track."""
+    """Return playback status, track metadata, and output profile information.
+
+    Args:
+        db_path: Retained for compatibility; metadata uses the configured database path.
+        settings: Application settings, or the cached default settings if omitted.
+
+    Returns:
+        A status dictionary with elapsed time and duration in seconds. Buffer health
+        is a derived label, and jitter_ppm is a fixed value. If status collection
+        raises an exception, return standby values with daemon_online set to False.
+        Database metadata lookup errors are ignored.
+
+    Errors loading default settings or collecting fallback output profiles can
+    propagate to the caller.
+    """
     cfg = settings or get_settings()
     try:
         with get_mpd_transport(cfg) as transport:
