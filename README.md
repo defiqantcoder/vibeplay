@@ -133,6 +133,8 @@ For fast iteration without rebuilding native binaries:
 # Install Astral uv (fast Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# Restart your shell or load the environment file reported by the installer before continuing.
+
 git clone https://github.com/defiqantcoder/vibeplay.git
 cd vibeplay
 uv sync
