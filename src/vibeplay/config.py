@@ -22,9 +22,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    music_directory: Path = Field(
-        default_factory=lambda: Path("~/Music").expanduser(),
-        description="Default music library root directory",
+    music_directory: Path | None = Field(
+        default_factory=lambda: None,
+        description="Optional music library root directory override",
     )
     db_path: Path = Field(
         default_factory=lambda: Path("~/.local/share/vibeplay/vibeplay.db").expanduser(),
@@ -201,7 +201,7 @@ class Settings(BaseSettings):
 
 
     @property
-    def music_dir(self) -> Path:
+    def music_dir(self) -> Path | None:
         """Legacy alias for music_directory"""
         return self.music_directory
 
