@@ -21,6 +21,7 @@ def extract_cover_bytes(audio_path: Path) -> tuple[bytes, str] | None:
         import struct
 
         import mutagen
+        from mutagen.mp4 import MP4Tags
 
         audio = mutagen.File(str(audio_path))
         if audio is not None:
@@ -37,7 +38,7 @@ def extract_cover_bytes(audio_path: Path) -> tuple[bytes, str] | None:
                         return bytes(apic.data), getattr(apic, "mime", "image/jpeg") or "image/jpeg"
 
                 # MP4 / M4A covr
-                if "covr" in audio.tags:
+                if isinstance(audio.tags, MP4Tags) and "covr" in audio.tags:
                     covr_data = audio.tags["covr"]
                     if covr_data:
                         data = bytes(covr_data[0])
