@@ -382,7 +382,10 @@ def clusters(
         ),
     ] = None,
 ) -> None:
-    """Compute normalized vibe vectors and generate track clusters."""
+    """Print the target database and guidance for building smart playlists.
+
+    Exit with code 1 if the database file is missing. Clustering is not performed.
+    """
     settings = get_settings()
     db_path = db or settings.db_path
 
@@ -586,7 +589,11 @@ def tag(
         typer.Option(help="Path to SQLite database (defaults to configured path)"),
     ] = None,
 ) -> None:
-    """Batch-tag audio tracks with mood and genre descriptors using an LLM."""
+    """Select analyzed tracks for tagging.
+
+    No tracks are tagged; when tracks are selected, report that LLM tagging is
+    unavailable and show an empty results table.
+    """
     settings = get_settings()
     db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
 

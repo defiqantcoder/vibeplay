@@ -326,6 +326,7 @@ def start_background_scan(db_path: Path, music_dir: Path) -> tuple[str, bool]:
         job_id = create_job_run(db_path, "scan", 0)
 
     def _worker() -> None:
+        """Scan the library and record job progress, completion, or failure."""
         try:
             from vibeplay.scanner import scan_directory
 
@@ -361,6 +362,7 @@ def start_background_enrich(db_path: Path) -> tuple[str, bool]:
         job_id = create_job_run(db_path, "enrich", 0)
 
     def _worker() -> None:
+        """Enrich tracks and record job progress, completion, or failure."""
         try:
             from vibeplay.plugins.maintenance.enrichment import enrich_tracks
 
@@ -396,6 +398,7 @@ def start_background_analyze(db_path: Path) -> tuple[str, bool]:
         job_id = create_job_run(db_path, "analyze", 0)
 
     def _worker() -> None:
+        """Analyze tracks and record progress, failure, or completion when not cancelled."""
         try:
             from vibeplay.analysis import analyze_tracks
 

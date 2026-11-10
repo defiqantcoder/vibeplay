@@ -449,7 +449,8 @@ def play_track(
         settings: Application settings.
 
     Returns:
-        dict[str, Any]: Playback result summary.
+        dict[str, Any]: Playback result summary. MPD failures can trigger direct
+            playback and a result marked as a fallback.
 
     Raises:
         ValueError: If track_id not found in database.
@@ -1036,7 +1037,11 @@ def _detect_codec_from_path(file_path: str) -> tuple[str, bool]:
 
 
 def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str, Any]:
-    """Set playback volume level [0-100]."""
+    """Set playback volume, clamped to 0-100.
+
+    A transport failure returns the clamped volume as a string with an error;
+    a rejected MPD set-volume command is ignored.
+    """
     global _LAST_NONZERO_VOLUME, _IS_MUTED
     cfg = settings or get_settings()
     vol = max(0, min(100, volume))
@@ -1060,7 +1065,11 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
 
 
 def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str, Any]:
-    """Adjust current playback volume by delta (positive or negative) within [0, 100]."""
+    """Adjust playback volume by delta, clamped to 0-100.
+
+    A transport failure returns the computed volume as a string with an error;
+    a rejected MPD set-volume command is ignored.
+    """
     global _LAST_NONZERO_VOLUME, _IS_MUTED
     cfg = settings or get_settings()
     try:
@@ -1098,7 +1107,11 @@ def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str
 
 
 def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
-    """Toggle mute state: if volume > 0, set to 0; if volume == 0, restore previous volume."""
+    """Toggle mute or restore the last nonzero volume.
+
+    A transport failure returns the selected volume with an error; a rejected
+    MPD set-volume command is ignored.
+    """
     global _LAST_NONZERO_VOLUME, _IS_MUTED
     cfg = settings or get_settings()
     try:

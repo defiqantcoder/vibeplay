@@ -155,7 +155,12 @@ async def api_library_cover(
     cfg: Annotated[Settings, Depends(get_settings)],
     fallback: bool = False,
 ):
-    """Serve embedded album artwork or return vinyl placeholder / 404."""
+    """Serve embedded album artwork, or a vinyl placeholder when requested and available.
+
+    Raises:
+        HTTPException: 403 if the track path is rejected, or 404 if artwork
+            is missing and a placeholder was not requested or is unavailable.
+    """
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT path FROM tracks WHERE id = ?", (track_id,))

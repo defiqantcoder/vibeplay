@@ -163,6 +163,7 @@ def check_mpd_capability() -> CapabilityStatus:
 
 
 def check_desktop_gui_capability() -> CapabilityStatus:
+    """Report whether pywebview and the GTK3/WebKit2 bindings are available."""
     webview_spec = importlib.util.find_spec("webview")
     if webview_spec is None:
         return CapabilityStatus(

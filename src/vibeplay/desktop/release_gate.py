@@ -38,7 +38,12 @@ from vibeplay.desktop.security import is_loopback_host, validate_loopback_host  
 
 
 def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | None = None) -> ReleaseGateReport:
-    """Run all Phase 7 desktop invariant release gate checks."""
+    """Run the Phase 7 desktop release checks and return their results.
+
+    The checks write default settings to settings_path, initialize db_path,
+    and start and stop a desktop runner. Missing paths are reported as failed
+    checks where required.
+    """
     checks = []
 
     # 1. Loopback Security Invariant

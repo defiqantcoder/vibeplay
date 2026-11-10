@@ -52,6 +52,7 @@ class MPRISServer:
             logger.debug("MPRIS API call %s failed: %s", path, e)
 
     def _run_dbus(self) -> None:
+        """Serve supported MPRIS calls on the session bus while the server runs."""
         try:
             from jeepney import new_method_return
             from jeepney.bus_messages import message_bus
@@ -115,7 +116,7 @@ class MPRISServer:
             logger.warning("Could not connect to SESSION D-Bus for MPRIS (jeepney): %s", e)
 
     def _run_poll(self) -> None:
-        """Poll telemetry to update PropertiesChanged signal"""
+        """Poll playback telemetry and attempt a PropertiesChanged signal on changes."""
         if not self.runner:
             return
 
