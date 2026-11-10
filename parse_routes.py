@@ -10,9 +10,13 @@ class RouteVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         for dec in node.decorator_list:
             if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
-                if getattr(dec.func.value, "id", "") == "app":
+                if (getattr(dec.func.value, "id", "") == "app"
+                    and dec.func.attr in {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
+                    and dec.args and isinstance(dec.args[0], ast.Constant)):
                     self.routes.append((dec.args[0].value if dec.args else "", node.name, getattr(dec.func, "attr", "")))
         self.generic_visit(node)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
 
 visitor = RouteVisitor()
 tree = ast.parse(web)

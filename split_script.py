@@ -19,15 +19,20 @@ if not create_app_node:
 
 route_defs = []
 for node in create_app_node.body:
-    if isinstance(node, ast.FunctionDef):
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         for dec in node.decorator_list:
-            if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute) and dec.func.value.id == "app":
-                route_defs.append(node)
-                break
+            if (
+                isinstance(dec, ast.Call)
+                and isinstance(dec.func, ast.Attribute)
+                and isinstance(dec.func.value, ast.Name)
+                and dec.func.value.id == "app"
+                and dec.func.attr in {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
+                and dec.args
+                and isinstance(dec.args[0], ast.Constant)
+                and isinstance(dec.args[0].value, str)
+            ):
+                route_defs.append((node, dec.args[0].value))
 
 print(f"Found {len(route_defs)} route functions inside create_app")
-
-for node in route_defs:
-    dec = node.decorator_list[0]
-    path = dec.args[0].value
+for node, path in route_defs:
     print(f"Path: {path}, Function: {node.name}")
