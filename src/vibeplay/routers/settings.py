@@ -9,7 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
@@ -446,16 +446,16 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
         merged = current.model_dump()
         merged.update(payload)
 
-        # Synchronize spatial_enabled <-> spatial_mode when only one is supplied
-        if "spatial_enabled" in payload and "spatial_mode" not in payload:
-            merged["spatial_mode"] = "3d_binaural" if bool(payload["spatial_enabled"]) else "stereo_direct"
-        elif "spatial_mode" in payload and "spatial_enabled" not in payload:
-            merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
-                "3d_binaural",
-                "spatial_binaural",
-            }
-
         try:
+            # Synchronize spatial_enabled <-> spatial_mode when only one is supplied
+            if "spatial_enabled" in payload and "spatial_mode" not in payload:
+                merged["spatial_mode"] = "3d_binaural" if TypeAdapter(bool).validate_python(payload["spatial_enabled"]) else "stereo_direct"
+            elif "spatial_mode" in payload and "spatial_enabled" not in payload:
+                merged["spatial_enabled"] = str(payload["spatial_mode"]).strip().lower() in {
+                    "3d_binaural",
+                    "spatial_binaural",
+                }
+
             validated = DesktopSettings.model_validate(merged)
         except ValidationError as val_err:
             return JSONResponse(
@@ -479,7 +479,11 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
                 except Exception:
                     validated.peq_preamp_db = -5.5
 
-        save_desktop_settings(validated, settings_file_path)
+        try:
+            save_desktop_settings(validated, settings_file_path)
+        except Exception:
+            logger.exception("Could not persist desktop settings")
+            return JSONResponse(status_code=500, content={"detail": "Could not persist desktop settings."})
         _sync_runtime_cfg(validated)
 
         # Best-effort live application to DSP / audio transport

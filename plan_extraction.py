@@ -30,6 +30,16 @@ def extract_routes(root=Path("src/vibeplay")):
     source = web_path.read_text()
     lines = source.splitlines(keepends=True)
     tree = ast.parse(source)
+    # AST columns are UTF-8 byte offsets, including for multi-line spans.
+    line_offsets = [0]
+    for line in lines:
+        line_offsets.append(line_offsets[-1] + len(line.encode("utf-8")))
+
+    def offset(node, end=False):
+        return line_offsets[(node.end_lineno if end else node.lineno) - 1] + (
+            node.end_col_offset if end else node.col_offset
+        )
+
     create_app = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "create_app")
     removals = []
     outputs = {}
@@ -54,15 +64,26 @@ def extract_routes(root=Path("src/vibeplay")):
             if any((d.func.attr, d.args[0].value) not in expected for d in decorators):
                 raise ValueError(f"Mixed router ownership for {node.name}")
             start = min(d.lineno for d in node.decorator_list) - 1
-            handler = lines[start:node.end_lineno].copy()
+            if not lines[start].lstrip().startswith("@"):
+                raise ValueError(f"Unsupported decorator start for {node.name}")
+            handler = "".join(lines[start:node.end_lineno]).encode("utf-8")
+            edits = []
             for dec in decorators:
-                index = dec.lineno - 1 - start
-                handler[index] = handler[index].replace("@app.", "@router.", 1)
+                # Limit edits to exact AST spans, preserving options and comments.
+                replacements = [(dec.func.value, "router")]
                 if prefix:
-                    # Only the path literal changes; all decorator options stay intact.
-                    literal = ast.get_source_segment(source, dec.args[0])
-                    handler[index] = handler[index].replace(literal, repr(dec.args[0].value[len(prefix):]), 1)
-            handlers.append("".join(handler))
+                    replacements.append((dec.args[0], repr(dec.args[0].value[len(prefix):])))
+                for target, replacement in replacements:
+                    if not (offset(dec) <= offset(target) < offset(target, True) <= offset(dec, True)):
+                        raise ValueError(f"Unsupported decorator span for {node.name}")
+                    edits.append((
+                        offset(target) - line_offsets[start],
+                        offset(target, True) - line_offsets[start],
+                        replacement.encode("utf-8"),
+                    ))
+            for begin, end, replacement in sorted(edits, reverse=True):
+                handler = handler[:begin] + replacement + handler[end:]
+            handlers.append(handler.decode("utf-8"))
             removals.append((start, node.end_lineno))
         if not handlers:
             continue

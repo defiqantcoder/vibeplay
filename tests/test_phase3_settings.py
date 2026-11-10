@@ -376,3 +376,50 @@ class TestPhase3WebApiAndLiveState:
         assert r2.status_code == 200
         assert r2.json()["mode"] == "stereo_direct"
         assert load_desktop_settings(cfg_file).spatial_enabled is False
+
+
+    @pytest.mark.parametrize("value, expected", [("false", False), ("true", True), ("0", False), ("on", True), (False, False), (True, True)])
+    @pytest.mark.parametrize("encoding", ["json", "form", "query"])
+    def test_spatial_boolean_parsing(self, client_and_paths, monkeypatch, value, expected, encoding):
+        from starlette.requests import Request
+
+        client, _, cfg_file, _ = client_and_paths
+        if encoding == "json":
+            response = client.post("/api/settings", json={"spatial_enabled": value})
+        elif encoding == "form":
+            response = client.post("/api/settings", data={"spatial_enabled": value})
+        else:
+            async def unavailable_form(self):
+                raise ValueError("Form unavailable")
+            monkeypatch.setattr(Request, "form", unavailable_form)
+            response = client.post("/api/settings", params={"spatial_enabled": value})
+        assert response.status_code == 200
+        saved = load_desktop_settings(cfg_file)
+        assert saved.spatial_enabled is expected
+        assert saved.spatial_mode == ("3d_binaural" if expected else "stereo_direct")
+
+    def test_explicit_spatial_mode_is_preserved(self, client_and_paths):
+        client, _, _, _ = client_and_paths
+        response = client.post("/api/settings", json={"spatial_enabled": False, "spatial_mode": "3d_binaural"})
+        assert response.status_code == 200
+        assert response.json()["settings"]["spatial_mode"] == "3d_binaural"
+
+    def test_invalid_spatial_boolean_returns_validation_error(self, client_and_paths):
+        client, _, _, _ = client_and_paths
+        response = client.post("/api/settings", data={"spatial_enabled": "invalid"})
+        assert response.status_code == 422
+
+    def test_failed_save_returns_json_without_syncing_runtime(self, client_and_paths, monkeypatch):
+        client, _, cfg_file, cfg = client_and_paths
+        before = cfg.mood_confidence_threshold
+        persisted = load_desktop_settings(cfg_file)
+
+        def fail_save(*args):
+            raise OSError("Disk full")
+
+        monkeypatch.setattr("vibeplay.routers.settings.save_desktop_settings", fail_save)
+        response = client.post("/api/settings", json={"mood_confidence_threshold": 0.75})
+        assert response.status_code == 500
+        assert response.json()["detail"]
+        assert cfg.mood_confidence_threshold == before
+        assert load_desktop_settings(cfg_file) == persisted

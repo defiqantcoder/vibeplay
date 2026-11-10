@@ -1,5 +1,6 @@
 """Route discovery must tolerate unrelated and computed decorators."""
 
+import ast
 import runpy
 from pathlib import Path
 
@@ -68,11 +69,16 @@ def test_extraction_mounts_handlers_and_is_repeatable(tmp_path):
     routers.mkdir(parents=True)
     (root / "web.py").write_text('''
 def create_app():
-    @app.post("/api/player/volume", response_class=HTMLResponse)
+    @app.post(
+        "/api/player/" "volume",
+        response_class=HTMLResponse,
+        summary="音量 /api/player/volume @app.post",
+    )
     async def volume(value: int = 5):
         return cfg, value
     @app.get("/api/settings")
-    @app.get("/api/settings/alias")
+    @(app
+      .get("/api/settings/alias"))
     async def settings():
         return settings_file_path
     app.include_router(library_router)
@@ -93,6 +99,15 @@ async def settings(): pass
     assert "app.include_router(build_player_router" in contents[root / "web.py"]
     assert "app.include_router(build_settings_router" in contents[root / "web.py"]
     assert "return cfg, value" in contents[routers / "player.py"]
+    factory = ast.parse(contents[routers / "player.py"]).body[-1]
+    volume = next(n for n in factory.body if isinstance(n, ast.AsyncFunctionDef))
+    decorator = volume.decorator_list[0]
+    assert decorator.func.value.id == "router"
+    assert decorator.args[0].value == "/volume"
+    assert decorator.keywords[1].value.value == "音量 /api/player/volume @app.post"
+    factory = ast.parse(contents[routers / "settings.py"]).body[-1]
+    settings = next(n for n in factory.body if isinstance(n, ast.AsyncFunctionDef))
+    assert all(d.func.value.id == "router" for d in settings.decorator_list)
     assert "return settings_file_path" in contents[routers / "settings.py"]
     extract(root)
     assert contents == {p: p.read_text() for p in contents}
