@@ -1001,6 +1001,25 @@ def cache_cleanup(
     )
 
 
+@cache_app.command(name="vacuum")
+def cache_vacuum(
+    db: Annotated[
+        Path | None,
+        typer.Option("--db", help="Path to SQLite database."),
+    ] = None,
+) -> None:
+    """Optimize and clean the SQLite database file."""
+    from vibeplay.db import get_connection, vacuum_db
+
+    cfg = get_settings()
+    db_path = db or cfg.db_path
+
+    with get_connection(db_path) as conn:
+        vacuum_db(conn)
+
+    console.print("[bold green]✓ Database successfully vacuumed and optimized[/bold green]")
+
+
 @cache_app.command(name="purge")
 def cache_purge(
     yes: Annotated[
