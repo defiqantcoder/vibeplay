@@ -74,6 +74,8 @@ def test_spec_bundles_required_datas_hiddenimports_and_excludes():
     assert datas_dict["vibeplay/templates"].is_dir()
     assert "vibeplay/static" in datas_dict
     assert datas_dict["vibeplay/static"].is_dir()
+    assert "vibe_dsp/profiles" in datas_dict
+    assert datas_dict["vibe_dsp/profiles"].is_dir()
 
     hidden = set(analysis_obj.kwargs["hiddenimports"])
     for req_mod in (
