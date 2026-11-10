@@ -75,27 +75,49 @@ def test_vacuum_busy_checkpoint_exhausts_retries(monkeypatch, busy_after_vacuum)
     monkeypatch.setattr("vibeplay.db.time.sleep", lambda _: None)
     conn = Mock()
     cursor = conn.cursor.return_value
-    cursor.fetchone.side_effect = [(0, 0, 0), (1, 1, 0)] * 6 if busy_after_vacuum else [(1, 1, 0)] * 6
+    cursor.fetchone.side_effect = [(0, 0, 0)] + [(1, 1, 0)] * 6 if busy_after_vacuum else [(1, 1, 0)] * 6
     with pytest.raises(sqlite3.OperationalError, match="database is locked"):
         vacuum_db(conn)
     statements = [call.args[0] for call in cursor.execute.call_args_list]
-    assert statements.count("VACUUM;") == (6 if busy_after_vacuum else 0)
+    assert statements.count("VACUUM;") == (1 if busy_after_vacuum else 0)
+    assert statements.count("PRAGMA wal_checkpoint(TRUNCATE);") == (7 if busy_after_vacuum else 6)
 
 
-def test_vacuum_retries_busy_checkpoint(monkeypatch):
+@pytest.mark.parametrize("busy_after_vacuum", [False, True])
+def test_vacuum_retries_busy_checkpoint(monkeypatch, busy_after_vacuum):
     from unittest.mock import Mock
 
     monkeypatch.setattr("vibeplay.db.time.sleep", lambda _: None)
     conn = Mock()
     cursor = conn.cursor.return_value
-    cursor.fetchone.side_effect = [(1, 1, 0), (0, 0, 0), (0, 0, 0)]
+    cursor.fetchone.side_effect = [(0, 0, 0), (1, 1, 0), (0, 0, 0)] if busy_after_vacuum else [(1, 1, 0), (0, 0, 0), (0, 0, 0)]
     vacuum_db(conn)
-    assert [call.args[0] for call in cursor.execute.call_args_list] == [
-        "PRAGMA wal_checkpoint(TRUNCATE);",
-        "PRAGMA wal_checkpoint(TRUNCATE);",
-        "VACUUM;",
-        "PRAGMA wal_checkpoint(TRUNCATE);",
-    ]
+    checkpoint = "PRAGMA wal_checkpoint(TRUNCATE);"
+    expected = [checkpoint, "VACUUM;", checkpoint, checkpoint] if busy_after_vacuum else [checkpoint, checkpoint, "VACUUM;", checkpoint]
+    assert [call.args[0] for call in cursor.execute.call_args_list] == expected
+
+
+@pytest.mark.parametrize("error", ["database is locked", "unrelated failure"])
+def test_vacuum_execute_error(monkeypatch, error):
+    from unittest.mock import Mock
+
+    monkeypatch.setattr("vibeplay.db.time.sleep", lambda _: None)
+    conn = Mock()
+    cursor = conn.cursor.return_value
+    cursor.fetchone.return_value = (0, 0, 0)
+    cursor.execute.side_effect = [None, sqlite3.OperationalError(error), None, None]
+    if error == "database is locked":
+        vacuum_db(conn)
+        assert [call.args[0] for call in cursor.execute.call_args_list] == [
+            "PRAGMA wal_checkpoint(TRUNCATE);",
+            "VACUUM;",
+            "VACUUM;",
+            "PRAGMA wal_checkpoint(TRUNCATE);",
+        ]
+    else:
+        with pytest.raises(sqlite3.OperationalError, match=error):
+            vacuum_db(conn)
+        assert cursor.execute.call_count == 2
 
 
 def test_vacuum_truncates_wal_with_other_connection_open(tmp_path):
