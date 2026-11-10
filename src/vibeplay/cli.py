@@ -1014,6 +1014,10 @@ def cache_vacuum(
     cfg = get_settings()
     db_path = db or cfg.db_path
 
+    if not db_path.exists():
+        console.print(f"[bold red]Database not found:[/bold red] {db_path}")
+        raise typer.Exit(code=1)
+
     with get_connection(db_path) as conn:
         vacuum_db(conn)
 
