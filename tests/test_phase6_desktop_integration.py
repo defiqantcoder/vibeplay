@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 from vibeplay.desktop.notifications import TrackNotificationDispatcher
 
 
@@ -166,3 +168,38 @@ def test_install_script_dry_run(tmp_path):
     assert (tmp_path / "share" / "icons" / "hicolor" / "scalable" / "apps" / "vibeplay.svg").exists()
     assert (tmp_path / "share" / "applications" / "vibeplay.desktop").exists()
     assert (tmp_path / ".config" / "systemd" / "user" / "vibeplay.service").exists()
+
+
+@pytest.mark.parametrize(
+    "transitions",
+    [
+        [{"track_id": "A"}, {"track_id": "B"}, {"track_id": "A"}],
+        [{"track_path": "/a.flac"}, {"track_path": "/b.flac"}],
+        [{"track_id": "A"}, {"track_path": "/b.flac"}],
+        [{"track_path": "/a.flac"}, {"track_id": "B"}],
+    ],
+    ids=["a-b-a", "path-only", "id-to-path", "path-to-id"],
+)
+@mock.patch("vibeplay.desktop.notifications.shutil.which", return_value="/usr/bin/notify-send")
+@mock.patch("vibeplay.desktop.notifications.subprocess.run")
+def test_track_notification_dispatcher_skips_stale_queue(mock_run, mock_which, transitions):
+    dispatcher = TrackNotificationDispatcher()
+    try:
+        # Hold all work until the transitions have been accepted, then drain in order.
+        with mock.patch.object(dispatcher._executor, "submit") as submit:
+            for index, identity in enumerate(transitions):
+                dispatcher.notify_transition(f"Track {index}", "Artist", "Album", "FLAC", **identity)
+
+            assert submit.call_count == len(transitions)
+            for queued in submit.call_args_list:
+                callback, *args = queued.args
+                callback(*args)
+
+        mock_run.assert_called_once_with(
+            ["/usr/bin/notify-send", "--app-name=VibePlay", "--icon=vibeplay", f"Track {len(transitions) - 1}", "Artist — Album [FLAC]"],
+            shell=False,
+            timeout=5,
+            check=True,
+        )
+    finally:
+        dispatcher.shutdown(wait=True)
