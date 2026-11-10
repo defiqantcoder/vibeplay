@@ -6,10 +6,25 @@ import logging
 import random
 import sqlite3
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def immediate_transaction(conn: sqlite3.Connection):
+    """Context manager for executing an IMMEDIATE transaction to avoid lock upgrades."""
+    try:
+        if conn.in_transaction:
+            conn.commit()
+        conn.execute("BEGIN IMMEDIATE")
+        yield
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
 
 
 def retry_db_locked(max_retries: int = 5, base_delay: float = 0.1, max_delay: float = 2.0):
@@ -574,17 +589,18 @@ def mark_tracks_missing(conn: sqlite3.Connection, track_ids: list[int]) -> int:
     """
     if not track_ids:
         return 0
-    cursor = conn.cursor()
-    placeholders = ",".join("?" for _ in track_ids)
-    cursor.execute(
-        f"""
-        UPDATE tracks
-        SET status = 'missing', updated_at = CURRENT_TIMESTAMP
-        WHERE id IN ({placeholders}) AND status != 'missing'
-        """,
-        track_ids,
-    )
-    return cursor.rowcount
+    with immediate_transaction(conn):
+        cursor = conn.cursor()
+        placeholders = ",".join("?" for _ in track_ids)
+        cursor.execute(
+            f"""
+            UPDATE tracks
+            SET status = 'missing', updated_at = CURRENT_TIMESTAMP
+            WHERE id IN ({placeholders}) AND status != 'missing'
+            """,
+            track_ids,
+        )
+        return cursor.rowcount
 
 
 def get_cached_response(
@@ -1114,15 +1130,16 @@ def add_tracks_to_playlist(
         playlist_id: Database ID of the target playlist.
         track_ids: Ordered list of track IDs to add (1-indexed position).
     """
-    cursor = conn.cursor()
-    items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
-    cursor.executemany(
-        """
-        INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, position, added_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        """,
-        items,
-    )
+    with immediate_transaction(conn):
+        cursor = conn.cursor()
+        items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
+        cursor.executemany(
+            """
+            INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, position, added_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            items,
+        )
 
 
 def get_playlist(conn: sqlite3.Connection, playlist_id: int) -> sqlite3.Row | None:
@@ -1492,70 +1509,71 @@ def bulk_update_track_vibe_tags(
     if not updates:
         return
 
-    # Deduplicate updates by track ID retaining last tag values (CodeRabbit suggestion on PR #126)
-    deduped_dict: dict[int, tuple[list[str], list[str]]] = {}
-    for track_id, mood_tags, genre_tags in updates:
-        deduped_dict[track_id] = (mood_tags, genre_tags)
+    with immediate_transaction(conn):
+        # Deduplicate updates by track ID retaining last tag values (CodeRabbit suggestion on PR #126)
+        deduped_dict: dict[int, tuple[list[str], list[str]]] = {}
+        for track_id, mood_tags, genre_tags in updates:
+            deduped_dict[track_id] = (mood_tags, genre_tags)
 
-    deduped_updates = [(tid, moods, genres) for tid, (moods, genres) in deduped_dict.items()]
+        deduped_updates = [(tid, moods, genres) for tid, (moods, genres) in deduped_dict.items()]
 
-    cursor = conn.cursor()
-    chunk_size = 900  # Safe limit below SQLite 999 variable limit
+        cursor = conn.cursor()
+        chunk_size = 900  # Safe limit below SQLite 999 variable limit
 
-    for i in range(0, len(deduped_updates), chunk_size):
-        chunk = deduped_updates[i : i + chunk_size]
-        track_ids = [u[0] for u in chunk]
-        placeholders = ",".join("?" for _ in track_ids)
+        for i in range(0, len(deduped_updates), chunk_size):
+            chunk = deduped_updates[i : i + chunk_size]
+            track_ids = [u[0] for u in chunk]
+            placeholders = ",".join("?" for _ in track_ids)
 
-        cursor.execute(
-            f"SELECT track_id FROM enrichment WHERE track_id IN ({placeholders})",
-            track_ids,
-        )
-        existing_ids = set()
-        for row in cursor.fetchall():
-            try:
-                existing_ids.add(row["track_id"])
-            except (TypeError, KeyError):
-                existing_ids.add(row[0])
-
-        updates_to_do = []
-        inserts_to_do = []
-        track_updates_to_do = []
-
-        for track_id, mood_tags, genre_tags in chunk:
-            combined_tags_json = json.dumps(mood_tags)
-            combined_genres_json = json.dumps(genre_tags)
-
-            if track_id in existing_ids:
-                updates_to_do.append((combined_tags_json, combined_genres_json, track_id))
-            else:
-                inserts_to_do.append((track_id, combined_tags_json, combined_genres_json))
-
-            track_updates_to_do.append((combined_tags_json, track_id))
-
-        if updates_to_do:
-            cursor.executemany(
-                """
-                UPDATE enrichment
-                SET tags = ?, genres = ?, fetched_at = CURRENT_TIMESTAMP
-                WHERE track_id = ?
-                """,
-                updates_to_do,
+            cursor.execute(
+                f"SELECT track_id FROM enrichment WHERE track_id IN ({placeholders})",
+                track_ids,
             )
+            existing_ids = set()
+            for row in cursor.fetchall():
+                try:
+                    existing_ids.add(row["track_id"])
+                except (TypeError, KeyError):
+                    existing_ids.add(row[0])
 
-        if inserts_to_do:
-            cursor.executemany(
-                """
-                INSERT INTO enrichment (track_id, source, tags, genres, status, confidence, fetched_at)
-                VALUES (?, 'llm', ?, ?, 'matched', 1.0, CURRENT_TIMESTAMP)
-                """,
-                inserts_to_do,
-            )
+            updates_to_do = []
+            inserts_to_do = []
+            track_updates_to_do = []
 
-        if track_updates_to_do:
-            cursor.executemany(
-                """
-                UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-                """,
-                track_updates_to_do,
-            )
+            for track_id, mood_tags, genre_tags in chunk:
+                combined_tags_json = json.dumps(mood_tags)
+                combined_genres_json = json.dumps(genre_tags)
+
+                if track_id in existing_ids:
+                    updates_to_do.append((combined_tags_json, combined_genres_json, track_id))
+                else:
+                    inserts_to_do.append((track_id, combined_tags_json, combined_genres_json))
+
+                track_updates_to_do.append((combined_tags_json, track_id))
+
+            if updates_to_do:
+                cursor.executemany(
+                    """
+                    UPDATE enrichment
+                    SET tags = ?, genres = ?, fetched_at = CURRENT_TIMESTAMP
+                    WHERE track_id = ?
+                    """,
+                    updates_to_do,
+                )
+
+            if inserts_to_do:
+                cursor.executemany(
+                    """
+                    INSERT INTO enrichment (track_id, source, tags, genres, status, confidence, fetched_at)
+                    VALUES (?, 'llm', ?, ?, 'matched', 1.0, CURRENT_TIMESTAMP)
+                    """,
+                    inserts_to_do,
+                )
+
+            if track_updates_to_do:
+                cursor.executemany(
+                    """
+                    UPDATE tracks SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                    """,
+                    track_updates_to_do,
+                )
