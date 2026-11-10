@@ -1,8 +1,11 @@
 """Unit tests for audio analysis and feature extraction."""
 
+import multiprocessing
 import shutil
 import wave
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from threading import Timer
 from unittest.mock import Mock, call
 
 import numpy as np
@@ -32,13 +35,46 @@ def test_parallel_shutdown_preserves_cancellation(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr("vibeplay.analysis.ProcessPoolExecutor", Mock(return_value=executor))
     adapter = ParallelExecutionAdapter(worker_count=2, backend="librosa", models_dir_str=None)
 
+    future = Mock()
+    adapter._futures = {future}
     if cancel_requested:
         adapter.cancel()
     adapter.shutdown()
 
-    expected = [call.shutdown(wait=False, cancel_futures=True)] if cancel_requested else []
-    expected.append(call.shutdown(wait=True, cancel_futures=cancel_requested))
-    assert executor.mock_calls == expected
+    assert executor.mock_calls == [call.shutdown(wait=True, cancel_futures=cancel_requested)]
+    assert future.cancel.call_count == int(cancel_requested)
+
+
+def _wait_for_worker_release(started, release) -> None:
+    started.set()
+    if not release.wait(10):
+        raise TimeoutError("Worker was not released")
+
+
+def test_parallel_cancel_waits_for_dispatched_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cancellation cleanup must wait for real dispatched work before returning."""
+    context = multiprocessing.get_context("spawn")
+    with context.Manager() as manager:
+        started = manager.Event()
+        release = manager.Event()
+        executor = ProcessPoolExecutor(max_workers=1, mp_context=context)
+        monkeypatch.setattr("vibeplay.analysis.ProcessPoolExecutor", Mock(return_value=executor))
+        adapter = ParallelExecutionAdapter(worker_count=1, backend="librosa", models_dir_str=None)
+        future = executor.submit(_wait_for_worker_release, started, release)
+        adapter._futures = {future}
+        timer = Timer(0.2, release.set)
+        try:
+            assert started.wait(10)
+            adapter.cancel()
+            timer.start()
+            adapter.shutdown()
+            assert future.done(), "Cleanup returned while a dispatched worker was still running"
+            assert future.result() is None
+        finally:
+            release.set()
+            if timer.ident is not None:
+                timer.join()
+            executor.shutdown(wait=True, cancel_futures=True)
 
 
 @pytest.mark.parametrize("workers", [1, 2])

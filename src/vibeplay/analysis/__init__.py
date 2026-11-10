@@ -5,7 +5,7 @@ import logging
 import signal
 import time
 from abc import ABC, abstractmethod
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -172,6 +172,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
 
     def __init__(self, worker_count: int, backend: str, models_dir_str: str | None) -> None:
         self._cancel_requested = False
+        self._futures: set[Future] = set()
         self.executor = ProcessPoolExecutor(
             max_workers=worker_count,
             initializer=_init_analysis_worker,
@@ -184,6 +185,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
         cancel_check: CancelCheckCallback | None,
     ) -> Iterator[tuple[tuple, Any]]:
         futures = {self.executor.submit(_analyze_single_track_task, *args): args for args in batch}
+        self._futures = set(futures)
         try:
             for future in as_completed(futures):
                 if cancel_check and cancel_check():
@@ -199,7 +201,9 @@ class ParallelExecutionAdapter(ExecutionAdapter):
 
     def cancel(self) -> None:
         self._cancel_requested = True
-        self.executor.shutdown(wait=False, cancel_futures=True)
+        # Keep the executor intact so final shutdown can join dispatched workers.
+        for future in self._futures:
+            future.cancel()
 
     def shutdown(self) -> None:
         # Keep cancellation enabled until the pool has drained its pending work.
