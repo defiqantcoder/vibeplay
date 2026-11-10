@@ -239,6 +239,9 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
     tracks: list[Path] = []
     content = resolved_playlist.read_text(encoding="utf-8", errors="replace")
 
+    from vibeplay.desktop.security import allowed_media_roots, resolve_within
+    roots = allowed_media_roots(base_dir)
+
     for line in content.splitlines():
         entry = line.strip()
         if not entry or entry.startswith("#"):
@@ -252,11 +255,16 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
             if "\x00" in entry:
                 continue
             candidate = Path(entry).expanduser()
-            track_path = candidate.resolve() if candidate.is_absolute() else (base_dir / candidate).resolve()
-            # Relative entries must not escape the playlist's directory
-            if not candidate.is_absolute() and not track_path.is_relative_to(base_dir):
+            try:
+                track_path = resolve_within(
+                    str(candidate) if candidate.is_absolute() else str(base_dir / candidate),
+                    roots
+                )
+            except (PermissionError, ValueError):
                 continue
-        tracks.append(track_path)
+
+        if track_path.is_file() and track_path.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS:
+            tracks.append(track_path)
 
     return tracks
 
