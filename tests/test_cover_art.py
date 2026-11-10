@@ -51,7 +51,7 @@ def test_flac_covr_text_comment_returns_folder_art(tmp_path):
     init_db(db_path)
     with get_connection(db_path) as conn:
         track_id = insert_track(conn, path=str(audio_path), mtime=0, size=0, file_hash="flac-with-covr")
-    settings = Settings(db_path=db_path, music_dir=tmp_path, desktop_settings_path=tmp_path / "settings.json")
+    settings = Settings(db_path=db_path, music_directory=tmp_path, desktop_settings_path=tmp_path / "settings.json")
     app = create_app(db_path=db_path, settings=settings, api_key="test-token")
     with TestClient(app) as client:
         response = client.get(f"/api/library/cover/{track_id}", headers={"X-API-Key": "test-token"})
