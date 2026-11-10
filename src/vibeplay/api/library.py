@@ -18,6 +18,8 @@ def extract_cover_bytes(audio_path: Path) -> tuple[bytes, str] | None:
 
     # 1. Try extracting embedded artwork with mutagen
     try:
+        import struct
+
         import mutagen
 
         audio = mutagen.File(str(audio_path))
@@ -41,7 +43,7 @@ def extract_cover_bytes(audio_path: Path) -> tuple[bytes, str] | None:
                         data = bytes(covr_data[0])
                         mime = "image/png" if data.startswith(b"\x89PNG") else "image/jpeg"
                         return data, mime
-    except Exception:
+    except (mutagen.MutagenError, EOFError, struct.error, OSError):
         pass
 
     # 2. Check for folder image in same directory
