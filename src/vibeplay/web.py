@@ -1270,25 +1270,54 @@ def create_app(
                     pass
         if not target_profile:
             target_profile = request.query_params.get("profile")
-        prof_map = {
-            "pure-bitperfect": "pure-bitperfect",
-            "spatial-headphones": "spatial-headphones",
-            "receiver-passthrough": "receiver-passthrough",
-            "Pure Bit-Perfect (Direct ALSA)": "pure-bitperfect",
-            "7.1.4 Spatial Headphones (SOFA 3D)": "spatial-headphones",
-            "AV Receiver Passthrough (HDMI)": "receiver-passthrough",
-            "USB DAC (Bit-Perfect)": "pure-bitperfect",
-            "Direct ALSA (hw:0,0)": "pure-bitperfect",
-            "Headphones": "spatial-headphones",
-            "PipeWire Sound Server": "pure-bitperfect",
-        }
-        target_profile = prof_map.get(str(target_profile or "").strip(), "pure-bitperfect")
+        from vibeplay.player import get_output_profiles
+
+        available_profiles = get_output_profiles(cfg)
+        target_str = str(target_profile or "").strip()
+        matched_profile: str | None = None
+
+        for p in available_profiles:
+            p_name = p["name"] if isinstance(p, dict) else str(p)
+            p_id = str(p.get("id", "")) if isinstance(p, dict) else ""
+            if target_str.lower() == p_name.lower() or (p_id and target_str == p_id):
+                matched_profile = p_name
+                break
+
+        if not matched_profile:
+            alias_map = {
+                "pure-bitperfect": "pure-bitperfect",
+                "pure bit-perfect (direct alsa)": "Pure Bit-Perfect (Direct ALSA)",
+                "spatial-headphones": "spatial-headphones",
+                "7.1.4 spatial headphones (sofa 3d)": "7.1.4 Spatial Headphones (SOFA 3D)",
+                "receiver-passthrough": "receiver-passthrough",
+                "av receiver passthrough (hdmi)": "AV Receiver Passthrough (HDMI)",
+                "pipewire sound server": "PipeWire Sound Server",
+                "pipewire": "PipeWire Sound Server",
+                "usb dac (bit-perfect)": "USB DAC (Bit-Perfect)",
+                "direct alsa (hw:0,0)": "Direct ALSA (hw:0,0)",
+                "headphones": "Headphones",
+            }
+            matched_profile = alias_map.get(target_str.lower())
+
+        target_profile = matched_profile or "Pure Bit-Perfect (Direct ALSA)"
 
         set_output_profile(target_profile, settings=cfg)
         try:
             from vibe_dsp.ipc import DSPClient
 
-            target_id = target_profile
+            dsp_map = {
+                "pure-bitperfect": "pure-bitperfect",
+                "spatial-headphones": "spatial-headphones",
+                "receiver-passthrough": "receiver-passthrough",
+                "Pure Bit-Perfect (Direct ALSA)": "pure-bitperfect",
+                "7.1.4 Spatial Headphones (SOFA 3D)": "spatial-headphones",
+                "AV Receiver Passthrough (HDMI)": "receiver-passthrough",
+                "USB DAC (Bit-Perfect)": "pure-bitperfect",
+                "Direct ALSA (hw:0,0)": "pure-bitperfect",
+                "Headphones": "spatial-headphones",
+                "PipeWire Sound Server": "pure-bitperfect",
+            }
+            target_id = dsp_map.get(target_profile, "pure-bitperfect")
             client = DSPClient()
             client.set_profile(target_id)
         except Exception as err:

@@ -1,7 +1,6 @@
 from pathlib import Path
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
 from vibeplay.config import Settings
@@ -74,9 +73,6 @@ def get_templates(request: Request):
 @router.get("/table", response_class=HTMLResponse)
 async def api_library_table(
     request: Request,
-    db_path: Annotated[Path, Depends(get_db_path)],
-    cfg: Annotated[Settings, Depends(get_settings)],
-    templates: Annotated[object, Depends(get_templates)],
     q: str | None = None,
     artist: str | None = None,
     key: str | None = None,
@@ -85,6 +81,9 @@ async def api_library_table(
     bpm_max: float | None = None,
     sort: str = "id_asc",
 ):
+    db_path = get_db_path(request)
+    cfg = get_settings(request)
+    templates = get_templates(request)
     with get_connection(db_path) as conn:
         tracks = get_filtered_tracks(
             conn=conn,
@@ -117,10 +116,9 @@ async def api_library_table(
 
 
 @router.post("/rescan")
-async def api_library_rescan(
-    db_path: Annotated[Path, Depends(get_db_path)],
-    cfg: Annotated[Settings, Depends(get_settings)],
-):
+async def api_library_rescan(request: Request):
+    db_path = get_db_path(request)
+    cfg = get_settings(request)
     from vibeplay.jobs import JobType, get_worker_pool, register_job
 
     pool = get_worker_pool(db_path)
@@ -137,9 +135,8 @@ async def api_library_rescan(
 
 
 @router.post("/duplicates")
-async def api_library_duplicates(
-    db_path: Annotated[Path, Depends(get_db_path)],
-):
+async def api_library_duplicates(request: Request):
+    db_path = get_db_path(request)
     from vibeplay.jobs import JobType, get_worker_pool, register_job
 
     pool = get_worker_pool(db_path)
@@ -151,11 +148,12 @@ async def api_library_duplicates(
 @router.get("/cover/{track_id}")
 async def api_library_cover(
     track_id: int,
-    db_path: Annotated[Path, Depends(get_db_path)],
-    cfg: Annotated[Settings, Depends(get_settings)],
+    request: Request,
     fallback: bool = False,
 ):
     """Serve embedded album artwork or return vinyl placeholder / 404."""
+    db_path = get_db_path(request)
+    cfg = get_settings(request)
     with get_connection(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT path FROM tracks WHERE id = ?", (track_id,))

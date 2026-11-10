@@ -9,8 +9,10 @@ from pathlib import Path
 import pytest
 
 from vibeplay.desktop.security import (
+    PathTraversalError,
     ensure_secure_directory,
     is_loopback_host,
+    resolve_within,
     secure_chmod,
     validate_loopback_host,
 )
@@ -91,3 +93,36 @@ def test_ensure_secure_directory(tmp_path: Path):
     assert res == target_dir.resolve()
     assert target_dir.is_dir()
     assert stat.S_IMODE(target_dir.stat().st_mode) == 0o700
+
+
+def test_resolve_within_allows_current_user_home_and_relative_paths(tmp_path: Path, monkeypatch):
+    fake_home = tmp_path / "home"
+    music_dir = fake_home / "Music"
+    music_dir.mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+
+    assert resolve_within("~", [fake_home]) == fake_home.resolve()
+    assert resolve_within("~/Music", [fake_home]) == music_dir.resolve()
+    assert resolve_within("~//Music", [fake_home]) == music_dir.resolve()
+    assert resolve_within("Music", [fake_home]) == music_dir.resolve()
+
+
+def test_resolve_within_rejects_traversal_and_other_user_tilde(tmp_path: Path, monkeypatch):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+
+    with pytest.raises(PathTraversalError):
+        resolve_within("~otheruser/.ssh", [fake_home])
+
+    with pytest.raises(PathTraversalError):
+        resolve_within("~/../../etc/passwd", [fake_home])
+
+    with pytest.raises(PathTraversalError):
+        resolve_within("../outside", [fake_home])
+
+    with pytest.raises(PathTraversalError):
+        resolve_within("   ", [fake_home])
+
+    with pytest.raises(PathTraversalError):
+        resolve_within("bad\x00path", [fake_home])

@@ -87,8 +87,12 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
 
         import re
 
-        hw_match = re.search(r"(hw:\d+,\d+|plughw:\d+,\d+)", ACTIVE_OUTPUT_PROFILE)
-        alsa_device = hw_match.group(1) if hw_match and re.fullmatch(r"(?:hw|plughw):\d+,\d+", hw_match.group(1)) else None
+        hw_match = re.search(r"(hw|plughw):(\d+),(\d+)", ACTIVE_OUTPUT_PROFILE)
+        if hw_match:
+            prefix = "plughw" if hw_match.group(1) == "plughw" else "hw"
+            alsa_device: str | None = f"{prefix}:{int(hw_match.group(2))},{int(hw_match.group(3))}"
+        else:
+            alsa_device = None
 
         if "aplay" in Path(player_bin).name:
             if alsa_device:
@@ -784,29 +788,16 @@ def get_active_output_profile(settings: Settings | None = None) -> str:
 def set_output_profile(profile_name: str, settings: Settings | None = None) -> str:
     """Set the active hardware audio output profile and dynamically configure MPD outputs."""
     global ACTIVE_OUTPUT_PROFILE
-    profile_key = str(profile_name or "").strip()
-    profile_map = {
-        "pure-bitperfect": "pure-bitperfect",
-        "spatial-headphones": "spatial-headphones",
-        "receiver-passthrough": "receiver-passthrough",
-        "Pure Bit-Perfect (Direct ALSA)": "pure-bitperfect",
-        "7.1.4 Spatial Headphones (SOFA 3D)": "spatial-headphones",
-        "AV Receiver Passthrough (HDMI)": "receiver-passthrough",
-        "USB DAC (Bit-Perfect)": "pure-bitperfect",
-        "Direct ALSA (hw:0,0)": "pure-bitperfect",
-        "Headphones": "spatial-headphones",
-        "PipeWire Sound Server": "pure-bitperfect",
-    }
-    canonical_profile = profile_map.get(profile_key, "pure-bitperfect")
-    ACTIVE_OUTPUT_PROFILE = canonical_profile
-    logger.info("Active audio output profile switched to: %s", canonical_profile)
+    profile_key = str(profile_name or "").strip() or "Pure Bit-Perfect (Direct ALSA)"
+    ACTIVE_OUTPUT_PROFILE = profile_key
+    logger.info("Active audio output profile switched to: %s", profile_key)
 
-    p_lower = canonical_profile.lower()
+    p_lower = profile_key.lower()
     try:
         from vibe_dsp.ipc import DSPClient
 
         dsp = DSPClient()
-        if "spatial" in p_lower:
+        if "spatial" in p_lower or "headphone" in p_lower:
             dsp.set_profile("spatial-headphones")
         elif "receiver" in p_lower or "hdmi" in p_lower:
             dsp.set_profile("receiver-passthrough")

@@ -95,7 +95,14 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
         raise PathTraversalError("Path contains invalid characters.")
     if not raw.strip():
         raise PathTraversalError("Path cannot be empty.")
-    target_p = Path(raw).expanduser()
+    if raw == "~":
+        target_p = Path.home()
+    elif raw.startswith("~/") or (os.sep != "/" and raw.startswith(f"~{os.sep}")):
+        target_p = Path.home() / raw[2:].lstrip("/\\")
+    elif raw.startswith("~"):
+        raise PathTraversalError("Path traversal attempt detected: user home expansion is not permitted.")
+    else:
+        target_p = Path(raw)
     for root in roots:
         base_dir = Path(root).resolve()
         try:
