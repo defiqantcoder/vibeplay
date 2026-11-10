@@ -18,3 +18,17 @@ def test_cli_v_flag() -> None:
     result = runner.invoke(app, ["-v"])
     assert result.exit_code == 0
     assert f"vibeplay {__version__}" in result.stdout
+
+
+def test_cli_version_flag_with_scan() -> None:
+    """Verify that vibeplay --version stops execution before running scan."""
+    result = runner.invoke(app, ["--version", "scan", "/non/existent/path"])
+    assert result.exit_code == 0
+    assert f"vibeplay {__version__}" in result.stdout
+
+
+def test_cli_v_flag_with_scan() -> None:
+    """Verify that vibeplay -v stops execution before running scan."""
+    result = runner.invoke(app, ["-v", "scan", "/non/existent/path"])
+    assert result.exit_code == 0
+    assert f"vibeplay {__version__}" in result.stdout

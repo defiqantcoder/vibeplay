@@ -41,7 +41,8 @@ app = typer.Typer(
 )
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
+    """Print version and exit if value is True."""
     if value:
         console.print(f"vibeplay {__version__}")
         raise typer.Exit()
@@ -60,6 +61,7 @@ def main(
         ),
     ] = None,
 ):
+    """Root callback to handle global options like --version."""
     pass
 
 
