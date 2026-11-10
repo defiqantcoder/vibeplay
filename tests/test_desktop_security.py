@@ -126,3 +126,16 @@ def test_resolve_within_rejects_traversal_and_other_user_tilde(tmp_path: Path, m
 
     with pytest.raises(PathTraversalError):
         resolve_within("bad\x00path", [fake_home])
+
+
+def test_find_existing_dir_from_roots(tmp_path: Path):
+    from vibeplay.desktop.dialogs import _find_existing_dir_from_roots
+
+    root = tmp_path / "media"
+    music = root / "Jazz"
+    music.mkdir(parents=True)
+
+    assert _find_existing_dir_from_roots(music, [root]) == str(music.resolve())
+    assert _find_existing_dir_from_roots("Jazz", [root]) == str(music.resolve())
+    assert _find_existing_dir_from_roots(root / "Missing", [root]) is None
+    assert _find_existing_dir_from_roots(tmp_path / "outside", [root]) is None

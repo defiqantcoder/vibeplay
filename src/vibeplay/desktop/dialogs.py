@@ -67,15 +67,14 @@ def choose_directory_dialog(
     from vibeplay.desktop.security import allowed_media_roots
 
     roots = allowed_media_roots()
-    if initial_dir:
-        initial_dir = _find_existing_dir_from_roots(initial_dir, roots)
+    safe_initial_dir = _find_existing_dir_from_roots(initial_dir, roots) if initial_dir else None
     title = str(title).replace("\x00", "")
 
     # 1. Check for zenity
     if shutil.which("zenity"):
         cmd = ["zenity", "--file-selection", "--directory", f"--title={title}"]
-        if initial_dir and Path(initial_dir).is_dir():
-            cmd.append(f"--filename={Path(initial_dir).resolve()}/")
+        if safe_initial_dir and Path(safe_initial_dir).is_dir():
+            cmd.append(f"--filename={Path(safe_initial_dir).resolve()}/")
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
             if res.returncode == 0:
@@ -92,7 +91,7 @@ def choose_directory_dialog(
 
     # 2. Check for kdialog
     if shutil.which("kdialog"):
-        start = str(Path(initial_dir).resolve()) if initial_dir else str(Path.home())
+        start = str(Path(safe_initial_dir).resolve()) if safe_initial_dir else str(Path.home())
         cmd = ["kdialog", "--getexistingdirectory", start, f"--title={title}"]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
@@ -122,8 +121,8 @@ def choose_directory_dialog(
                 "_Select",
                 "_Cancel",
             )
-            if initial_dir and Path(initial_dir).is_dir():
-                dialog.set_current_folder(str(Path(initial_dir).resolve()))
+            if safe_initial_dir and Path(safe_initial_dir).is_dir():
+                dialog.set_current_folder(str(Path(safe_initial_dir).resolve()))
 
             response = dialog.run()
             chosen_path = None
