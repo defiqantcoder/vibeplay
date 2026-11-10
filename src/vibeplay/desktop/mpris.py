@@ -102,11 +102,13 @@ class MPRISServer:
                             prop_iface, prop_name = msg.body
                             if prop_iface == "org.mpris.MediaPlayer2.Player":
                                 if prop_name == "PlaybackStatus":
-                                    self.conn.send_message(new_method_return(msg, "v", ("s", self.current_playback_status)))
+                                    self.conn.send_message(new_method_return(msg, "v", (("s", self.current_playback_status),)))
                                 elif prop_name == "Metadata":
                                     # Dict serialization in jeepney needs correct type signatures
                                     formatted_metadata = {
-                                        "mpris:trackid": ("s", self.current_metadata.get("mpris:trackid", "")),
+                                        "mpris:trackid": (
+                                            "o", self.current_metadata.get("mpris:trackid", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                        ),
                                         "xesam:title": ("s", self.current_metadata.get("xesam:title", "")),
                                         "xesam:artist": ("as", self.current_metadata.get("xesam:artist", [])),
                                         "xesam:album": ("s", self.current_metadata.get("xesam:album", "")),
@@ -114,9 +116,9 @@ class MPRISServer:
                                     }
                                     if not self.current_metadata:
                                         formatted_metadata = {
-                                            "mpris:trackid": ("s", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                            "mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
                                         }
-                                    self.conn.send_message(new_method_return(msg, "v", ("a{sv}", formatted_metadata)))
+                                    self.conn.send_message(new_method_return(msg, "v", (("a{sv}", formatted_metadata),)))
                 except TimeoutError:
                     pass
                 except Exception as e:
@@ -170,12 +172,12 @@ class MPRISServer:
 
                                 formatted_changed = {}
                                 if "PlaybackStatus" in changed:
-                                    formatted_changed["PlaybackStatus"] = ("v", ("s", changed["PlaybackStatus"]))
+                                    formatted_changed["PlaybackStatus"] = ("s", changed["PlaybackStatus"])
                                 if "Metadata" in changed:
                                     meta = changed["Metadata"]
                                     if meta:
                                         formatted_metadata = {
-                                            "mpris:trackid": ("s", meta.get("mpris:trackid", "")),
+                                            "mpris:trackid": ("o", meta.get("mpris:trackid", "/org/mpris/MediaPlayer2/TrackList/NoTrack")),
                                             "xesam:title": ("s", meta.get("xesam:title", "")),
                                             "xesam:artist": ("as", meta.get("xesam:artist", [])),
                                             "xesam:album": ("s", meta.get("xesam:album", "")),
@@ -183,9 +185,9 @@ class MPRISServer:
                                         }
                                     else:
                                         formatted_metadata = {
-                                            "mpris:trackid": ("s", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                            "mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
                                         }
-                                    formatted_changed["Metadata"] = ("v", ("a{sv}", formatted_metadata))
+                                    formatted_changed["Metadata"] = ("a{sv}", formatted_metadata)
 
                                 # Signal for PropertiesChanged
                                 sig = new_signal(
