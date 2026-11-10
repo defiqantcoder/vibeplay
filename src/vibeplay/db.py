@@ -1617,3 +1617,31 @@ def bulk_update_track_vibe_tags(
                     """,
                     track_updates_to_do,
                 )
+
+
+def vacuum_db(conn: sqlite3.Connection) -> None:
+    """Optimize and clean the SQLite database file.
+
+    Executes a WAL checkpoint to truncate the journal, followed by a VACUUM
+    operation to rebuild the database file and a final checkpoint to reclaim
+    disk space even while other connections remain open. Each operation retries
+    independently so checkpoint contention cannot repeat a completed VACUUM.
+
+    Args:
+        conn: Open SQLite connection.
+    """
+    cursor = conn.cursor()
+
+    @retry_db_locked()
+    def checkpoint(phase: str) -> None:
+        cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+        if cursor.fetchone()[0] != 0:
+            raise sqlite3.OperationalError(f"database is locked: WAL checkpoint {phase} VACUUM is busy")
+
+    @retry_db_locked()
+    def vacuum() -> None:
+        cursor.execute("VACUUM;")
+
+    checkpoint("before")
+    vacuum()
+    checkpoint("after")
