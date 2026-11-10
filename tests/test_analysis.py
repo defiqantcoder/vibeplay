@@ -46,9 +46,67 @@ def test_parallel_shutdown_preserves_cancellation(monkeypatch: pytest.MonkeyPatc
 
 
 def _wait_for_worker_release(started, release) -> None:
+    """Signal worker startup and block until the test releases the synchronization event."""
     started.set()
     if not release.wait(10):
         raise TimeoutError("Worker was not released")
+
+
+def test_essentia_analyzer_caches_tf_models_across_tasks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify EssentiaAnalyzer reuses loaded TF models across consecutive tracks with independent results."""
+    import sys
+    import types
+
+    from vibeplay.analysis.essentia_analyzer import ESSENTIA_MODELS
+
+    for fname in ESSENTIA_MODELS.values():
+        (tmp_path / fname).write_bytes(b"stub-pb")
+
+    effnet_loads: list[str] = []
+    mood_loads: list[str] = []
+
+    class FakeEffnet:
+        def __init__(self, graphFilename: str, output: str) -> None:
+            effnet_loads.append(graphFilename)
+
+        def __call__(self, audio_16k: np.ndarray) -> np.ndarray:
+            val = float(np.mean(audio_16k))
+            return np.full((2, 1280), val, dtype=np.float32)
+
+    class FakeMood:
+        def __init__(self, graphFilename: str) -> None:
+            mood_loads.append(graphFilename)
+            self._offset = 0.05 if "happy" in graphFilename else 0.0
+
+        def __call__(self, raw_embeddings: np.ndarray) -> np.ndarray:
+            base = float(np.clip(np.mean(raw_embeddings) + self._offset, 0.0, 1.0))
+            return np.array([[base, 1.0 - base]], dtype=np.float32)
+
+    fake_es = types.SimpleNamespace(
+        TensorflowPredictEffnetDiscogs=FakeEffnet,
+        TensorflowPredict2D=FakeMood,
+    )
+    fake_essentia = types.ModuleType("essentia")
+    fake_essentia.standard = fake_es  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "essentia", fake_essentia)
+    monkeypatch.setitem(sys.modules, "essentia.standard", fake_es)
+
+    analyzer = EssentiaAnalyzer(models_dir=tmp_path)
+    emb1, moods1 = analyzer._extract_tf_models(np.full(1600, 0.2, dtype=np.float32))
+    emb2, moods2 = analyzer._extract_tf_models(np.full(1600, 0.7, dtype=np.float32))
+
+    # Models loaded only once across both calls
+    assert len(effnet_loads) == 1
+    assert len(mood_loads) == 7
+
+    # Per-track outputs remain independent
+    assert emb1 is not None and emb2 is not None
+    assert np.isclose(float(np.mean(emb1)), 0.2, atol=1e-5)
+    assert np.isclose(float(np.mean(emb2)), 0.7, atol=1e-5)
+    assert moods1 is not None and moods2 is not None
+    assert moods1["happy"] != pytest.approx(moods2["happy"])
+    assert moods1["happy"] == pytest.approx(0.25, abs=1e-5)
+    assert moods2["happy"] == pytest.approx(0.75, abs=1e-5)
 
 
 def test_parallel_cancel_waits_for_dispatched_worker(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -171,6 +171,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
     """Executes analysis tasks in parallel using a process pool."""
 
     def __init__(self, worker_count: int, backend: str, models_dir_str: str | None) -> None:
+        """Create a process pool configured with per-worker analyzer initialization."""
         self._cancel_requested = False
         self._futures: set[Future] = set()
         self.executor = ProcessPoolExecutor(
@@ -184,6 +185,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
         batch: list[tuple],
         cancel_check: CancelCheckCallback | None,
     ) -> Iterator[tuple[tuple, Any]]:
+        """Submit a batch of track tasks and yield ``(args, result_or_err)`` as they finish."""
         futures = {self.executor.submit(_analyze_single_track_task, *args): args for args in batch}
         self._futures = set(futures)
         try:
@@ -200,12 +202,14 @@ class ParallelExecutionAdapter(ExecutionAdapter):
             logger.error("Batch processing error: %s", e)
 
     def cancel(self) -> None:
+        """Mark cancellation requested and cancel queued futures without dropping pool join ability."""
         self._cancel_requested = True
         # Keep the executor intact so final shutdown can join dispatched workers.
         for future in self._futures:
             future.cancel()
 
     def shutdown(self) -> None:
+        """Shut down the worker pool, preserving pending cancellation until all workers exit."""
         # Keep cancellation enabled until the pool has drained its pending work.
         self.executor.shutdown(wait=True, cancel_futures=self._cancel_requested)
 

@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -29,6 +30,8 @@ class EssentiaAnalyzer(BaseAnalyzer):
         self._version = "essentia-1.0.0"
         self._sample_rate = 44100
         self.models_dir = resolve_models_dir(models_dir)
+        self._effnet_model: Any = None
+        self._mood_classifiers: dict[str, Any] = {}
 
     @property
     def version(self) -> str:
@@ -53,15 +56,16 @@ class EssentiaAnalyzer(BaseAnalyzer):
         import essentia.standard as es
 
         effnet_file = self.models_dir / ESSENTIA_MODELS["effnet"]
-        if not effnet_file.exists():
+        if self._effnet_model is None and not effnet_file.exists():
             return None, None
 
         try:
-            effnet_model = es.TensorflowPredictEffnetDiscogs(
-                graphFilename=str(effnet_file),
-                output="PartitionedCall:1",
-            )
-            raw_embeddings = effnet_model(audio_16k)
+            if self._effnet_model is None:
+                self._effnet_model = es.TensorflowPredictEffnetDiscogs(
+                    graphFilename=str(effnet_file),
+                    output="PartitionedCall:1",
+                )
+            raw_embeddings = self._effnet_model(audio_16k)
             # Frame-level embeddings: shape (frames, 1280) -> mean pool to (1280,)
             embedding = np.mean(raw_embeddings, axis=0).astype(np.float32)
         except Exception as err:
@@ -78,16 +82,24 @@ class EssentiaAnalyzer(BaseAnalyzer):
             "acoustic",
             "electronic",
         ):
-            mood_file = self.models_dir / ESSENTIA_MODELS[mood_key]
-            if mood_file.exists():
+            classifier = self._mood_classifiers.get(mood_key)
+            if classifier is None:
+                mood_file = self.models_dir / ESSENTIA_MODELS[mood_key]
+                if not mood_file.exists():
+                    continue
                 try:
                     classifier = es.TensorflowPredict2D(graphFilename=str(mood_file))
-                    preds = classifier(raw_embeddings)
-                    # Binary classification: positive class probability is at index 0 or 1
-                    prob = float(np.mean(preds[:, 0])) if preds.ndim > 1 else float(np.mean(preds))
-                    moods[mood_key] = float(np.clip(prob, 0.0, 1.0))
+                    self._mood_classifiers[mood_key] = classifier
                 except Exception as err:
-                    logger.debug("Could not infer mood '%s': %s", mood_key, err)
+                    logger.debug("Could not load mood model '%s': %s", mood_key, err)
+                    continue
+            try:
+                preds = classifier(raw_embeddings)
+                # Binary classification: positive class probability is at index 0 or 1
+                prob = float(np.mean(preds[:, 0])) if preds.ndim > 1 else float(np.mean(preds))
+                moods[mood_key] = float(np.clip(prob, 0.0, 1.0))
+            except Exception as err:
+                logger.debug("Could not infer mood '%s': %s", mood_key, err)
 
         return embedding, moods if len(moods) == 7 else None
 
