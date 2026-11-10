@@ -22,6 +22,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    music_directory: Path = Field(
+        default_factory=lambda: Path("~/Music").expanduser(),
+        description="Default music library root directory",
+    )
     db_path: Path = Field(
         default_factory=lambda: Path("~/.local/share/vibeplay/vibeplay.db").expanduser(),
         description="Path to SQLite database file",
@@ -194,6 +198,17 @@ class Settings(BaseSettings):
         default="m3u8",
         description="Default playlist export format ('m3u8', 'm3u', 'json', or 'csv')",
     )
+
+
+    @property
+    def music_dir(self) -> Path:
+        """Legacy alias for music_directory"""
+        return self.music_directory
+
+    @property
+    def essentia_models_dir(self) -> Path:
+        """Legacy alias for models_dir"""
+        return self.models_dir
 
     def get_vector_cache_path(self, db_path: Path | None = None) -> Path:
         """Return the resolved path to the vector cache file."""
