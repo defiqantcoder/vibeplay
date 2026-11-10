@@ -32,12 +32,14 @@ def test_mpris_api_post():
 
 # Exercise real Jeepney marshalling so malformed variant bodies cannot pass.
 def _roundtrip(message):
+    """Serialize and deserialize a Jeepney message to verify valid D-Bus marshalling."""
     from jeepney.low_level import Message
 
     return Message.from_buffer(message.serialise(serial=1)).body
 
 
 def test_mpris_property_reply_serialization():
+    """Verify Properties.Get returns valid single-argument variant bodies for PlaybackStatus and Metadata."""
     from unittest.mock import Mock
 
     from jeepney import DBusAddress, new_method_call
@@ -53,7 +55,9 @@ def test_mpris_property_reply_serialization():
                 DBusAddress(
                     "/org/mpris/MediaPlayer2", bus_name="org.mpris.MediaPlayer2.vibeplay", interface="org.freedesktop.DBus.Properties"
                 ),
-                "Get", "ss", ("org.mpris.MediaPlayer2.Player", prop),
+                "Get",
+                "ss",
+                ("org.mpris.MediaPlayer2.Player", prop),
             )
             request.header.serial = 1
             conn = Mock()
@@ -81,6 +85,7 @@ def test_mpris_property_reply_serialization():
 
 
 def test_mpris_properties_changed_serialization():
+    """Verify PropertiesChanged emits typed PlaybackStatus and Metadata for nested and empty payloads."""
     import json
     from unittest.mock import Mock
 
@@ -118,3 +123,76 @@ def test_mpris_properties_changed_serialization():
             }
         else:
             assert metadata == {"mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")}
+
+
+def test_mpris_flat_status_projection_and_standby_notrack():
+    """Verify flat /api/player/status fields emit track metadata while standby placeholder yields NoTrack."""
+    import json
+    from unittest.mock import Mock
+
+    server = MPRISServer(MockRunner())
+    server.conn = Mock()
+
+    # 1. Flat status payload with active track
+    flat_active = {
+        "state": "play",
+        "song_id": "77",
+        "track_id": 9,
+        "title": "Midnight Tape",
+        "artist": "Lo-Fi Duo",
+        "album": "Crate Vol. 2",
+        "file": "/music/midnight.flac",
+        "duration": 2.5,
+    }
+    server.is_running = True
+    resp_active = Mock(status=200)
+    resp_active.read.return_value = json.dumps(flat_active).encode()
+    resp_active.__enter__ = Mock(return_value=resp_active)
+    resp_active.__exit__ = Mock(return_value=False)
+
+    def stop_loop(seconds):
+        if seconds == 1.0:
+            server.is_running = False
+
+    with patch("vibeplay.desktop.mpris.urlopen", return_value=resp_active), patch("vibeplay.desktop.mpris.time.sleep", side_effect=stop_loop):
+        server._run_poll()
+
+    server.conn.send_message.assert_called_once()
+    _, changed, _ = _roundtrip(server.conn.send_message.call_args.args[0])
+    assert changed["PlaybackStatus"] == ("s", "Playing")
+    assert changed["Metadata"] == (
+        "a{sv}",
+        {
+            "mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/77"),
+            "xesam:title": ("s", "Midnight Tape"),
+            "xesam:artist": ("as", ["Lo-Fi Duo"]),
+            "xesam:album": ("s", "Crate Vol. 2"),
+            "mpris:length": ("x", 2500000),
+        },
+    )
+
+    # 2. Standby placeholder payload (MPD offline, song_id=None, file="") must revert to NoTrack
+    standby_payload = {
+        "state": "stop",
+        "song_id": None,
+        "track_id": None,
+        "title": "vibeplay Precision Console",
+        "artist": "Queue a track or generated playlist",
+        "album": "Bit-Perfect Standby",
+        "file": "",
+        "duration": 0.0,
+    }
+    server.is_running = True
+    server.conn.reset_mock()
+    resp_standby = Mock(status=200)
+    resp_standby.read.return_value = json.dumps(standby_payload).encode()
+    resp_standby.__enter__ = Mock(return_value=resp_standby)
+    resp_standby.__exit__ = Mock(return_value=False)
+
+    with patch("vibeplay.desktop.mpris.urlopen", return_value=resp_standby), patch("vibeplay.desktop.mpris.time.sleep", side_effect=stop_loop):
+        server._run_poll()
+
+    server.conn.send_message.assert_called_once()
+    _, changed_standby, _ = _roundtrip(server.conn.send_message.call_args.args[0])
+    assert changed_standby["PlaybackStatus"] == ("s", "Stopped")
+    assert changed_standby["Metadata"] == ("a{sv}", {"mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")})
