@@ -1,12 +1,12 @@
 """Phase 7 Release Gate Validator for vibeplay."""
 
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
-import os
-import stat
-import warnings
-from dataclasses import dataclass
-from pathlib import Path
+import os  # noqa: E402
+import stat  # noqa: E402
+import warnings  # noqa: E402
+from dataclasses import dataclass  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 # Suppress harmless StarletteDeprecationWarning when TestClient is loaded
 warnings.filterwarnings("ignore", message=r".*starlette\.testclient.*")
@@ -14,11 +14,11 @@ warnings.filterwarnings("ignore", message=r".*httpx.*deprecated.*")
 warnings.filterwarnings("ignore", category=Warning, module=r"fastapi\.testclient.*")
 warnings.filterwarnings("ignore", category=Warning, module=r"starlette\..*")
 
-from vibeplay.config import Settings
-from vibeplay.db import init_db
-from vibeplay.desktop.settings import DesktopSettings, load_desktop_settings, save_desktop_settings
-from vibeplay.ui.theme import get_available_themes, verify_theme_contrast
-from vibeplay.web import create_app
+from vibeplay.config import Settings  # noqa: E402
+from vibeplay.db import init_db  # noqa: E402
+from vibeplay.desktop.settings import DesktopSettings, load_desktop_settings, save_desktop_settings  # noqa: E402
+from vibeplay.ui.theme import get_available_themes, verify_theme_contrast  # noqa: E402
+from vibeplay.web import create_app  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class ReleaseGateReport:
     checks: list[GateCheckResult]
 
 
-from vibeplay.desktop.security import is_loopback_host, validate_loopback_host
+from vibeplay.desktop.security import is_loopback_host, validate_loopback_host  # noqa: E402
 
 
 def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | None = None) -> ReleaseGateReport:
@@ -51,8 +51,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert is_loopback_host("192.168.1.1") is False, "192.168.1.1 must be rejected"
         assert validate_loopback_host("127.0.0.1") == "127.0.0.1"
         checks.append(GateCheckResult("Loopback Security Invariant", True, "Passed loopback validation"))
-    except (AssertionError, ValueError) as e:
-        checks.append(GateCheckResult("Loopback Security Invariant", False, str(e)))
+    except (AssertionError, ValueError):
+        checks.append(GateCheckResult("Loopback Security Invariant", False, "Security check failed"))
 
     # 2. Settings Persistence & 0600 Permissions
     try:
@@ -99,8 +99,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         checks.append(GateCheckResult("Theme Engine & WCAG Contrast", True, f"Verified WCAG compliance for {len(themes)} themes"))
     except AssertionError as e:
         checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, str(e)))
-    except Exception as e:
-        checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, f"Unexpected error: {e}"))
+    except Exception:
+        checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, "Unexpected error in theme check"))
 
     # 4. Template & Static Asset Integrity Check
     try:
@@ -139,8 +139,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         checks.append(GateCheckResult("Template & Asset Integrity", True, "All required assets exist and are non-empty"))
     except AssertionError as e:
         checks.append(GateCheckResult("Template & Asset Integrity", False, str(e)))
-    except Exception as e:
-        checks.append(GateCheckResult("Template & Asset Integrity", False, f"Unexpected error: {e}"))
+    except Exception:
+        checks.append(GateCheckResult("Template & Asset Integrity", False, "Unexpected error in asset check"))
 
     # 5. HTMX & Desktop API Smoke Gate
     try:
@@ -185,10 +185,10 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert resp_dsp.status_code == 200, f"GET /api/dsp/telemetry failed: {resp_dsp.status_code}"
 
         checks.append(GateCheckResult("API Smoke Gate", True, "All API endpoints returned 200 OK"))
-    except AssertionError as e:
+    except (AssertionError, ValueError) as e:
         checks.append(GateCheckResult("API Smoke Gate", False, str(e)))
-    except Exception as e:
-        checks.append(GateCheckResult("API Smoke Gate", False, f"Unexpected error: {e}"))
+    except Exception:
+        checks.append(GateCheckResult("API Smoke Gate", False, "Unexpected error in API check"))
 
     # 6. Desktop Runner Clean Teardown Check
     runner = None
@@ -216,10 +216,10 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert runner.is_running is False, "Desktop runner failed to stop"
 
         checks.append(GateCheckResult("Desktop Runner Clean Teardown", True, "Desktop runner stopped cleanly with no orphans"))
-    except AssertionError as e:
-        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, str(e)))
-    except Exception as e:
-        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, f"Unexpected error: {e}"))
+    except AssertionError:
+        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, "Teardown check failed"))
+    except Exception:
+        checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, "Unexpected error in teardown check"))
     finally:
         if runner and runner.is_running:
             runner.stop()

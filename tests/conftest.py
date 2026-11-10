@@ -215,7 +215,7 @@ def seed_test_database():
     return _seed
 
 
-import pytest as _pytest_sec
+import pytest as _pytest_sec  # noqa: E402
 
 
 @_pytest_sec.fixture(autouse=True)

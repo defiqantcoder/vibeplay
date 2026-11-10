@@ -120,9 +120,7 @@ def find_duplicates(db_path: str) -> list[DuplicateGroup]:
                     bucket = math.floor(duration / 2.0) if math.isfinite(duration) else None
                     # Include a second neighboring bucket for floating-point rounding at boundaries.
                     candidates = (
-                        (index for offset in range(-2, 3) for index in representative_buckets.get(bucket + offset, ()))
-                        if bucket is not None
-                        else ()
+                        (index for offset in range(-2, 3) for index in representative_buckets.get(bucket + offset, ())) if bucket is not None else ()
                     )
                     # Pick the earliest created matching group, as in the original scan.
                     match = min(

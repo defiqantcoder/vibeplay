@@ -251,7 +251,7 @@ MIGRATIONS: list[tuple[int, str, str]] = [
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-        """
+        """,
     ),
 ]
 
@@ -376,10 +376,7 @@ def get_existing_tracks(conn: sqlite3.Connection) -> dict[str, TrackRecord]:
         """
     )
     # Stream over cursor directly avoiding transient full-list allocation (CodeRabbit suggestion on PR #108)
-    tracks: dict[str, TrackRecord] = {
-        row[1]: TrackRecord(*row[:18], bool(row[18]), row[19])
-        for row in cursor
-    }
+    tracks: dict[str, TrackRecord] = {row[1]: TrackRecord(*row[:18], bool(row[18]), row[19]) for row in cursor}
     cursor.row_factory = old_row_factory
     return tracks
 
@@ -1195,7 +1192,6 @@ def get_playlist_tracks(
     return cursor.fetchall()
 
 
-
 @retry_db_locked()
 def save_playlist(
     conn: sqlite3.Connection,
@@ -1231,7 +1227,7 @@ def save_playlist(
             INSERT INTO playlists (id, name, created_at, updated_at)
             VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
-            (playlist_id, name)
+            (playlist_id, name),
         )
         items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
         cursor.executemany(
@@ -1243,6 +1239,7 @@ def save_playlist(
         )
 
     return playlist_id
+
 
 def get_saved_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """List all saved playlists with track counts and total durations."""
@@ -1264,6 +1261,7 @@ def get_saved_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     cursor.execute(query)
     return cursor.fetchall()
 
+
 @retry_db_locked()
 def delete_saved_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     """Delete a saved playlist and its tracks."""
@@ -1272,6 +1270,7 @@ def delete_saved_playlist(conn: sqlite3.Connection, playlist_id: int) -> bool:
     deleted = cursor.rowcount
     cursor.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
     return deleted > 0
+
 
 def list_playlists(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """List all saved playlists with track counts and total durations.

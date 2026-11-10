@@ -12,8 +12,8 @@ from pathlib import Path
 warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
-from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT
-from vibeplay.desktop.runner import DesktopRunner
+from vibeplay.desktop.constants import DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT  # noqa: E402
+from vibeplay.desktop.runner import DesktopRunner  # noqa: E402
 
 # Backwards-compatibility alias for DesktopSupervisor
 DesktopSupervisor = DesktopRunner

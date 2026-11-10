@@ -23,13 +23,15 @@ def desktop_client(tmp_path: Path) -> TestClient:
         conn.execute(
             """
             INSERT INTO tracks (id, path, mtime, size, hash, duration, tags)
-            VALUES (1, '/music/audiophile.flac', 1000.0, 1024, 'dummy_hash', 240.0, '{"title": "Studio Master", "artist": "Audiophile Trio", "album": "Precision Album", "genre": "Lossless Jazz"}')
+            VALUES (1, '/music/audiophile.flac', 1000.0, 1024, 'dummy_hash', 240.0, '{"title": "Studio Master", "artist": "Audiophile Trio", "
+        ""album": "Precision Album", "genre": "Lossless Jazz"}')
             """
         )
         conn.execute(
             """
             INSERT INTO features (track_id, analyzer_version, bpm, key, scale, danceability, energy, mood_scores)
-            VALUES (1, '1.0.0', 120.0, 'B', 'minor', 0.65, 0.78, '{"electronic": 0.88, "relaxed": 0.74, "acoustic": 0.65, "party": 0.42, "happy": 0.22, "aggressive": 0.12}')
+            VALUES (1, '1.0.0', 120.0, 'B', 'minor', 0.65, 0.78, '{"electronic": 0.88, "relaxed": 0.74, "acoustic": 0.65, "party": 0.42, "
+        ""happy": 0.22, "aggressive": 0.12}')
             """
         )
     settings = Settings(db_path=db_file)
@@ -203,10 +205,6 @@ class TestDesktopShellRendering:
         assert "Slate Audiophile" in html
 
         # 5. Client Scripts
-
-
-
-
 
         # 6. Stitch HUD Micro-Visualizers (Screen 3)
         assert "telemetry-oscilloscope" in html

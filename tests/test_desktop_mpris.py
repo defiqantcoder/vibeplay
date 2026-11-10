@@ -9,6 +9,7 @@ class MockRunner:
         self.port = 8080
         self.is_running = True
 
+
 def test_mpris_server_lifecycle():
     runner = MockRunner()
     server = MPRISServer(runner)
@@ -18,6 +19,7 @@ def test_mpris_server_lifecycle():
 
     server.stop()
     assert not server.is_running
+
 
 def test_mpris_api_post():
     runner = MockRunner()

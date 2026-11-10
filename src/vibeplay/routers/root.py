@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from vibeplay.config import DEFAULT_DESKTOP_SETTINGS_PATH, get_settings
@@ -24,7 +24,7 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 def safe_get_setting(settings_obj: Any, key: str, default: Any = "") -> Any:
     """Safely retrieve configuration key without raising KeyError or AttributeError.
-    
+
     Supports dictionary, DesktopSettings, Pydantic BaseModel, or None.
     """
     if settings_obj is None:
@@ -55,6 +55,7 @@ async def api_desktop_settings_dialog(request: Request) -> Response:
     peq_presets: list[str] = []
     try:
         from vibe_dsp.peq import list_available_presets
+
         peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
     except Exception:
         peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]

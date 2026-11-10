@@ -16,10 +16,19 @@ from urllib.request import urlopen
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_resolve(base_dir: Path, target: str | Path) -> Path:
+    base = base_dir.resolve()
+    resolved = (base / target).resolve() if not Path(target).is_absolute() else Path(target).resolve()
+    if not resolved.is_relative_to(base):
+        raise ValueError("Path traversal attempt detected")
+    return resolved
+
+
 DEFAULT_IPC_STATE_PATH = Path("~/.config/vibeplay/desktop_ipc.json").expanduser()
 
 
-from vibeplay.desktop.security import (
+from vibeplay.desktop.security import (  # noqa: E402
     ensure_secure_directory,
     secure_chmod,
     validate_loopback_host,
@@ -33,7 +42,10 @@ def write_ipc_state(
     state_path: Path | None = None,
 ) -> Path:
     """Persist active loopback IPC endpoint and session token atomically with 0o600 permissions."""
-    target = (state_path or DEFAULT_IPC_STATE_PATH).expanduser().resolve()
+    if state_path:
+        target = state_path.expanduser().resolve()
+    else:
+        target = _safe_resolve(Path("~/.config/vibeplay").expanduser(), DEFAULT_IPC_STATE_PATH)
     ensure_secure_directory(target.parent, 0o700)
     safe_host = validate_loopback_host(host)
     payload = {
@@ -63,7 +75,10 @@ def write_ipc_state(
 
 def read_ipc_state(state_path: Path | None = None) -> dict[str, Any] | None:
     """Read active loopback IPC state if present and valid."""
-    target = (state_path or DEFAULT_IPC_STATE_PATH).expanduser().resolve()
+    if state_path:
+        target = state_path.expanduser().resolve()
+    else:
+        target = _safe_resolve(Path("~/.config/vibeplay").expanduser(), DEFAULT_IPC_STATE_PATH)
     if not target.is_file():
         return None
     try:
@@ -78,7 +93,10 @@ def read_ipc_state(state_path: Path | None = None) -> dict[str, Any] | None:
 
 def clear_ipc_state(state_path: Path | None = None) -> None:
     """Remove the runtime IPC state file on clean supervisor shutdown."""
-    target = (state_path or DEFAULT_IPC_STATE_PATH).expanduser().resolve()
+    if state_path:
+        target = state_path.expanduser().resolve()
+    else:
+        target = _safe_resolve(Path("~/.config/vibeplay").expanduser(), DEFAULT_IPC_STATE_PATH)
     try:
         target.unlink(missing_ok=True)
     except Exception:
@@ -177,7 +195,15 @@ def parse_desktop_uri(raw: str) -> Path:
 def classify_mime_target(raw: str | Path) -> MimeOpenTarget:
     """Classify a file path or file:// URI into audio, playlist, directory, or unsupported."""
     raw_str = str(raw)
-    path = parse_desktop_uri(raw_str) if isinstance(raw, str) else raw.expanduser().resolve()
+    if isinstance(raw, str):
+        path = parse_desktop_uri(raw_str)
+    else:
+        from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+        try:
+            path = resolve_within(str(raw), allowed_media_roots())
+        except (PermissionError, ValueError) as err:
+            raise ValueError("Path traversal attempt detected") from err
     exists = path.exists()
 
     if exists and path.is_dir():

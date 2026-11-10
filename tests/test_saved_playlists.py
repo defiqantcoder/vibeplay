@@ -22,6 +22,7 @@ def playlist_settings(tmp_path: Path):
         desktop_settings_path=tmp_path / "desktop_settings.json",
     )
 
+
 @pytest.fixture
 def test_client(playlist_settings: Settings, tmp_path: Path):
     os.environ["VIBEPLAY_DB_PATH"] = str(playlist_settings.db_path)
@@ -37,6 +38,7 @@ def test_client(playlist_settings: Settings, tmp_path: Path):
     with patch("vibeplay.desktop.settings.DEFAULT_DESKTOP_SETTINGS_PATH", settings_file):
         app = create_app(settings=playlist_settings)
         return TestClient(app)
+
 
 def test_db_saved_playlists_crud(playlist_settings: Settings):
     db_path = playlist_settings.db_path
@@ -60,17 +62,14 @@ def test_db_saved_playlists_crud(playlist_settings: Settings):
         playlists_after = get_saved_playlists(conn)
         assert len(playlists_after) == 0
 
+
 def test_api_save_playlist(test_client, playlist_settings: Settings):
     db_path = playlist_settings.db_path
 
     with get_connection(db_path) as conn:
         conn.execute("INSERT INTO tracks (id, path, mtime, size, hash, duration, status) VALUES (1, 't1.flac', 0, 0, 'h1', 100, 'active')")
 
-    response = test_client.post("/api/playlist/save", data={
-        "name": "API Playlist",
-        "vibe_arc": "energy_ramp",
-        "track_ids_json": "[1]"
-    })
+    response = test_client.post("/api/playlist/save", data={"name": "API Playlist", "vibe_arc": "energy_ramp", "track_ids_json": "[1]"})
 
     assert response.status_code == 200
     assert response.json()["status"] == "success"
@@ -83,10 +82,14 @@ def test_api_save_playlist(test_client, playlist_settings: Settings):
         found = next(p for p in playlists if p["id"] == pl_id)
         assert found["name"] == "API Playlist"
 
+
 def test_api_export_m3u8(test_client, playlist_settings: Settings):
     db_path = playlist_settings.db_path
     with get_connection(db_path) as conn:
-        conn.execute("INSERT INTO tracks (id, path, mtime, size, hash, duration, status, artist, title) VALUES (10, 'my/track.flac', 0, 0, 'h1', 120, 'active', 'TestArtist', 'TestTitle')")
+        conn.execute(
+            "INSERT INTO tracks (id, path, mtime, size, hash, duration, status, artist, title) "
+            "VALUES (10, 'my/track.flac', 0, 0, 'h1', 120, 'active', 'TestArtist', 'TestTitle')"
+        )
         pl_id = save_playlist(conn, "Export Playlist", "chill", [10])
 
     response = test_client.get(f"/api/playlist/{pl_id}/export")
@@ -99,10 +102,13 @@ def test_api_export_m3u8(test_client, playlist_settings: Settings):
     assert "#EXTINF:120,TestArtist - TestTitle" in content
     assert "my/track.flac" in content
 
+
 def test_api_import_m3u8(test_client, playlist_settings: Settings, tmp_path):
     db_path = playlist_settings.db_path
     with get_connection(db_path) as conn:
-        conn.execute("INSERT INTO tracks (id, path, mtime, size, hash, duration, status) VALUES (20, 'import/target.flac', 0, 0, 'h1', 100, 'active')")
+        conn.execute(
+            "INSERT INTO tracks (id, path, mtime, size, hash, duration, status) VALUES (20, 'import/target.flac', 0, 0, 'h1', 100, 'active')"
+        )
 
     m3u8_content = "#EXTM3U\n#EXTINF:100,Unknown - Unknown\nimport/target.flac\n"
     test_file = tmp_path / "test_import.m3u8"
@@ -122,6 +128,7 @@ def test_api_import_m3u8(test_client, playlist_settings: Settings, tmp_path):
         assert found is not None
         assert found["name"] == "test_import"
         assert found["track_count"] == 1
+
 
 def test_api_delete_playlist(test_client, playlist_settings: Settings):
     db_path = playlist_settings.db_path

@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+
 import numpy as np
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
 from vibeplay.db import get_connection, init_db, insert_or_replace_features, insert_track
@@ -103,22 +104,23 @@ def test_soundbar_10_band_parametric_eq(client: TestClient):
 
     # Modal hidden by default
     assert 'id="eq-studio-backdrop"' in html
-    assert 'hidden' in html
+    assert "hidden" in html
 
     # Preset dropdown styling and inline onclick triggers for applyEQPreset()
     assert 'id="presetTrigger"' in html
     assert 'id="presetMenu"' in html
-    assert 'onclick="applyEQPreset(\'My Custom Warm Vibe\'' in html
-    assert 'onclick="applyEQPreset(\'Bass Bump 🔊\'' in html
-    assert 'onclick="applyEQPreset(\'Vocal Sparkle ✨\'' in html
-    assert 'onclick="applyEQPreset(\'Flat Studio 📏\'' in html
-    assert 'onclick="applyEQPreset(\'Analog Tape Reel 📼\'' in html
+    assert "onclick=\"applyEQPreset('My Custom Warm Vibe'" in html
+    assert "onclick=\"applyEQPreset('Bass Bump 🔊'" in html
+    assert "onclick=\"applyEQPreset('Vocal Sparkle ✨'" in html
+    assert "onclick=\"applyEQPreset('Flat Studio 📏'" in html
+    assert "onclick=\"applyEQPreset('Analog Tape Reel 📼'" in html
 
 
 def test_smart_playlist_creator_two_column_layout(wiring_env):
     """Verify 2-column layout with Cassette Deck, Harmonic Flow Arc, and DNA gauges."""
     import json
-    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+
+    from vibeplay.db import get_connection, insert_or_replace_features, insert_track
 
     db_file, client = wiring_env
 
@@ -191,7 +193,7 @@ def test_smart_playlist_creator_two_column_layout(wiring_env):
     # Preview generated sequence with 2-column layout
     gen_resp = client.post(
         "/api/playlist/builder/preview",
-        data={"seed_track_id": str(t1), "arc": "energy_ramp", "name": "Test Mixtape", "limit": "2", "max_bpm_delta": "10"}
+        data={"seed_track_id": str(t1), "arc": "energy_ramp", "name": "Test Mixtape", "limit": "2", "max_bpm_delta": "10"},
     )
     assert gen_resp.status_code == 200
     gen_html = gen_resp.text
@@ -249,8 +251,17 @@ def test_all_template_onclick_handlers_exist_in_app_js():
 
     # Ignore inline language constructs and browser built-ins
     builtins = {
-        "this", "event", "alert", "confirm", "prompt", "parseInt", "parseFloat",
-        "switchLibraryView", "syncBpmSlider", "updateSliderLabel", "if"
+        "this",
+        "event",
+        "alert",
+        "confirm",
+        "prompt",
+        "parseInt",
+        "parseFloat",
+        "switchLibraryView",
+        "syncBpmSlider",
+        "updateSliderLabel",
+        "if",
     }
 
     for hf in html_files:
@@ -278,7 +289,7 @@ def test_all_template_onclick_handlers_exist_in_app_js():
 
 def test_lofi_lounge_hero_sections_and_crate_wiring(wiring_env):
     """Verify Lo-Fi Lounge hero turntable, crate shelves 01 & 02, and lounge listeners."""
-    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+    from vibeplay.db import get_connection, insert_or_replace_features, insert_track
 
     db_file, client = wiring_env
 
@@ -348,7 +359,7 @@ def test_lofi_lounge_hero_sections_and_crate_wiring(wiring_env):
 
 def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
     """Verify library table exact Stitch layout, headers, quality pills, energy bars, and row wiring."""
-    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+    from vibeplay.db import get_connection, insert_or_replace_features, insert_track
 
     db_file, client = wiring_env
 
@@ -385,7 +396,7 @@ def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
 
     # 1. Exact Stitch table layout & classes
     assert 'id="crate-table"' in html
-    assert 'min-w-[1100px]' in html
+    assert "min-w-[1100px]" in html
     assert 'id="crate-table-body"' in html
 
     # 2. <th> headers with sorting triggers
@@ -416,12 +427,12 @@ def test_library_table_stitch_layout_and_sorting_wiring(wiring_env):
     assert "8A / A Minor" in html
     assert "78%" in html
     assert "05:48" in html
-    assert 'playing-bars' in html or 'play_arrow' in html
+    assert "playing-bars" in html or "play_arrow" in html
 
 
 def test_record_crate_visual_vinyl_sleeve_cards_and_grooves(wiring_env):
     """Verify Record Crate exact Stitch vinyl sleeves, groove circles, center label chips, and HTMX play triggers."""
-    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+    from vibeplay.db import get_connection, insert_or_replace_features, insert_track
 
     db_file, client = wiring_env
 
@@ -569,7 +580,7 @@ def test_multipane_settings_modal_and_theme_customizer_wiring(client: TestClient
     assert 'class="settings-tabs-bar"' in html
     for tab_id in ["theme", "transport", "dsp", "analyzer", "plugins", "ai"]:
         assert f'id="tab-btn-{tab_id}"' in html
-        assert f'onclick="switchSettingsTab(\'{tab_id}\')"' in html
+        assert f"onclick=\"switchSettingsTab('{tab_id}')\"" in html
 
     # 4. Pinned DAC chip
     assert "settings-sidebar-dac-chip" in html
@@ -594,7 +605,7 @@ def test_multipane_settings_modal_and_theme_customizer_wiring(client: TestClient
         "castle-in-the-sky",
     ]
     for tid in theme_ids:
-        assert f'onclick="applyTheme(\'{tid}\')"' in html
+        assert f"onclick=\"applyTheme('{tid}')\"" in html
         assert f'data-theme-card="{tid}"' in html
         assert f'id="theme-{tid}"' in html
 
@@ -679,10 +690,10 @@ def test_addon_toybox_plugin_manager_stitch_layout_and_wiring(client: TestClient
     assert 'onclick="closeToyboxModal();"' in html
 
     # 3. Top filter tabs with onclick filter functions
-    assert 'onclick="filterToyboxCards(\'all\', this)"' in html
-    assert 'onclick="filterToyboxCards(\'dsp\', this)"' in html
-    assert 'onclick="filterToyboxCards(\'library\', this)"' in html
-    assert 'onclick="filterToyboxCards(\'network\', this)"' in html
+    assert "onclick=\"filterToyboxCards('all', this)\"" in html
+    assert "onclick=\"filterToyboxCards('dsp', this)\"" in html
+    assert "onclick=\"filterToyboxCards('library', this)\"" in html
+    assert "onclick=\"filterToyboxCards('network', this)\"" in html
     assert "All Toys (3)" in html
     assert "Sound DSP" in html
     assert "Library Tools" in html
@@ -700,9 +711,9 @@ def test_addon_toybox_plugin_manager_stitch_layout_and_wiring(client: TestClient
     # 5. CSS Toggle switches intact
     assert "toy-toggle" in html
     assert 'role="switch"' in html
-    assert 'onclick="toggleToySwitch(this, \'dsp\')"' in html
-    assert 'onclick="toggleToySwitch(this, \'maintenance\')"' in html
-    assert 'onclick="toggleToySwitch(this, \'network\')"' in html
+    assert "onclick=\"toggleToySwitch(this, 'dsp')\"" in html
+    assert "onclick=\"toggleToySwitch(this, 'maintenance')\"" in html
+    assert "onclick=\"toggleToySwitch(this, 'network')\"" in html
     assert "Active &amp; Ready" in html or "Active & Ready" in html
     assert "Taking a Nap" in html
 
@@ -873,7 +884,7 @@ def test_playlist_builder_wizard_and_drag_drop_stitch_layout_and_wiring(wiring_e
 
 def test_track_inspector_gauge_bubbles_stitch_layout_and_wiring(wiring_env):
     """Verify Track Inspector 3 gauge bubbles (Tempo, Energy, Danceability), SVG dials, and telemetry layout."""
-    from vibeplay.db import get_connection, insert_track, insert_or_replace_features
+    from vibeplay.db import get_connection, insert_or_replace_features, insert_track
 
     db_file, client = wiring_env
 
@@ -900,14 +911,16 @@ def test_track_inspector_gauge_bubbles_stitch_layout_and_wiring(wiring_env):
             loudness=-6.5,
             danceability=0.68,
             energy=0.84,
-            mood_scores_json=json.dumps({
-                "electronic": 0.92,
-                "relaxed": 0.40,
-                "acoustic": 0.15,
-                "party": 0.70,
-                "happy": 0.35,
-                "aggressive": 0.18,
-            }),
+            mood_scores_json=json.dumps(
+                {
+                    "electronic": 0.92,
+                    "relaxed": 0.40,
+                    "acoustic": 0.15,
+                    "party": 0.70,
+                    "happy": 0.35,
+                    "aggressive": 0.18,
+                }
+            ),
             embedding_blob=b"\x00" * 32,
         )
 
@@ -1119,8 +1132,3 @@ def test_utility_modals_stitch_layout_and_dismiss_wiring(client: TestClient):
     # Footer action
     assert 'id="close-modal-btn"' in html
     assert "Got It 👍" in html
-
-
-
-
-

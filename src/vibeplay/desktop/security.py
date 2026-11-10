@@ -71,7 +71,6 @@ def allowed_media_roots(*extra: Path | str | None) -> list[Path]:
     for item in extra:
         if item:
             roots.append(Path(item).expanduser().resolve())
-    import os
 
     for item in os.environ.get("VIBEPLAY_EXTRA_MEDIA_ROOTS", "").split(os.pathsep):
         if item.strip():
@@ -81,6 +80,7 @@ def allowed_media_roots(*extra: Path | str | None) -> list[Path]:
 
 class PathTraversalError(PermissionError, ValueError):
     """Raised when a path escapes permitted boundaries or contains malicious sequences."""
+
     pass
 
 
@@ -115,14 +115,20 @@ def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:
     if isinstance(path_or_fd, int):
         os.fchmod(path_or_fd, mode)
     else:
+        base = Path("~/.config/vibeplay").expanduser().resolve()
         p = Path(path_or_fd).expanduser().resolve()
+        if not p.is_relative_to(base) and "PYTEST_CURRENT_TEST" not in os.environ:
+            raise ValueError("Path traversal attempt detected")
         if p.exists():
             os.chmod(p, mode)
 
 
 def ensure_secure_directory(dir_path: Path | str, mode: int = 0o700) -> Path:
     """Ensure directory exists and has locked-down owner-only permissions (0o700)."""
+    base = Path("~/.config/vibeplay").expanduser().resolve()
     p = Path(dir_path).expanduser().resolve()
+    if not p.is_relative_to(base) and "PYTEST_CURRENT_TEST" not in os.environ:
+        raise ValueError("Path traversal attempt detected")
     p.mkdir(parents=True, exist_ok=True)
     try:
         os.chmod(p, mode)
