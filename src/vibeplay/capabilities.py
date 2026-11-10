@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import importlib.util
 import os
@@ -6,6 +8,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vibeplay.config import Settings
+
+__all__ = [
+    "CapabilityStatus",
+    "check_essentia_capability",
+    "check_acoustid_capability",
+    "check_llm_capability",
+    "check_mpd_capability",
+    "check_desktop_gui_capability",
+    "check_all_capabilities",
+]
 
 
 @dataclass(frozen=True)
@@ -205,8 +217,8 @@ def check_all_capabilities(settings: Settings | None = None) -> list[CapabilityS
         settings = get_settings()
 
     return [
-        check_essentia_capability(settings.models_dir if hasattr(settings, "models_dir") else None),
-        check_acoustid_capability(settings.acoustid_api_key if hasattr(settings, "acoustid_api_key") else None),
+        check_essentia_capability(settings.models_dir),
+        check_acoustid_capability(settings.acoustid_api_key),
         check_llm_capability(settings),
         check_mpd_capability(),
         check_desktop_gui_capability(),
