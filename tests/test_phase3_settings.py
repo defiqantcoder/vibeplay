@@ -377,7 +377,6 @@ class TestPhase3WebApiAndLiveState:
         assert r2.json()["mode"] == "stereo_direct"
         assert load_desktop_settings(cfg_file).spatial_enabled is False
 
-
     @pytest.mark.parametrize("value, expected", [("false", False), ("true", True), ("0", False), ("on", True), (False, False), (True, True)])
     @pytest.mark.parametrize("encoding", ["json", "form", "query"])
     def test_spatial_boolean_parsing(self, client_and_paths, monkeypatch, value, expected, encoding):
@@ -389,8 +388,10 @@ class TestPhase3WebApiAndLiveState:
         elif encoding == "form":
             response = client.post("/api/settings", data={"spatial_enabled": value})
         else:
+
             async def unavailable_form(self):
                 raise ValueError("Form unavailable")
+
             monkeypatch.setattr(Request, "form", unavailable_form)
             response = client.post("/api/settings", params={"spatial_enabled": value})
         assert response.status_code == 200

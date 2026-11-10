@@ -49,7 +49,7 @@ def test_unconfigured_music_directory_preserves_mpd_detection_order(tmp_path, mo
     assert settings.music_dir is None
     assert _ensure_mpd_symlink(track, settings=settings) == ".vibeplay_symlinks/external.flac"
     assert (candidates[candidate_index] / ".vibeplay_symlinks/external.flac").resolve() == track
-    for candidate in candidates[candidate_index + 1:]:
+    for candidate in candidates[candidate_index + 1 :]:
         assert not (candidate / ".vibeplay_symlinks").exists()
 
 

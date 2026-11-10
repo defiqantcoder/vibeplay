@@ -41,7 +41,8 @@ app = typer.Typer(
 )
 
 
-def version_callback(value: bool):
+def version_callback(value: bool | None) -> None:
+    """Print the application version and exit when the flag is provided."""
     if value:
         console.print(f"vibeplay {__version__}")
         raise typer.Exit()

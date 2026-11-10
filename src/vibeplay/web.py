@@ -24,7 +24,6 @@ from vibeplay.db import (
     replace_playlist_tracks,
 )
 from vibeplay.player import (
-    adjust_volume_step,
     get_audio_file_technical_info,
     get_playback_status,
     next_song,
@@ -33,8 +32,6 @@ from vibeplay.player import (
     previous_song,
     seek_playback,
     set_output_profile,
-    set_volume_level,
-    toggle_mute,
     toggle_pause,
 )
 from vibeplay.playlist import (
@@ -320,7 +317,6 @@ def create_app(
     from vibeplay.desktop.settings import (
         DesktopSettings,
         load_desktop_settings,
-        save_desktop_settings,
         update_desktop_settings,
     )
 
@@ -1173,11 +1169,6 @@ def create_app(
             },
         )
 
-
-
-
-
-
     @app.get("/api/player/scrub", response_class=HTMLResponse)
     async def api_player_scrub(request: Request) -> Response:
         """Return rendered scrub row micro-component for isolated 1s polling."""
@@ -1351,11 +1342,6 @@ def create_app(
                 for t in themes
             ]
         )
-
-
-
-
-
 
     @app.get("/api/dsp/peq/presets")
     async def api_dsp_peq_presets() -> JSONResponse:
@@ -2003,9 +1989,8 @@ def create_app(
     app.state.templates = templates
 
     from vibeplay.api.library import router as library_router
-    from vibeplay.routers.root import router as root_router
-
     from vibeplay.routers.player import build_router as build_player_router
+    from vibeplay.routers.root import router as root_router
 
     app.include_router(build_player_router(cfg, resolved_db_path, templates, settings_file_path, _sync_runtime_cfg))
 

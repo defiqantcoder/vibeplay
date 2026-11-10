@@ -282,7 +282,7 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
     """Bind the original web handlers to this application's state."""
     from vibeplay.player import set_output_profile
 
-    router = APIRouter(prefix='', tags=['settings'])
+    router = APIRouter(prefix="", tags=["settings"])
 
     @router.get("/api/settings")
     async def api_get_settings(request: Request) -> Response:
@@ -335,7 +335,6 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             }
         )
 
-
     @router.get("/api/settings/modal", response_class=HTMLResponse)
     async def api_settings_modal(request: Request) -> Response:
         """Return the Settings Dialog modal HTML snippet."""
@@ -359,7 +358,6 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             },
         )
 
-
     @router.get("/api/settings/gemini")
     @router.get("/api/settings/api-key")
     async def api_get_gemini_key() -> JSONResponse:
@@ -378,7 +376,6 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
                 "llm_provider": provider,
             }
         )
-
 
     @router.post("/api/settings/gemini")
     @router.post("/api/settings/api-key")
@@ -411,7 +408,6 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
         except Exception as err:
             logger.error("Request failed: %s", err, exc_info=True)
             return JSONResponse(status_code=500, content={"status": "error", "message": "Operation failed"})
-
 
     @router.post("/api/settings")
     @router.put("/api/settings")

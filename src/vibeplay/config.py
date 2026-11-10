@@ -199,7 +199,6 @@ class Settings(BaseSettings):
         description="Default playlist export format ('m3u8', 'm3u', 'json', or 'csv')",
     )
 
-
     @property
     def music_dir(self) -> Path | None:
         """Legacy alias for music_directory"""

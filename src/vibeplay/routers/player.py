@@ -242,9 +242,9 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
     """Bind the original web handlers to this application's state."""
     from vibeplay.player import adjust_volume_step, set_volume_level
 
-    router = APIRouter(prefix='/api/player', tags=['player'])
+    router = APIRouter(prefix="/api/player", tags=["player"])
 
-    @router.post('/volume', response_class=HTMLResponse)
+    @router.post("/volume", response_class=HTMLResponse)
     async def api_player_volume(request: Request, volume: int = Form(...)) -> Response:
         """Set volume level [0-100]."""
         set_volume_level(volume, cfg)
@@ -258,8 +258,7 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             },
         )
 
-
-    @router.post('/volume-step', response_class=HTMLResponse)
+    @router.post("/volume-step", response_class=HTMLResponse)
     async def api_player_volume_step(request: Request, delta: int = 5) -> Response:
         """Adjust volume level by delta (positive or negative) within [0, 100]."""
         step_val = delta
@@ -290,8 +289,7 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             },
         )
 
-
-    @router.post('/mute-toggle', response_class=HTMLResponse)
+    @router.post("/mute-toggle", response_class=HTMLResponse)
     async def api_player_mute_toggle(request: Request) -> Response:
         """Toggle mute/unmute state."""
         res = toggle_mute(cfg)
@@ -309,8 +307,7 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             },
         )
 
-
-    @router.get('/output/profiles')
+    @router.get("/output/profiles")
     async def api_player_output_profiles() -> JSONResponse:
         """Return list of dynamic audio output profiles and current active profile."""
         from vibeplay.player import (
@@ -326,8 +323,7 @@ def build_router(cfg, resolved_db_path, templates, settings_file_path, _sync_run
             }
         )
 
-
-    @router.post('/output', response_class=HTMLResponse)
+    @router.post("/output", response_class=HTMLResponse)
     async def api_player_output(request: Request, profile: str | None = Form(None)) -> Response:
         """Switch audio hardware output profile and notify vibe-dsp IPC engine."""
         target_profile = profile
