@@ -129,25 +129,44 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
     raise PathTraversalError("Path traversal attempt detected: path is outside permitted directories.")
 
 
+def _allowed_config_roots() -> tuple[Path, ...]:
+    """Return resolved roots permitted for desktop config/state file permissions."""
+    import tempfile
+
+    roots: list[Path] = [
+        Path("~/.config/vibeplay").expanduser().resolve(),
+        Path(tempfile.gettempdir()).resolve(),
+    ]
+    for env_var in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR"):
+        val = os.environ.get(env_var, "").strip()
+        if val:
+            roots.append((Path(val).expanduser() / "vibeplay").resolve())
+    return tuple(roots)
+
+
+def _validate_config_path(path: Path | str) -> Path:
+    """Resolve config/state path and verify it resides under an allowed config or temp root."""
+    p = Path(path).expanduser().resolve()
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return p
+    if any(p.is_relative_to(root) for root in _allowed_config_roots()):
+        return p
+    raise ValueError("Path traversal attempt detected")
+
+
 def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:
     """Apply restrictive permissions to a file path or file descriptor."""
     if isinstance(path_or_fd, int):
         os.fchmod(path_or_fd, mode)
     else:
-        base = Path("~/.config/vibeplay").expanduser().resolve()
-        p = Path(path_or_fd).expanduser().resolve()
-        if not p.is_relative_to(base) and "PYTEST_CURRENT_TEST" not in os.environ:
-            raise ValueError("Path traversal attempt detected")
+        p = _validate_config_path(path_or_fd)
         if p.exists():
             os.chmod(p, mode)
 
 
 def ensure_secure_directory(dir_path: Path | str, mode: int = 0o700) -> Path:
     """Ensure directory exists and has locked-down owner-only permissions (0o700)."""
-    base = Path("~/.config/vibeplay").expanduser().resolve()
-    p = Path(dir_path).expanduser().resolve()
-    if not p.is_relative_to(base) and "PYTEST_CURRENT_TEST" not in os.environ:
-        raise ValueError("Path traversal attempt detected")
+    p = _validate_config_path(dir_path)
     p.mkdir(parents=True, exist_ok=True)
     try:
         os.chmod(p, mode)
