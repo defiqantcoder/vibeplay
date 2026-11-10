@@ -159,7 +159,7 @@ def test_frozen_meipass_simulation_no_relative_path_assumptions(tmp_path: Path, 
     shutil.copytree(REPO_ROOT / "src/vibeplay/templates", fake_meipass / "vibeplay/templates")
     shutil.copytree(REPO_ROOT / "src/vibeplay/static", fake_meipass / "vibeplay/static")
     # Assert that spec data includes vibe_dsp/profiles
-    ns = runpy.run_path(str(SPEC_PATH))
+    ns = runpy.run_path(str(SPEC_PATH), init_globals={"SPECPATH": SPEC_PATH.parent})
     analysis_obj = ns["a"]
     datas_dict = {dest: Path(src) for src, dest in analysis_obj.datas}
     assert "vibe_dsp/profiles" in datas_dict
