@@ -134,10 +134,12 @@ class MPRISServer:
                         status = "Playing" if state == "play" else "Paused" if state == "pause" else "Stopped"
 
                         metadata = {}
-                        song = data.get("current_song")
-                        if song:
+                        # Map the desktop status endpoint's flat song fields, while continuing to support nested current_song data.
+                        # Preserve the existing NoTrack result when no song is available, and ensure track changes are detected so MPRIS emits Metadata updates.
+                        song = data.get("current_song") or data
+                        if song and (song.get("id") or song.get("song_id") or song.get("title") or song.get("file")):
                             metadata = {
-                                "mpris:trackid": f"/org/mpris/MediaPlayer2/TrackList/{song.get('id', 0)}",
+                                "mpris:trackid": f"/org/mpris/MediaPlayer2/TrackList/{song.get('id') or song.get('song_id') or 0}",
                                 "xesam:title": song.get("title", ""),
                                 "xesam:artist": [song.get("artist", "")] if song.get("artist") else [],
                                 "xesam:album": song.get("album", ""),
