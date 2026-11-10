@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from vibeplay.desktop.mime import parse_m3u_playlist
 
@@ -19,6 +20,7 @@ def test_parse_m3u_playlist_valid_relative(tmp_path):
     parsed = parse_m3u_playlist(playlist_file)
     assert parsed == [track1, track2]
 
+
 def test_parse_m3u_playlist_path_traversal(tmp_path):
     playlist_file = tmp_path / "traversal.m3u"
 
@@ -32,27 +34,35 @@ def test_parse_m3u_playlist_path_traversal(tmp_path):
     # The traversal should fail resolve_within and return empty list
     assert parsed == []
 
+
 def test_parse_m3u_playlist_absolute_outside_roots(tmp_path, monkeypatch):
     playlist_file = tmp_path / "absolute.m3u"
 
-    # Create an actual file outside the allowed root (e.g. /tmp/unauthorized.flac)
-    unauthorized_file = Path("/tmp/unauthorized.flac")
-    unauthorized_file.touch()
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("VIBEPLAY_EXTRA_MEDIA_ROOTS", raising=False)
+    with TemporaryDirectory() as unauthorized_dir:
+        unauthorized_file = Path(unauthorized_dir) / "unauthorized.flac"
+        unauthorized_file.touch()
+        playlist_file.write_text(f"{unauthorized_file}\n")
 
-    playlist_file.write_text("/tmp/unauthorized.flac\n")
+        assert parse_m3u_playlist(playlist_file) == []
 
-    parsed = parse_m3u_playlist(playlist_file)
 
-    unauthorized_file.unlink(missing_ok=True)
+def test_parse_m3u_playlist_relative_escape_under_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    playlist_dir = tmp_path / "playlists"
+    playlist_dir.mkdir()
+    track = tmp_path / "outside.flac"
+    track.touch()
+    playlist_file = playlist_dir / "escape.m3u"
+    playlist_file.write_text("../outside.flac\n")
 
-    # The absolute path is outside tmp_path root and standard roots, so it should be rejected
-    # Note: If /tmp is somehow in allowed_media_roots on the runner, this test could be flaky.
-    # But resolve_within normally uses VIBEPLAY_EXTRA_MEDIA_ROOTS and standard roots.
-    # To be safe, we test with /etc/passwd which shouldn't be an allowed root.
+    assert parse_m3u_playlist(playlist_file) == []
 
-    playlist_file.write_text("/etc/passwd\n")
-    parsed = parse_m3u_playlist(playlist_file)
-    assert parsed == []
+    # Absolute entries still allow tracks elsewhere under the home directory.
+    playlist_file.write_text(f"{track}\n")
+    assert parse_m3u_playlist(playlist_file) == [track]
+
 
 def test_parse_m3u_playlist_ignores_missing_and_unsupported(tmp_path):
     playlist_file = tmp_path / "mixed.m3u"

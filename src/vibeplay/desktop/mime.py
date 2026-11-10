@@ -229,7 +229,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
     """Parse an .m3u or .m3u8 playlist file into resolved local track paths.
 
     Ignores blank lines, #EXTM3U/#EXTINF comment directives, and non-local URLs.
-    Relative paths are resolved relative to the playlist's parent directory.
+    Relative paths are resolved within the playlist's parent directory.
     """
     resolved_playlist = playlist_path.expanduser().resolve()
     if not resolved_playlist.is_file():
@@ -240,6 +240,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
     content = resolved_playlist.read_text(encoding="utf-8", errors="replace")
 
     from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
     roots = allowed_media_roots(base_dir)
 
     for line in content.splitlines():
@@ -258,7 +259,7 @@ def parse_m3u_playlist(playlist_path: Path) -> list[Path]:
             try:
                 track_path = resolve_within(
                     str(candidate) if candidate.is_absolute() else str(base_dir / candidate),
-                    roots
+                    roots if candidate.is_absolute() else [base_dir],
                 )
             except (PermissionError, ValueError):
                 continue
