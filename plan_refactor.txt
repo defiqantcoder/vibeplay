@@ -1,0 +1,16 @@
+Goal: Break down the massive `create_app` function in `src/vibeplay/web.py` by extracting groups of routes into APIRouter instances.
+
+We already have some routers in `src/vibeplay/routers/`:
+1. `player.py`: Has some player routes (`/api/player/output/profiles`, `/api/player/output`, `/api/player/volume`, etc.), but many are missing (e.g., `play-track`, `toggle`, `seek`, `scrub`, `status`, etc.).
+2. `settings.py`: Has duplicate settings routes, but it looks like they are not imported in `web.py`! Wait, if I grep `app.include_router(settings_router)` in `web.py`, it's False.
+3. `root.py`: Has some root routes, and IS included via `app.include_router(root_router)`.
+4. `api/library.py`: Has some library routes, and IS included via `app.include_router(library_router)`.
+
+The rest of the routes are directly defined on `app` using `@app.get(...)` etc., inside the `create_app` function!
+This makes `create_app` 2400 lines long!
+
+To fix this:
+1. Delete duplicate routes in `web.py` that have been implemented in `routers/player.py` and `routers/settings.py`. Wait! Are the implementations in `routers/player.py` and `routers/settings.py` up to date? Yes, they seem to be more robust (e.g., using `safe_get_setting`).
+2. Move the REST of the player routes from `web.py` to `routers/player.py`.
+3. Include `player_router` and `settings_router` in `web.py`.
+4. Create new routers for other domains like `playlist.py`, `dsp.py`, `desktop.py` etc., or just move everything into domain-specific routers.

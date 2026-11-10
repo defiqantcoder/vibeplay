@@ -1,0 +1,34 @@
+To refactor `create_app` in `web.py`:
+1. Find all nested route handlers inside `create_app`.
+2. Extract them into their appropriate router modules in `src/vibeplay/routers/`:
+    - `player.py`
+    - `settings.py` (Wait, this one seems already done in `routers/settings.py` except that the routes in `web.py` are duplicate and should be removed).
+    - `playlist.py` (Create new)
+    - `dsp.py` (Create new)
+    - `desktop.py` (Create new)
+    - `library_routes.py` (Or move to `api/library.py`?)
+    - `plugins.py` (Create new)
+    - `jobs.py` (Create new)
+    - `themes.py` (Create new or add to root.py)
+    - `menu.py` (Create new or add to root.py)
+    - `track.py` (Create new or add to playlist.py)
+    - `clusters.py` (Create new or add to root.py)
+    - `ai.py` (Create new)
+    - `app.py` (Create new or add to desktop.py)
+3. For all extracted routes, change local variables like `cfg`, `resolved_db_path`, `templates`, `_maybe_notify_track_transition` to use `request.app.state` or import them globally if appropriate.
+4. Modify `create_app` to setup `app.state`:
+    ```python
+    app.state.settings = cfg
+    app.state.db_path = resolved_db_path
+    app.state.templates = templates
+    ```
+5. Include the new routers in `create_app`:
+    ```python
+    app.include_router(player_router)
+    app.include_router(settings_router)
+    app.include_router(playlist_router)
+    # ...
+    ```
+
+Let's test this strategy with a small piece first, or use a script to automatically extract and format the code.
+Actually, let's use `request_plan_review`.
