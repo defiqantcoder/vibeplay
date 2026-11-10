@@ -111,11 +111,7 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
 
 
 def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:
-    """Apply permissions to a file descriptor or an existing file path.
-
-    Paths outside ~/.config/vibeplay raise ValueError unless PYTEST_CURRENT_TEST
-    is set. File descriptors bypass this path check; OS permission errors propagate.
-    """
+    """Apply restrictive permissions to a file path or file descriptor."""
     if isinstance(path_or_fd, int):
         os.fchmod(path_or_fd, mode)
     else:
@@ -128,12 +124,7 @@ def secure_chmod(path_or_fd: int | Path | str, mode: int = 0o600) -> None:
 
 
 def ensure_secure_directory(dir_path: Path | str, mode: int = 0o700) -> Path:
-    """Create and return a resolved directory, attempting to set its permissions.
-
-    Paths outside ~/.config/vibeplay raise ValueError unless PYTEST_CURRENT_TEST
-    is set. Directory creation errors propagate; chmod errors are ignored. The
-    default mode is 0o700.
-    """
+    """Ensure directory exists and has locked-down owner-only permissions (0o700)."""
     base = Path("~/.config/vibeplay").expanduser().resolve()
     p = Path(dir_path).expanduser().resolve()
     if not p.is_relative_to(base) and "PYTEST_CURRENT_TEST" not in os.environ:

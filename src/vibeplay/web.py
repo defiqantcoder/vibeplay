@@ -352,11 +352,6 @@ def create_app(
 
         @app.middleware("http")
         async def auth_middleware(request: Request, call_next):
-            """Require the configured API key except for static assets and API docs.
-
-            On accepted requests, a valid query key is stored in session cookies.
-            Invalid credentials receive a 401 HTML or JSON response.
-            """
             path = request.url.path
             if path.startswith("/static") or path == "/favicon.ico" or path == "/docs" or path == "/openapi.json":
                 return await call_next(request)

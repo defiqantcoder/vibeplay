@@ -382,10 +382,7 @@ def clusters(
         ),
     ] = None,
 ) -> None:
-    """Print the target database and guidance for building smart playlists.
-
-    Exit with code 1 if the database file is missing. Clustering is not performed.
-    """
+    """Compute normalized vibe vectors and generate track clusters."""
     settings = get_settings()
     db_path = db or settings.db_path
 
@@ -394,7 +391,8 @@ def clusters(
         raise typer.Exit(code=1)
 
     console.print(f"[bold]Target database:[/bold] [cyan]{db_path}[/cyan]")
-    console.print("language prompts (e.g. 'high energy workout', 'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]")
+    console.print("[cyan]language prompts (e.g. 'high energy workout', "
+                  "'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]")
 
 
 @app.command()
@@ -589,11 +587,7 @@ def tag(
         typer.Option(help="Path to SQLite database (defaults to configured path)"),
     ] = None,
 ) -> None:
-    """Select analyzed tracks for tagging.
-
-    No tracks are tagged; when tracks are selected, report that LLM tagging is
-    unavailable and show an empty results table.
-    """
+    """Batch-tag audio tracks with mood and genre descriptors using an LLM."""
     settings = get_settings()
     db_path = db.expanduser().resolve() if db else settings.db_path.expanduser().resolve()
 

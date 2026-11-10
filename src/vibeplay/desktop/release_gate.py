@@ -38,12 +38,7 @@ from vibeplay.desktop.security import is_loopback_host, validate_loopback_host  
 
 
 def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | None = None) -> ReleaseGateReport:
-    """Run the Phase 7 desktop release checks and return their results.
-
-    The checks write default settings to settings_path, initialize db_path,
-    and start and stop a desktop runner. Missing paths are reported as failed
-    checks where required.
-    """
+    """Run all Phase 7 desktop invariant release gate checks."""
     checks = []
 
     # 1. Loopback Security Invariant
@@ -56,7 +51,7 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert is_loopback_host("192.168.1.1") is False, "192.168.1.1 must be rejected"
         assert validate_loopback_host("127.0.0.1") == "127.0.0.1"
         checks.append(GateCheckResult("Loopback Security Invariant", True, "Passed loopback validation"))
-    except (AssertionError, ValueError) as e:
+    except (AssertionError, ValueError):
         checks.append(GateCheckResult("Loopback Security Invariant", False, "Security check failed"))
 
     # 2. Settings Persistence & 0600 Permissions
@@ -103,8 +98,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
 
         checks.append(GateCheckResult("Theme Engine & WCAG Contrast", True, f"Verified WCAG compliance for {len(themes)} themes"))
     except AssertionError as e:
-        checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, "Theme check failed"))
-    except Exception as e:
+        checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, str(e)))
+    except Exception:
         checks.append(GateCheckResult("Theme Engine & WCAG Contrast", False, "Unexpected error in theme check"))
 
     # 4. Template & Static Asset Integrity Check
@@ -143,8 +138,8 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
 
         checks.append(GateCheckResult("Template & Asset Integrity", True, "All required assets exist and are non-empty"))
     except AssertionError as e:
-        checks.append(GateCheckResult("Template & Asset Integrity", False, "Asset check failed"))
-    except Exception as e:
+        checks.append(GateCheckResult("Template & Asset Integrity", False, str(e)))
+    except Exception:
         checks.append(GateCheckResult("Template & Asset Integrity", False, "Unexpected error in asset check"))
 
     # 5. HTMX & Desktop API Smoke Gate
@@ -190,10 +185,10 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert resp_dsp.status_code == 200, f"GET /api/dsp/telemetry failed: {resp_dsp.status_code}"
 
         checks.append(GateCheckResult("API Smoke Gate", True, "All API endpoints returned 200 OK"))
-    except AssertionError as e:
-        checks.append(GateCheckResult("API Smoke Gate", False, "API check failed"))
-    except Exception as e:
+    except (AssertionError, ValueError) as e:
         checks.append(GateCheckResult("API Smoke Gate", False, str(e)))
+    except Exception:
+        checks.append(GateCheckResult("API Smoke Gate", False, "Unexpected error in API check"))
 
     # 6. Desktop Runner Clean Teardown Check
     runner = None
@@ -221,9 +216,9 @@ def run_release_gate_checks(db_path: Path | None = None, settings_path: Path | N
         assert runner.is_running is False, "Desktop runner failed to stop"
 
         checks.append(GateCheckResult("Desktop Runner Clean Teardown", True, "Desktop runner stopped cleanly with no orphans"))
-    except AssertionError as e:
+    except AssertionError:
         checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, "Teardown check failed"))
-    except Exception as e:
+    except Exception:
         checks.append(GateCheckResult("Desktop Runner Clean Teardown", False, "Unexpected error in teardown check"))
     finally:
         if runner and runner.is_running:

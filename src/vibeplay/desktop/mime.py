@@ -18,11 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def _safe_resolve(base_dir: Path, target: str | Path) -> Path:
-    """Resolve a target within the base directory, including the base itself.
-
-    Relative targets are interpreted from the base. Raise ValueError if the
-    resolved target lies outside it.
-    """
     base = base_dir.resolve()
     resolved = (base / target).resolve() if not Path(target).is_absolute() else Path(target).resolve()
     if not resolved.is_relative_to(base):
@@ -46,12 +41,7 @@ def write_ipc_state(
     token: str | None,
     state_path: Path | None = None,
 ) -> Path:
-    """Persist the loopback IPC endpoint and session token with 0o600 permissions.
-
-    The state file is replaced atomically. Its parent must be within
-    ~/.config/vibeplay unless PYTEST_CURRENT_TEST is set. A non-loopback host
-    or a rejected path raises ValueError; filesystem errors propagate.
-    """
+    """Persist active loopback IPC endpoint and session token atomically with 0o600 permissions."""
     if state_path:
         target = state_path.expanduser().resolve()
     else:
@@ -84,11 +74,7 @@ def write_ipc_state(
 
 
 def read_ipc_state(state_path: Path | None = None) -> dict[str, Any] | None:
-    """Read a JSON object from the IPC state file, or return None if unavailable.
-
-    Read, permission, and JSON parsing errors return None. Path resolution and
-    default-path validation occur before those errors are caught.
-    """
+    """Read active loopback IPC state if present and valid."""
     if state_path:
         target = state_path.expanduser().resolve()
     else:
@@ -106,10 +92,7 @@ def read_ipc_state(state_path: Path | None = None) -> dict[str, Any] | None:
 
 
 def clear_ipc_state(state_path: Path | None = None) -> None:
-    """Remove the runtime IPC state file, ignoring unlink errors.
-
-    Path resolution and default-path validation errors propagate.
-    """
+    """Remove the runtime IPC state file on clean supervisor shutdown."""
     if state_path:
         target = state_path.expanduser().resolve()
     else:
@@ -210,11 +193,7 @@ def parse_desktop_uri(raw: str) -> Path:
 
 
 def classify_mime_target(raw: str | Path) -> MimeOpenTarget:
-    """Classify a file path or file:// URI as audio, playlist, directory, or unsupported.
-
-    The result records whether the resolved path exists; nonexistent files are
-    classified by extension. Invalid, non-local, or disallowed paths raise ValueError.
-    """
+    """Classify a file path or file:// URI into audio, playlist, directory, or unsupported."""
     raw_str = str(raw)
     if isinstance(raw, str):
         path = parse_desktop_uri(raw_str)
