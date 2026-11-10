@@ -1254,7 +1254,7 @@ function toggleAboutDialog() {
   closeAllMenus();
   alert(
     "vibeplay — Audiophile Precision Console\n" +
-    "Version: 2.0.1 (Desktop Native Shell)\n" +
+    "Version: 2.0.2 (Desktop Native Shell)\n" +
     "Linux / Ubuntu 24.04 LTS\n" +
     "WebKit2GTK + Direct ALSA Bit-Perfect Core\n" +
     "https://github.com/defiqantcoder/vibeplay"

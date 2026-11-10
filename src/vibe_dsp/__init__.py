@@ -4,4 +4,4 @@ Provides hardware auditing, dynamic USB Audio Class discovery, OEM DSP stripping
 PipeWire native sample rate unlocking, and direct ALSA bit-perfect transport mapping.
 """
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"

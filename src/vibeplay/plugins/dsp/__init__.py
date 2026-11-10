@@ -15,7 +15,7 @@ class DspPlugin(VibePlugin):
             "name": "DSP & Acoustics",
             "description": "Digital Signal Processing convolver and Parametric EQ tools",
             "author": "VibePlay Contributors",
-            "version": "2.0.1",
+            "version": "2.0.2",
             "icon": "🔧",
             "settings_schema": {},
         }

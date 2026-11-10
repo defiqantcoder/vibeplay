@@ -15,7 +15,7 @@ class MaintenancePlugin(VibePlugin):
             "name": "Maintenance Tools",
             "description": "Optional library maintenance tools (duplicate finder and AcoustID/MusicBrainz enrichment)",
             "author": "VibePlay Contributors",
-            "version": "2.0.1",
+            "version": "2.0.2",
             "icon": "🔧",
             "settings_schema": {},
         }

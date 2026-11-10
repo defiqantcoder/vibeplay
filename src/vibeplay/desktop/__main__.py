@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--version",
         action="version",
-        version="vibeplay-desktop 2.0.1",
+        version="vibeplay-desktop 2.0.2",
     )
     parser.add_argument(
         "--release-gate",

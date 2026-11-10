@@ -5,5 +5,5 @@ import warnings
 warnings.filterwarnings("ignore", message=".*StarletteDeprecationWarning.*")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="starlette.*")
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __all__ = ["__version__"]
