@@ -106,7 +106,7 @@ Download the latest \`.deb\` package from [GitHub Releases](https://github.com/d
 
 ```text
 # Install the Debian package (includes standalone binary, .desktop launcher, icons, and systemd service)
-sudo apt install ./dist/vibeplay_0.2.0_amd64.deb --reinstall
+sudo apt install ./dist/vibeplay_2.0.1_amd64.deb --reinstall
 
 # Launch from your desktop app menu or run:
 vibeplay-desktop

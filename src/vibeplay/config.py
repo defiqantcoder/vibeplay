@@ -79,7 +79,7 @@ class Settings(BaseSettings):
         description="Application name for MusicBrainz User-Agent",
     )
     musicbrainz_version: str = Field(
-        default="0.2.0",
+        default="2.0.1",
         description="Application version for MusicBrainz User-Agent",
     )
     musicbrainz_contact: str = Field(
