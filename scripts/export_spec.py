@@ -629,13 +629,13 @@ def main() -> int:
         print(f"    - Vibe Presets: {len(validated.vibe_presets)} presets")
         print(f"    - Derived Moods: {len(validated.derived_moods)} formulas")
         print(
-            f"    - Camelot System: {len(validated.camelot_harmonic_system.distance_matrix)}" \
+            f"    - Camelot System: {len(validated.camelot_harmonic_system.distance_matrix)}"
             f"x{len(validated.camelot_harmonic_system.distance_matrix)} distance matrix"
         )
         print(f"    - Energy Arcs: {len(validated.energy_arcs)} curves sampled at 11 positions")
         print(
-            f"    - Biquad Limits: Range {validated.biquad_filter_validation.frequency_hz['min']}-" \
-            f"{validated.biquad_filter_validation.frequency_hz['max']} Hz, " \
+            f"    - Biquad Limits: Range {validated.biquad_filter_validation.frequency_hz['min']}-"
+            f"{validated.biquad_filter_validation.frequency_hz['max']} Hz, "
             f"Gain +/-{validated.biquad_filter_validation.gain_db['max']} dB"
         )
         print(f"    - K-Weighting: {len(validated.k_weighting_loudness.coefficients)} sample rates calibrated (48kHz & 44.1kHz)")

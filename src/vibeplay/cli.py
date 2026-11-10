@@ -391,8 +391,9 @@ def clusters(
         raise typer.Exit(code=1)
 
     console.print(f"[bold]Target database:[/bold] [cyan]{db_path}[/cyan]")
-    console.print("[cyan]language prompts (e.g. 'high energy workout', "
-                  "'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]")
+    console.print(
+        "[cyan]language prompts (e.g. 'high energy workout', 'chill lofi study vibes') or acoustic feature queries for smart playlists.[/cyan]"
+    )
 
 
 @app.command()
