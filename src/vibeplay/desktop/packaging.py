@@ -28,12 +28,18 @@ REQUIRED_STATIC_FILES: tuple[str, ...] = (
     "htmx.min.js",
 )
 
-REQUIRED_DSP_PROFILES: tuple[str, ...] = ()
+REQUIRED_DSP_PROFILES: tuple[str, ...] = (
+    "7hz_zero_2.txt",
+    "apple_airpods_pro_2.txt",
+    "moondrop_blessing_2.txt",
+    "sennheiser_hd600.txt",
+)
 
 # Explicit data directories bundled into the PyInstaller archive: (repo_relative_src, bundle_dest)
 BUNDLE_DATAS: tuple[tuple[str, str], ...] = (
     ("src/vibeplay/templates", "vibeplay/templates"),
     ("src/vibeplay/static", "vibeplay/static"),
+    ("src/vibe_dsp/profiles", "vibe_dsp/profiles"),
 )
 
 # Hidden imports required for FastAPI/Uvicorn, Jinja2, PyWebView GTK3/WebKit2GTK on Ubuntu 24.04, and DSP

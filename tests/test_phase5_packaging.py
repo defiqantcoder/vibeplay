@@ -158,7 +158,7 @@ def test_frozen_meipass_simulation_no_relative_path_assumptions(tmp_path: Path, 
     fake_meipass = tmp_path / "_MEI99999"
     shutil.copytree(REPO_ROOT / "src/vibeplay/templates", fake_meipass / "vibeplay/templates")
     shutil.copytree(REPO_ROOT / "src/vibeplay/static", fake_meipass / "vibeplay/static")
-    (fake_meipass / "vibe_dsp/profiles").mkdir(parents=True)
+    shutil.copytree(REPO_ROOT / "src/vibe_dsp/profiles", fake_meipass / "vibe_dsp/profiles")
     (fake_meipass / "models").mkdir(parents=True)
     (fake_meipass / "models" / "discogs-effnet-bs64-1.pb").write_bytes(b"dummy-pb")
 
@@ -223,6 +223,10 @@ def test_verify_bundle_assets_detects_missing_files(tmp_path: Path, monkeypatch:
     assert report.is_valid is False
     assert "templates/base.html" in report.missing_assets
     assert "static/style.css" in report.missing_assets
+    assert "profiles/7hz_zero_2.txt" in report.missing_assets
+    assert "profiles/apple_airpods_pro_2.txt" in report.missing_assets
+    assert "profiles/moondrop_blessing_2.txt" in report.missing_assets
+    assert "profiles/sennheiser_hd600.txt" in report.missing_assets
 
 
 def test_local_binary_entrypoint_launches_without_uv_run(tmp_path: Path):
