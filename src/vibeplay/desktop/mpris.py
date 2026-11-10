@@ -102,10 +102,23 @@ class MPRISServer:
                             prop_iface, prop_name = msg.body
                             if prop_iface == "org.mpris.MediaPlayer2.Player":
                                 if prop_name == "PlaybackStatus":
-                                    self.conn.send_message(new_method_return(msg, "v", ("s", self.current_playback_status)))
+                                    self.conn.send_message(new_method_return(msg, "v", (("s", self.current_playback_status),)))
                                 elif prop_name == "Metadata":
                                     # Dict serialization in jeepney needs correct type signatures
-                                    pass
+                                    formatted_metadata = {
+                                        "mpris:trackid": (
+                                            "o", self.current_metadata.get("mpris:trackid", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                        ),
+                                        "xesam:title": ("s", self.current_metadata.get("xesam:title", "")),
+                                        "xesam:artist": ("as", self.current_metadata.get("xesam:artist", [])),
+                                        "xesam:album": ("s", self.current_metadata.get("xesam:album", "")),
+                                        "mpris:length": ("x", self.current_metadata.get("mpris:length", 0)),
+                                    }
+                                    if not self.current_metadata:
+                                        formatted_metadata = {
+                                            "mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                        }
+                                    self.conn.send_message(new_method_return(msg, "v", (("a{sv}", formatted_metadata),)))
                 except TimeoutError:
                     pass
                 except Exception as e:
@@ -155,15 +168,37 @@ class MPRISServer:
 
                         if changed and self.conn:
                             try:
-                                from jeepney import new_signal
+                                from jeepney import DBusAddress, new_signal
+
+                                formatted_changed = {}
+                                if "PlaybackStatus" in changed:
+                                    formatted_changed["PlaybackStatus"] = ("s", changed["PlaybackStatus"])
+                                if "Metadata" in changed:
+                                    meta = changed["Metadata"]
+                                    if meta:
+                                        formatted_metadata = {
+                                            "mpris:trackid": ("o", meta.get("mpris:trackid", "/org/mpris/MediaPlayer2/TrackList/NoTrack")),
+                                            "xesam:title": ("s", meta.get("xesam:title", "")),
+                                            "xesam:artist": ("as", meta.get("xesam:artist", [])),
+                                            "xesam:album": ("s", meta.get("xesam:album", "")),
+                                            "mpris:length": ("x", meta.get("mpris:length", 0)),
+                                        }
+                                    else:
+                                        formatted_metadata = {
+                                            "mpris:trackid": ("o", "/org/mpris/MediaPlayer2/TrackList/NoTrack")
+                                        }
+                                    formatted_changed["Metadata"] = ("a{sv}", formatted_metadata)
 
                                 # Signal for PropertiesChanged
                                 sig = new_signal(
-                                    "/org/mpris/MediaPlayer2",
-                                    "org.freedesktop.DBus.Properties",
+                                    DBusAddress(
+                                        "/org/mpris/MediaPlayer2",
+                                        bus_name="org.mpris.MediaPlayer2.vibeplay",
+                                        interface="org.freedesktop.DBus.Properties"
+                                    ),
                                     "PropertiesChanged",
                                     "sa{sv}as",
-                                    ("org.mpris.MediaPlayer2.Player", {}, []),  # Simplified to avoid jeepney type signature hell
+                                    ("org.mpris.MediaPlayer2.Player", formatted_changed, []),
                                 )
                                 self.conn.send_message(sig)
                             except Exception as e:
