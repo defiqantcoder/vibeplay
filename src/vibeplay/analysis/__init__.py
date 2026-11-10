@@ -340,6 +340,9 @@ def analyze_tracks(
                         else:
                             summary.failed += 1
                             logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
+        except KeyboardInterrupt:
+            adapter.cancel()
+            raise
         finally:
             adapter.shutdown()
     summary.total_seconds = time.perf_counter() - start_total_time

@@ -3,12 +3,14 @@
 import shutil
 import wave
 from pathlib import Path
+from unittest.mock import Mock, call
 
 import numpy as np
 import pytest
 from typer.testing import CliRunner
 
 from vibeplay.analysis import (
+    ExecutionAdapter,
     EssentiaAnalyzer,
     LibrosaAnalyzer,
     analyze_tracks,
@@ -20,6 +22,30 @@ from vibeplay.cli import app
 from vibeplay.db import get_connection, init_db, insert_track
 
 runner = CliRunner()
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+@pytest.mark.parametrize("error", [None, KeyboardInterrupt, RuntimeError])
+def test_analyze_tracks_shutdown(
+    db_with_two_tracks: Path, monkeypatch: pytest.MonkeyPatch, workers: int, error: type[BaseException] | None,
+) -> None:
+    """Interrupts request cancellation before cleanup; other exits retain normal cleanup."""
+    adapter = Mock(spec=ExecutionAdapter)
+    adapter.process_batch.return_value = iter(())
+    if error is not None:
+        adapter.process_batch.side_effect = error
+    adapter_name = "ParallelExecutionAdapter" if workers > 1 else "SequentialExecutionAdapter"
+    monkeypatch.setattr(f"vibeplay.analysis.{adapter_name}", Mock(return_value=adapter))
+
+    if error is None:
+        analyze_tracks(db_with_two_tracks, backend="librosa", workers=workers)
+    else:
+        with pytest.raises(error):
+            analyze_tracks(db_with_two_tracks, backend="librosa", workers=workers)
+
+    cleanup_calls = [entry for entry in adapter.mock_calls if entry[0] in ("cancel", "shutdown")]
+    expected = [call.cancel(), call.shutdown()] if error is KeyboardInterrupt else [call.shutdown()]
+    assert cleanup_calls == expected
 
 
 @pytest.fixture
