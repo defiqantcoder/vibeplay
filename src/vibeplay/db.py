@@ -15,16 +15,30 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def immediate_transaction(conn: sqlite3.Connection):
-    """Context manager for executing an IMMEDIATE transaction to avoid lock upgrades."""
-    try:
-        if conn.in_transaction:
-            conn.commit()
+    """Execute a block inside an IMMEDIATE SQLite transaction or nested SAVEPOINT.
+
+    Acquires a write lock upfront via ``BEGIN IMMEDIATE`` when no transaction is
+    open on ``conn``. If the caller already opened a transaction, uses a
+    ``SAVEPOINT`` so pending outer writes are never silently committed.
+    """
+    if conn.in_transaction:
+        sp_name = f"sp_imm_{id(conn)}_{time.monotonic_ns()}"
+        conn.execute(f"SAVEPOINT {sp_name}")
+        try:
+            yield
+            conn.execute(f"RELEASE SAVEPOINT {sp_name}")
+        except Exception:
+            conn.execute(f"ROLLBACK TO SAVEPOINT {sp_name}")
+            conn.execute(f"RELEASE SAVEPOINT {sp_name}")
+            raise
+    else:
         conn.execute("BEGIN IMMEDIATE")
-        yield
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
+        try:
+            yield
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def retry_db_locked(max_retries: int = 5, base_delay: float = 0.1, max_delay: float = 2.0):
@@ -1132,6 +1146,32 @@ def add_tracks_to_playlist(
     """
     with immediate_transaction(conn):
         cursor = conn.cursor()
+        items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
+        cursor.executemany(
+            """
+            INSERT OR REPLACE INTO playlist_tracks (playlist_id, track_id, position, added_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            items,
+        )
+
+
+@retry_db_locked()
+def replace_playlist_tracks(
+    conn: sqlite3.Connection,
+    playlist_id: int,
+    track_ids: list[int],
+) -> None:
+    """Atomically replace all tracks in a playlist inside one immediate transaction.
+
+    Args:
+        conn: Open SQLite connection.
+        playlist_id: Database ID of the target playlist.
+        track_ids: New ordered list of track IDs (1-indexed position).
+    """
+    with immediate_transaction(conn):
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
         items = [(playlist_id, tid, pos) for pos, tid in enumerate(track_ids, start=1)]
         cursor.executemany(
             """

@@ -24,10 +24,7 @@ def _project_song_metadata(data: dict[str, Any]) -> dict[str, Any]:
     if isinstance(nested, dict) and nested:
         song = nested
     elif (
-        data.get("id") is not None
-        or data.get("song_id") is not None
-        or data.get("track_id") is not None
-        or bool(str(data.get("file") or "").strip())
+        data.get("id") is not None or data.get("song_id") is not None or data.get("track_id") is not None or bool(str(data.get("file") or "").strip())
     ):
         song = data
     else:
@@ -212,7 +209,7 @@ class MPRISServer:
                                     DBusAddress(
                                         "/org/mpris/MediaPlayer2",
                                         bus_name="org.mpris.MediaPlayer2.vibeplay",
-                                        interface="org.freedesktop.DBus.Properties"
+                                        interface="org.freedesktop.DBus.Properties",
                                     ),
                                     "PropertiesChanged",
                                     "sa{sv}as",

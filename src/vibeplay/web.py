@@ -17,11 +17,11 @@ from fastapi.templating import Jinja2Templates
 
 from vibeplay.config import Settings, get_settings
 from vibeplay.db import (
-    add_tracks_to_playlist,
     get_connection,
     get_playlist,
     get_playlist_tracks,
     get_tracks_with_features,
+    replace_playlist_tracks,
 )
 from vibeplay.player import (
     adjust_volume_step,
@@ -823,9 +823,7 @@ def create_app(
                 pl_row = get_playlist(conn, playlist_id)
                 if not pl_row:
                     raise HTTPException(status_code=404, detail="Playlist not found")
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
-                add_tracks_to_playlist(conn, playlist_id, ordered_ids)
+                replace_playlist_tracks(conn, playlist_id, ordered_ids)
 
         if playlist_id:
             reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
@@ -912,9 +910,7 @@ def create_app(
             if not pl_row:
                 raise HTTPException(status_code=404, detail="Playlist not found")
 
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
-            add_tracks_to_playlist(conn, playlist_id, ordered_ids)
+            replace_playlist_tracks(conn, playlist_id, ordered_ids)
 
         reordered_playlist = load_saved_playlist(resolved_db_path, playlist_id)
         if reordered_playlist is None:

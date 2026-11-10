@@ -52,9 +52,7 @@ def test_mpris_property_reply_serialization():
             server.current_metadata = metadata
             server.is_running = True
             request = new_method_call(
-                DBusAddress(
-                    "/org/mpris/MediaPlayer2", bus_name="org.mpris.MediaPlayer2.vibeplay", interface="org.freedesktop.DBus.Properties"
-                ),
+                DBusAddress("/org/mpris/MediaPlayer2", bus_name="org.mpris.MediaPlayer2.vibeplay", interface="org.freedesktop.DBus.Properties"),
                 "Get",
                 "ss",
                 ("org.mpris.MediaPlayer2.Player", prop),
