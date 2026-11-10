@@ -171,6 +171,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
     """Executes analysis tasks in parallel using a process pool."""
 
     def __init__(self, worker_count: int, backend: str, models_dir_str: str | None) -> None:
+        self._cancel_requested = False
         self.executor = ProcessPoolExecutor(
             max_workers=worker_count,
             initializer=_init_analysis_worker,
@@ -197,10 +198,12 @@ class ParallelExecutionAdapter(ExecutionAdapter):
             logger.error("Batch processing error: %s", e)
 
     def cancel(self) -> None:
+        self._cancel_requested = True
         self.executor.shutdown(wait=False, cancel_futures=True)
 
     def shutdown(self) -> None:
-        self.executor.shutdown(wait=True)
+        # Keep cancellation enabled until the pool has drained its pending work.
+        self.executor.shutdown(wait=True, cancel_futures=self._cancel_requested)
 
 
 def analyze_tracks(

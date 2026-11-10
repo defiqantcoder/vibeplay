@@ -10,9 +10,10 @@ import pytest
 from typer.testing import CliRunner
 
 from vibeplay.analysis import (
-    ExecutionAdapter,
     EssentiaAnalyzer,
+    ExecutionAdapter,
     LibrosaAnalyzer,
+    ParallelExecutionAdapter,
     analyze_tracks,
     decode_audio_slice,
     downmix_to_mono,
@@ -24,10 +25,29 @@ from vibeplay.db import get_connection, init_db, insert_track
 runner = CliRunner()
 
 
+@pytest.mark.parametrize("cancel_requested", [False, True])
+def test_parallel_shutdown_preserves_cancellation(monkeypatch: pytest.MonkeyPatch, cancel_requested: bool) -> None:
+    """Final cleanup must not clear a cancellation request before the pool handles it."""
+    executor = Mock()
+    monkeypatch.setattr("vibeplay.analysis.ProcessPoolExecutor", Mock(return_value=executor))
+    adapter = ParallelExecutionAdapter(worker_count=2, backend="librosa", models_dir_str=None)
+
+    if cancel_requested:
+        adapter.cancel()
+    adapter.shutdown()
+
+    expected = [call.shutdown(wait=False, cancel_futures=True)] if cancel_requested else []
+    expected.append(call.shutdown(wait=True, cancel_futures=cancel_requested))
+    assert executor.mock_calls == expected
+
+
 @pytest.mark.parametrize("workers", [1, 2])
 @pytest.mark.parametrize("error", [None, KeyboardInterrupt, RuntimeError])
 def test_analyze_tracks_shutdown(
-    db_with_two_tracks: Path, monkeypatch: pytest.MonkeyPatch, workers: int, error: type[BaseException] | None,
+    db_with_two_tracks: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    workers: int,
+    error: type[BaseException] | None,
 ) -> None:
     """Interrupts request cancellation before cleanup; other exits retain normal cleanup."""
     adapter = Mock(spec=ExecutionAdapter)
