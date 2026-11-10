@@ -11,6 +11,40 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def _find_existing_dir_from_roots(raw_dir: Path | str, roots: list[Path]) -> str | None:
+    """Locate an existing directory matching ``raw_dir`` by traversing ``roots`` via directory listings."""
+    from vibeplay.desktop.security import resolve_within
+
+    try:
+        resolved_target = resolve_within(raw_dir, roots)
+    except (PermissionError, ValueError):
+        logger.warning("Ignoring initial_dir outside permitted directories.")
+        return None
+
+    for root in roots:
+        base_dir = Path(root).resolve()
+        try:
+            rel_parts = resolved_target.relative_to(base_dir).parts
+        except ValueError:
+            continue
+        cur = base_dir
+        if not cur.is_dir():
+            continue
+        found = True
+        for part in rel_parts:
+            try:
+                match = next((entry for entry in cur.iterdir() if entry.name == part and entry.is_dir()), None)
+            except OSError:
+                match = None
+            if match is None:
+                found = False
+                break
+            cur = match
+        if found:
+            return str(cur)
+    return None
+
+
 def choose_directory_dialog(
     title: str = "Select Music Library Folder",
     initial_dir: Path | str | None = None,
@@ -30,15 +64,11 @@ def choose_directory_dialog(
     Returns:
         str | None: Selected folder path, or None if user cancelled or dialog unavailable.
     """
-    from vibeplay.desktop.security import allowed_media_roots, resolve_within
+    from vibeplay.desktop.security import allowed_media_roots
 
     roots = allowed_media_roots()
     if initial_dir:
-        try:
-            initial_dir = str(resolve_within(initial_dir, roots))
-        except PermissionError:
-            logger.warning("Ignoring initial_dir outside permitted directories.")
-            initial_dir = None
+        initial_dir = _find_existing_dir_from_roots(initial_dir, roots)
     title = str(title).replace("\x00", "")
 
     # 1. Check for zenity

@@ -96,22 +96,34 @@ def resolve_within(path: Path | str, roots: list[Path] | tuple[Path, ...]) -> Pa
     if not raw.strip():
         raise PathTraversalError("Path cannot be empty.")
     if raw == "~":
-        target_p = Path.home()
+        raw_str = str(Path.home())
     elif raw.startswith("~/") or (os.sep != "/" and raw.startswith(f"~{os.sep}")):
-        target_p = Path.home() / raw[2:].lstrip("/\\")
+        raw_str = os.path.join(str(Path.home()), raw[2:].lstrip("/\\"))
     elif raw.startswith("~"):
         raise PathTraversalError("Path traversal attempt detected: user home expansion is not permitted.")
     else:
-        target_p = Path(raw)
+        raw_str = raw
+
     for root in roots:
         base_dir = Path(root).resolve()
+        base_str = str(base_dir)
+        base_prefix = base_str if base_str.endswith(os.sep) else base_str + os.sep
         try:
-            if target_p.is_absolute():
-                resolved_path = target_p.resolve()
+            if os.path.isabs(raw_str):
+                candidate = os.path.normpath(raw_str)
             else:
-                resolved_path = (base_dir / target_p).resolve()
-            if resolved_path.is_relative_to(base_dir):
-                return resolved_path
+                candidate = os.path.normpath(os.path.join(base_str, raw_str))
+
+            if candidate == base_str:
+                return base_dir
+
+            if not candidate.startswith(base_prefix):
+                continue
+
+            resolved_str = os.path.realpath(candidate)
+            if resolved_str != base_str and not resolved_str.startswith(base_prefix):
+                continue
+            return Path(resolved_str)
         except (ValueError, RuntimeError, OSError):
             continue
     raise PathTraversalError("Path traversal attempt detected: path is outside permitted directories.")
