@@ -164,15 +164,9 @@ def test_check_desktop_gui_capability_success():
         mock_gi = MagicMock()
         mock_gi.require_version.return_value = None
         mock_gi_repo = MagicMock()
-        sys.modules["gi"] = mock_gi
-        sys.modules["gi.repository"] = mock_gi_repo
-
-        try:
+        with patch.dict(sys.modules, {"gi": mock_gi, "gi.repository": mock_gi_repo}):
             status = check_desktop_gui_capability()
             assert status.available is True
-        finally:
-            del sys.modules["gi"]
-            del sys.modules["gi.repository"]
 
 
 def test_check_desktop_gui_capability_missing_webview():
@@ -209,14 +203,10 @@ def test_check_desktop_gui_capability_value_error():
 
         mock_gi = MagicMock()
         mock_gi.require_version.side_effect = ValueError("mock ValueError")
-        sys.modules["gi"] = mock_gi
-
-        try:
+        with patch.dict(sys.modules, {"gi": mock_gi}):
             status = check_desktop_gui_capability()
             assert status.available is False
             assert "bindings not found" in status.detail
-        finally:
-            del sys.modules["gi"]
 
 
 @patch("vibeplay.capabilities.check_essentia_capability")
