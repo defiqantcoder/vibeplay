@@ -46,9 +46,15 @@ def test_track_notification_dispatcher(mock_run, mock_which):
 
     dispatcher = TrackNotificationDispatcher()
 
+    # We will need to wait for executor to finish tasks to make robust assertions
+    def wait_for_notify():
+        dispatcher._executor.shutdown(wait=True)
+        dispatcher._executor = __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=1)
+
     # First transition
     dispatcher.notify_transition("My Track", "My Artist", "My Album", "96kHz/24-bit FLAC", track_id="123", track_path="/path/to/123.flac")
 
+    wait_for_notify()
     mock_run.assert_called_once_with(
         ["/usr/bin/notify-send", "--app-name=VibePlay", "--icon=vibeplay", "My Track", "My Artist — My Album [96kHz/24-bit FLAC]"],
         shell=False,
@@ -60,14 +66,17 @@ def test_track_notification_dispatcher(mock_run, mock_which):
 
     # Duplicate transition
     dispatcher.notify_transition("My Track", "My Artist", "My Album", "96kHz/24-bit FLAC", track_id="123", track_path="/path/to/123.flac")
+    wait_for_notify()
     mock_run.assert_not_called()
 
     # Fallback to path if track_id is different but path is same (hypothetical, but let's just test changing id)
     dispatcher.notify_transition("My Track", "My Artist", "My Album", "96kHz/24-bit FLAC", track_id="124", track_path="/path/to/123.flac")
+    wait_for_notify()
     mock_run.assert_not_called()  # because path is same
 
     # New transition
     dispatcher.notify_transition("New Track", "New Artist", "New Album", "MP3", track_id="456", track_path="/path/to/456.mp3")
+    wait_for_notify()
     mock_run.assert_called_once()
 
     # Test notify_track_change wrapper
@@ -80,6 +89,7 @@ def test_track_notification_dispatcher(mock_run, mock_which):
         sample_rate="192.0kHz",
         bit_depth="24-bit",
     )
+    wait_for_notify()
     mock_run.assert_called_once_with(
         ["/usr/bin/notify-send", "--app-name=VibePlay", "--icon=vibeplay", "Hi-Res Track", "Audiophile Artist — Studio Sessions [192.0kHz / 24-bit]"],
         shell=False,
@@ -94,7 +104,14 @@ def test_track_notification_dispatcher_fallback(mock_run, mock_which):
     # Test when notify-send is missing
     mock_which.return_value = None
     dispatcher = TrackNotificationDispatcher()
+
+    # We will need to wait for executor to finish tasks to make robust assertions
+    def wait_for_notify():
+        dispatcher._executor.shutdown(wait=True)
+        dispatcher._executor = __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=1)
+
     dispatcher.notify_transition("Track", "Artist", "Album", "FLAC", track_id="1")
+    wait_for_notify()
     mock_run.assert_not_called()
 
 
@@ -105,8 +122,15 @@ def test_track_notification_dispatcher_error(mock_run, mock_which):
     mock_which.return_value = "/usr/bin/notify-send"
     mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
     dispatcher = TrackNotificationDispatcher()
+
+    # We will need to wait for executor to finish tasks to make robust assertions
+    def wait_for_notify():
+        dispatcher._executor.shutdown(wait=True)
+        dispatcher._executor = __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=1)
+
     # Should not raise exception
     dispatcher.notify_transition("Track", "Artist", "Album", "FLAC", track_id="1")
+    wait_for_notify()
     mock_run.assert_called_once()
 
 
