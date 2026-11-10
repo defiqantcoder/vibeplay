@@ -34,6 +34,7 @@ REQUIRED_DSP_PROFILES: tuple[str, ...] = ()
 BUNDLE_DATAS: tuple[tuple[str, str], ...] = (
     ("src/vibeplay/templates", "vibeplay/templates"),
     ("src/vibeplay/static", "vibeplay/static"),
+    ("src/vibe_dsp/profiles", "vibe_dsp/profiles"),
 )
 
 # Hidden imports required for FastAPI/Uvicorn, Jinja2, PyWebView GTK3/WebKit2GTK on Ubuntu 24.04, and DSP
