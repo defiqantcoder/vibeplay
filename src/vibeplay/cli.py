@@ -20,6 +20,7 @@ from rich.progress import (  # noqa: E402
 )
 from rich.table import Table  # noqa: E402
 
+from vibeplay import __version__  # noqa: E402
 from vibeplay.analysis import analyze_tracks  # noqa: E402
 from vibeplay.capabilities import check_all_capabilities  # noqa: E402
 from vibeplay.config import get_settings  # noqa: E402
@@ -38,6 +39,29 @@ app = typer.Typer(
     help="Local music library scanner, metadata enricher, and vibe-based smart playlist generator.",
     no_args_is_help=True,
 )
+
+
+def version_callback(value: bool):
+    if value:
+        console.print(f"vibeplay {__version__}")
+        raise typer.Exit()
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    version: Annotated[
+        bool | None,
+        typer.Option(
+            "--version",
+            "-v",
+            callback=version_callback,
+            is_eager=True,
+            help="Show the application's version and exit.",
+        ),
+    ] = None,
+):
+    """Local music library scanner, metadata enricher, and vibe-based smart playlist generator."""
+    pass
 
 
 @app.command()
