@@ -1,3 +1,4 @@
+import concurrent.futures
 import logging
 import shutil
 import subprocess
@@ -10,6 +11,8 @@ class TrackNotificationDispatcher:
     def __init__(self) -> None:
         self.last_track_id: Optional[str] = None
         self.last_track_path: Optional[str] = None
+        self._generation = 0
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="vibeplay-notify")
 
     def notify_transition(
         self, track_title: str, artist: str, album: str, format_badge: str, track_id: Optional[str] = None, track_path: Optional[str] = None
@@ -19,11 +22,19 @@ class TrackNotificationDispatcher:
         if track_path is not None and track_path == self.last_track_path:
             return
 
+        self._generation += 1
+        generation = self._generation
         self.last_track_id = track_id
         self.last_track_path = track_path
 
         title = track_title or "Unknown Title"
         body = f"{artist or 'Unknown Artist'} — {album or 'Unknown Album'} [{format_badge}]"
+
+        self._executor.submit(self._dispatch_notification, title, body, generation)
+
+    def _dispatch_notification(self, title: str, body: str, generation: int) -> None:
+        if generation != self._generation:
+            return
 
         notify_bin = shutil.which("notify-send")
         if notify_bin is None:
@@ -33,7 +44,7 @@ class TrackNotificationDispatcher:
         try:
             subprocess.run([notify_bin, "--app-name=VibePlay", "--icon=vibeplay", title, body], shell=False, timeout=5, check=True)
         except Exception as e:
-            logger.warning("Failed to send track transition notification: %s", e)
+            logger.debug("Failed to send track transition notification: %s", e)
 
     def notify_track_change(
         self,
@@ -68,3 +79,6 @@ class TrackNotificationDispatcher:
             album=album,
             format_badge=format_badge,
         )
+
+    def shutdown(self, wait: bool = False) -> None:
+        self._executor.shutdown(wait=wait)
