@@ -307,8 +307,20 @@ def test_peq_cli_generate_exports_profile(tmp_path: Path) -> None:
     source.write_text(SAMPLE_AUTOEQ_TEXT, encoding="utf-8")
     result = runner.invoke(
         app,
-        ["peq", "generate", "--input", str(source), "--name", "CLI test", "--safety-margin", "1.0",
-         "--output-dir", str(tmp_path), "--no-backup", "--json"],
+        [
+            "peq",
+            "generate",
+            "--input",
+            str(source),
+            "--name",
+            "CLI test",
+            "--safety-margin",
+            "1.0",
+            "--output-dir",
+            str(tmp_path),
+            "--no-backup",
+            "--json",
+        ],
     )
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)

@@ -6,12 +6,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Form, Request, Response
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 
-from vibeplay.config import Settings, get_settings
 from vibeplay.desktop.settings import (
     DEFAULT_DESKTOP_SETTINGS_PATH,
     DesktopSettings,
@@ -30,7 +29,7 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 
 def safe_get_setting(settings_obj: Any, key: str, default: Any = "") -> Any:
     """Safely retrieve configuration key without raising KeyError or AttributeError.
-    
+
     Supports dictionary, DesktopSettings, Pydantic BaseModel, or None.
     """
     if settings_obj is None:
@@ -67,6 +66,7 @@ async def api_get_settings(request: Request) -> Response:
     if (view_modal or is_htmx or "text/html" in accept_hdr) and "application/json" not in accept_hdr:
         try:
             from vibe_dsp.peq import list_available_presets
+
             peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
         except Exception:
             peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
@@ -85,6 +85,7 @@ async def api_get_settings(request: Request) -> Response:
     peq_presets_list: list[str] = []
     try:
         from vibe_dsp.peq import list_available_presets
+
         raw_presets = list_available_presets()
         peq_presets_list = [(p["name"] if isinstance(p, dict) else str(p)) for p in raw_presets]
     except Exception:
@@ -115,6 +116,7 @@ async def api_get_settings_modal(request: Request) -> Response:
     current = safe_load_settings()
     try:
         from vibe_dsp.peq import list_available_presets
+
         peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
     except Exception:
         peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
@@ -202,7 +204,7 @@ async def api_update_settings(request: Request) -> JSONResponse:
                     content={"detail": "Settings payload must be a JSON object."},
                 )
             payload = raw_body
-        except Exception as err:
+        except Exception:
             return JSONResponse(
                 status_code=400,
                 content={"detail": "Invalid JSON body."},
@@ -250,6 +252,7 @@ async def api_update_settings(request: Request) -> JSONResponse:
         else:
             try:
                 from vibe_dsp.peq import lookup_autoeq_model
+
                 prof = lookup_autoeq_model(validated.peq_profile, allow_network=False)
                 if prof is not None:
                     validated.peq_preamp_db = round(float(prof.calculated_preamp), 2)

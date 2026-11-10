@@ -180,12 +180,12 @@ def check_desktop_gui_capability() -> CapabilityStatus:
         gi.require_version("WebKit2", "4.1")
         # Try importing to ensure they actually exist after require_version
         from gi.repository import Gtk, WebKit2  # noqa: F401
-    except (ImportError, ValueError) as e:
+    except (ImportError, ValueError):
         return CapabilityStatus(
             name="Desktop GUI",
             available=False,
             provider="None",
-            detail=f"GTK3 or WebKit2 introspection bindings not found: {e}",
+            detail="GTK3 or WebKit2 introspection bindings not found",
             remediation="sudo apt install gir1.2-gtk-3.0 gir1.2-webkit2-4.1",
         )
 

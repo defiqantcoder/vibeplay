@@ -6,8 +6,8 @@ from fastapi.responses import HTMLResponse
 
 from vibeplay.config import Settings
 from vibeplay.db import get_connection
-from vibeplay.web import get_filtered_tracks
 from vibeplay.player import get_playback_status
+from vibeplay.web import get_filtered_tracks
 
 router = APIRouter(prefix="/api/library", tags=["library"])
 
@@ -152,6 +152,7 @@ async def api_library_duplicates(
 async def api_library_cover(
     track_id: int,
     db_path: Annotated[Path, Depends(get_db_path)],
+    cfg: Annotated[Settings, Depends(get_settings)],
     fallback: bool = False,
 ):
     """Serve embedded album artwork or return vinyl placeholder / 404."""
@@ -161,7 +162,13 @@ async def api_library_cover(
         row = cursor.fetchone()
 
     if row and row["path"]:
-        art = extract_cover_bytes(Path(row["path"]))
+        from vibeplay.desktop.security import allowed_media_roots, resolve_within
+
+        try:
+            safe_path = resolve_within(row["path"], allowed_media_roots(getattr(cfg, "music_dir", None)))
+        except (PermissionError, ValueError):
+            raise HTTPException(status_code=403, detail="Path traversal attempt detected")
+        art = extract_cover_bytes(safe_path)
         if art:
             data, mime = art
             return Response(content=data, media_type=mime, headers={"Cache-Control": "public, max-age=86400"})

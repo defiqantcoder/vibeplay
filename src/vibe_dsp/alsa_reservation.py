@@ -259,5 +259,5 @@ def setup_bitperfect_routing(
         rollback_script=rollback_script,
         reload_msg=reload_msg,
         device_status=status,
-            reload_success=reload_success,
+        reload_success=reload_success,
     )

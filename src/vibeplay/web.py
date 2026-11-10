@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import html
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -378,7 +378,8 @@ def create_app(
                 return JSONResponse(
                     status_code=401,
                     content={
-                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or ?api_key=..."
+                        "detail": "Unauthorized: Invalid or missing API key. Provide via X-API-Key header, Authorization Bearer token, or "
+                        "?api_key=..."
                     },
                 )
 
@@ -512,7 +513,7 @@ def create_app(
             )
             row = cursor.fetchone()
             if not row:
-                raise HTTPException(status_code=404, detail=f"Track {track_id} not found")
+                raise HTTPException(status_code=404, detail=f"Track {html.escape(str(track_id))} not found")
 
             track_dict = dict(row)
             track_dict["title"] = track_dict["title"] or Path(track_dict["path"]).stem
@@ -1336,6 +1337,7 @@ def create_app(
         playback["active_profile"] = target_profile
         playback["output_profile"] = target_profile
         from vibeplay.player import get_output_profiles
+
         playback["output_profiles"] = get_output_profiles(cfg)
 
         accept_header = request.headers.get("accept", "")
@@ -1562,7 +1564,9 @@ def create_app(
 
         settings_dict = current.model_dump(mode="json") if hasattr(current, "model_dump") else {}
         settings_dict["gemini_api_key"] = current.get("gemini_api_key", "") if hasattr(current, "get") else getattr(current, "gemini_api_key", "")
-        settings_dict["gemini_model"] = current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")
+        settings_dict["gemini_model"] = (
+            current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")
+        )  # noqa: E501
 
         return JSONResponse(
             content={
@@ -1581,6 +1585,7 @@ def create_app(
             current = DesktopSettings()
         try:
             from vibe_dsp.peq import list_available_presets
+
             peq_presets = [(p["name"] if isinstance(p, dict) else str(p)) for p in list_available_presets()]
         except Exception:
             peq_presets = ["7hz_zero_2", "apple_airpods_pro_2", "moondrop_blessing_2", "sennheiser_hd600"]
@@ -1603,7 +1608,7 @@ def create_app(
         except Exception:
             current = DesktopSettings()
         key = current.get("gemini_api_key", "") if hasattr(current, "get") else getattr(current, "gemini_api_key", "")
-        model = current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")
+        model = current.get("gemini_model", "gemini-3.8-flash") if hasattr(current, "get") else getattr(current, "gemini_model", "gemini-3.8-flash")  # noqa: E501
         provider = current.get("llm_provider", "gemini") if hasattr(current, "get") else getattr(current, "llm_provider", "gemini")
         return JSONResponse(
             content={
@@ -1662,7 +1667,7 @@ def create_app(
                         content={"detail": "Settings payload must be a JSON object."},
                     )
                 payload = raw_body
-            except Exception as err:
+            except Exception:
                 return JSONResponse(
                     status_code=400,
                     content={"detail": "Invalid JSON body."},
@@ -1957,7 +1962,7 @@ def create_app(
                 reg.register(MaintenancePlugin())
             p = reg.get(plugin_name)
             if not p:
-                return JSONResponse(status_code=404, content={"error": f"Plugin '{plugin_name}' not found"})
+                return JSONResponse(status_code=404, content={"error": f"Plugin '{html.escape(plugin_name)}' not found"})
             if p.is_enabled:
                 p.disable()
             else:
@@ -1983,7 +1988,7 @@ def create_app(
                         raw_uris = [str(u) for u in body["uris"] if str(u).strip()]
                     elif body.get("uri"):
                         raw_uris = [str(body["uri"]).strip()]
-            except Exception as err:
+            except Exception:
                 return JSONResponse(
                     status_code=400,
                     content={"detail": "Invalid JSON body."},
@@ -2035,7 +2040,7 @@ def create_app(
         for raw in raw_uris:
             try:
                 target = classify_mime_target(raw)
-            except ValueError as val_err:
+            except ValueError:
                 return JSONResponse(
                     status_code=400,
                     content={"detail": "Invalid file path or URI."},

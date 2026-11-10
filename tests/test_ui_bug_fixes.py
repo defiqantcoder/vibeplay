@@ -11,12 +11,12 @@ Verifies:
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
 from vibeplay.config import Settings
-from vibeplay.db import get_connection, init_db, insert_track, insert_or_replace_features
+from vibeplay.db import get_connection, init_db, insert_or_replace_features, insert_track
 from vibeplay.web import create_app
 
 
@@ -79,7 +79,7 @@ def test_header_buttons_wiring(test_env):
     html = resp.text
 
     # Header / Titlebar buttons
-    assert 'onclick="toggleSettingsDialog(\'theme\')"' in html
+    assert "onclick=\"toggleSettingsDialog('theme')\"" in html
     assert 'onclick="openToyboxModal()"' in html
     assert 'id="chrome-btn-addons"' in html
     assert 'id="chrome-btn-themes"' in html
@@ -167,7 +167,7 @@ def test_library_table_and_record_crate_metadata_and_cover_bindings(test_env, tm
     table_html = resp_table.text
 
     assert f'src="/api/library/cover/{t_id}"' in table_html
-    assert 'onerror="this.onerror=null; this.src=\'/static/icons/vinyl_placeholder.svg\';"' in table_html
+    assert "onerror=\"this.onerror=null; this.src='/static/icons/vinyl_placeholder.svg';\"" in table_html
     # Dynamic sample rate & bit-depth display
     assert "96kHz / 24-bit" in table_html or "96 kHz" in table_html
 

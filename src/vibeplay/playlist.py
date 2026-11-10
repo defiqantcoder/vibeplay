@@ -720,7 +720,6 @@ class PlaylistRequest(BaseModel):
     db: Path | None = None
 
 
-
 def evaluate_energy_arc(arc_name: str, step: int, total_steps: int) -> float:
     """Calculate target energy value at a normalized position along an energy arc.
 

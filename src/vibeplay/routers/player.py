@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import html
 import logging
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -120,6 +118,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
         if "spatial" in p_low:
             try:
                 from vibe_dsp.spatial import set_spatial_virtualization_mode
+
                 set_spatial_virtualization_mode("spatial_binaural")
                 update_desktop_settings({"spatial_enabled": True, "spatial_mode": "3d_binaural", "dsp_profile": "spatial-headphones"})
             except Exception:
@@ -132,6 +131,7 @@ async def api_post_output(request: Request, profile: str | None = Form(None)) ->
         elif "bit-perfect" in p_low or "pure" in p_low or "letshuoer" in p_low or "fiio" in p_low:
             try:
                 from vibe_dsp.spatial import set_spatial_virtualization_mode
+
                 set_spatial_virtualization_mode("stereo_direct")
                 update_desktop_settings({"spatial_enabled": False, "spatial_mode": "stereo_direct", "dsp_profile": "pure-bitperfect"})
             except Exception:

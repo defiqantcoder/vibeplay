@@ -86,7 +86,8 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
                 logger.debug("Could not release MPD outputs before aplay fallback: %s", e)
 
         import re
-        hw_match = re.search(r'(hw:\d+,\d+|plughw:\d+,\d+)', ACTIVE_OUTPUT_PROFILE)
+
+        hw_match = re.search(r"(hw:\d+,\d+|plughw:\d+,\d+)", ACTIVE_OUTPUT_PROFILE)
         alsa_device = hw_match.group(1) if hw_match else None
 
         if "aplay" in Path(player_bin).name:
@@ -111,7 +112,7 @@ def _start_fallback_playback(track_path: str, settings: Settings | None = None) 
                 stderr=subprocess.DEVNULL,
                 shell=False,
             )
-            logger.info("Started direct fallback audio player: %s (device: %s)", cmd[0], alsa_device or 'default')
+            logger.info("Started direct fallback audio player: %s (device: %s)", cmd[0], alsa_device or "default")
         except Exception as e:
             logger.warning("Failed to start direct audio player: %s", e)
 
@@ -523,7 +524,7 @@ def play_track(
             "title": row["title"] or Path(track_path).stem,
             "artist": row["artist"] or "Unknown Artist",
             "state": "play",
-            "error": str(err),
+            "error": "Operation failed",
             "fallback": True,
         }
 
@@ -627,8 +628,21 @@ def get_output_profiles(settings: Settings | None = None) -> list[str]:
         is_dac = is_usb or any(
             kw in combined
             for kw in (
-                "dac", "ka15", "fiio", "letshuoer", "dt01", "topping", "schiit",
-                "chord", "moondrop", "audioquest", "dragonfly", "qudelix", "ifi", "hidizs", "dongle"
+                "dac",
+                "ka15",
+                "fiio",
+                "letshuoer",
+                "dt01",
+                "topping",
+                "schiit",
+                "chord",
+                "moondrop",
+                "audioquest",
+                "dragonfly",
+                "qudelix",
+                "ifi",
+                "hidizs",
+                "dongle",
             )
         )
 
@@ -939,7 +953,7 @@ def toggle_pause(db_path: Path | None = None, settings: Settings | None = None) 
                         return {"state": "play"}
             except Exception:
                 pass
-        return {"state": "pause", "error": str(err)}
+        return {"state": "pause", "error": "Operation failed"}
 
 
 def seek_playback(time_seconds: float, settings: Settings | None = None) -> dict[str, Any]:
@@ -1042,7 +1056,7 @@ def set_volume_level(volume: int, settings: Settings | None = None) -> dict[str,
             return {"volume": vol}
     except Exception as err:
         logger.debug("MPD setvol unavailable: %s", err)
-        return {"volume": str(vol), "error": str(err)}
+        return {"volume": str(vol), "error": "Operation failed"}
 
 
 def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str, Any]:
@@ -1080,7 +1094,7 @@ def adjust_volume_step(delta: int, settings: Settings | None = None) -> dict[str
             _IS_MUTED = False
         else:
             _IS_MUTED = True
-        return {"volume": str(new_vol), "error": str(err)}
+        return {"volume": str(new_vol), "error": "Operation failed"}
 
 
 def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
@@ -1119,7 +1133,7 @@ def toggle_mute(settings: Settings | None = None) -> dict[str, Any]:
         else:
             _IS_MUTED = True
             target_vol = 0
-        return {"volume": target_vol, "error": str(err)}
+        return {"volume": target_vol, "error": "Operation failed"}
 
 
 set_volume = set_volume_level

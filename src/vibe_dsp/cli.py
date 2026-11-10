@@ -200,7 +200,8 @@ def hardware_audit(
     else:
         console.print(
             "[yellow]Notice:[/yellow] No external USB DAC detected. "
-            f"Routing will automatically target onboard fallback: [bold cyan]{report.fallback_endpoint.card_name if report.fallback_endpoint else 'Default'}[/bold cyan]."
+            f"Routing will automatically target onboard fallback: [bold cyan]"
+            f"{report.fallback_endpoint.card_name if report.fallback_endpoint else 'Default'}[/bold cyan]."
         )
     console.print()
 

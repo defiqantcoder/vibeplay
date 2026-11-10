@@ -50,8 +50,10 @@ def choose_directory_dialog(
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
             if res.returncode == 0:
                 selected = res.stdout.strip()
-                if selected and Path(selected).resolve().is_dir():
-                    return str(Path(selected).resolve())
+                if selected:
+                    p = Path(selected).resolve()
+                    if p.is_dir():
+                        return str(p)
             elif res.returncode == 1:
                 # User pressed Cancel
                 return None
@@ -66,8 +68,10 @@ def choose_directory_dialog(
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
             if res.returncode == 0:
                 selected = res.stdout.strip()
-                if selected and Path(selected).resolve().is_dir():
-                    return str(Path(selected).resolve())
+                if selected:
+                    p = Path(selected).resolve()
+                    if p.is_dir():
+                        return str(p)
             elif res.returncode == 1:
                 return None
         except Exception as err:
@@ -96,8 +100,10 @@ def choose_directory_dialog(
             if response == Gtk.ResponseType.ACCEPT:
                 chosen_path = dialog.get_filename()
             dialog.destroy()
-            if chosen_path and Path(chosen_path).resolve().is_dir():
-                return str(Path(chosen_path).resolve())
+            if chosen_path:
+                p = Path(chosen_path).resolve()
+                if p.is_dir():
+                    return str(p)
         except Exception as err:
             logger.debug("GTK native folder chooser failed: %s", err)
 

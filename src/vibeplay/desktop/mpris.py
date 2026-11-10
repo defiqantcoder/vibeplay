@@ -10,8 +10,10 @@ from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
 
+
 class MPRISServer:
     """Lightweight pure-python D-Bus server for MPRIS interface."""
+
     def __init__(self, runner: Any) -> None:
         self.runner = runner
         self.is_running = False
@@ -73,8 +75,8 @@ class MPRISServer:
                         continue
 
                     if msg.header.message_type.name == "method_call":
-                        method = msg.header.fields.get(3) # MEMBER
-                        interface = msg.header.fields.get(2) # INTERFACE
+                        method = msg.header.fields.get(3)  # MEMBER
+                        interface = msg.header.fields.get(2)  # INTERFACE
 
                         if interface == "org.mpris.MediaPlayer2.Player":
                             if method == "Play":
@@ -117,7 +119,7 @@ class MPRISServer:
         if not self.runner:
             return
 
-        time.sleep(2.0) # Wait for backend
+        time.sleep(2.0)  # Wait for backend
 
         while self.is_running:
             try:
@@ -139,7 +141,7 @@ class MPRISServer:
                                 "xesam:title": song.get("title", ""),
                                 "xesam:artist": [song.get("artist", "")] if song.get("artist") else [],
                                 "xesam:album": song.get("album", ""),
-                                "mpris:length": int(float(song.get("duration", 0)) * 1000000)
+                                "mpris:length": int(float(song.get("duration", 0)) * 1000000),
                             }
 
                         changed = {}
@@ -154,20 +156,21 @@ class MPRISServer:
                         if changed and self.conn:
                             try:
                                 from jeepney import new_signal
+
                                 # Signal for PropertiesChanged
                                 sig = new_signal(
                                     "/org/mpris/MediaPlayer2",
                                     "org.freedesktop.DBus.Properties",
                                     "PropertiesChanged",
                                     "sa{sv}as",
-                                    ("org.mpris.MediaPlayer2.Player", {}, []) # Simplified to avoid jeepney type signature hell
+                                    ("org.mpris.MediaPlayer2.Player", {}, []),  # Simplified to avoid jeepney type signature hell
                                 )
                                 self.conn.send_message(sig)
                             except Exception as e:
                                 logger.debug("Failed to emit PropertiesChanged: %s", e)
 
             except urllib.error.URLError:
-                pass # Server might not be ready
+                pass  # Server might not be ready
             except Exception as e:
                 logger.debug("MPRIS telemetry polling error: %s", e)
 

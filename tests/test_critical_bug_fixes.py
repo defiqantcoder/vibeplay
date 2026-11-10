@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,7 +15,6 @@ from vibeplay.player import (
     get_active_output_profile,
     get_output_profiles,
     play_track,
-    set_output_profile,
 )
 from vibeplay.routers.root import safe_get_setting as root_safe_get
 from vibeplay.routers.settings import safe_get_setting as settings_safe_get
@@ -115,8 +113,7 @@ def test_dynamic_dac_detection_parses_proc_asound_cards(tmp_path: Path):
         "                      LETSHUOER LETSHUOER DT01 at usb-0000:00:14.0-2, high speed\n"
     )
 
-    with patch("pathlib.Path.exists", return_value=True), \
-         patch("pathlib.Path.read_text", return_value=cards_sample):
+    with patch("pathlib.Path.exists", return_value=True), patch("pathlib.Path.read_text", return_value=cards_sample):
         profiles = get_output_profiles()
         assert any("FiiO KA15" in p for p in profiles)
         assert any("Letshuoer" in p for p in profiles)
@@ -168,8 +165,10 @@ def test_play_track_falls_back_to_direct_audio_player_on_mpd_failure(tmp_path: P
         track_id = cursor.lastrowid
 
     # 1. MPD connection throws exception
-    with patch("vibeplay.player.get_mpd_transport", side_effect=Exception("MPD daemon unavailable")), \
-         patch("vibeplay.player._start_fallback_playback") as mock_fallback:
+    with (
+        patch("vibeplay.player.get_mpd_transport", side_effect=Exception("MPD daemon unavailable")),
+        patch("vibeplay.player._start_fallback_playback") as mock_fallback,
+    ):
         res = play_track(db_file, track_id)
         assert res["state"] == "play"
         assert res["fallback"] is True
@@ -178,8 +177,7 @@ def test_play_track_falls_back_to_direct_audio_player_on_mpd_failure(tmp_path: P
     # 2. MPD connects but status reports error / device lock failure
     mock_transport = MagicMock()
     mock_transport.status.return_value = {"state": "stop", "error": "problems opening audio device hw:0,0"}
-    with patch("vibeplay.player.get_mpd_transport") as mock_get_trans, \
-         patch("vibeplay.player._start_fallback_playback") as mock_fallback2:
+    with patch("vibeplay.player.get_mpd_transport") as mock_get_trans, patch("vibeplay.player._start_fallback_playback") as mock_fallback2:
         mock_get_trans.return_value.__enter__.return_value = mock_transport
         res2 = play_track(db_file, track_id)
         assert res2["fallback"] is True

@@ -343,7 +343,7 @@ def start_background_scan(db_path: Path, music_dir: Path) -> tuple[str, bool]:
             logger.info("Background library scan completed: %s", summary)
         except Exception as exc:
             logger.error("Background library scan failed: %s", exc)
-            fail_job_run(db_path, job_id, str(exc))
+            fail_job_run(db_path, job_id, "Job failed with an error")
 
     t = threading.Thread(target=_worker, name=f"scan-worker-{job_id[:8]}", daemon=True)
     t.start()
@@ -378,7 +378,7 @@ def start_background_enrich(db_path: Path) -> tuple[str, bool]:
             logger.info("Background enrichment completed: %s", summary)
         except Exception as exc:
             logger.error("Background enrichment failed: %s", exc)
-            fail_job_run(db_path, job_id, str(exc))
+            fail_job_run(db_path, job_id, "Job failed with an error")
 
     t = threading.Thread(target=_worker, name=f"enrich-worker-{job_id[:8]}", daemon=True)
     t.start()
@@ -424,7 +424,7 @@ def start_background_analyze(db_path: Path) -> tuple[str, bool]:
                 logger.info("Background analysis completed: %s", summary)
         except Exception as exc:
             logger.error("Background analysis failed: %s", exc)
-            fail_job_run(db_path, job_id, str(exc))
+            fail_job_run(db_path, job_id, "Job failed with an error")
 
     t = threading.Thread(target=_worker, name=f"analyze-worker-{job_id[:8]}", daemon=True)
     t.start()
