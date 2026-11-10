@@ -2,9 +2,10 @@
 
 import json
 import logging
+import signal
 import time
 from abc import ABC, abstractmethod
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -72,6 +73,17 @@ def get_analyzer(
     return LibrosaAnalyzer()
 
 
+_WORKER_ANALYZER: BaseAnalyzer | None = None
+
+
+def _init_analysis_worker(backend: str, models_dir_str: str | None) -> None:
+    """Initializer for process pool workers to load the analyzer once per process."""
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    global _WORKER_ANALYZER
+    models_dir = Path(models_dir_str) if models_dir_str else None
+    _WORKER_ANALYZER = get_analyzer(backend=backend, models_dir=models_dir)
+
+
 def _analyze_single_track_task(
     track_id: int,
     path_str: str,
@@ -96,8 +108,13 @@ def _analyze_single_track_task(
     start_time = time.perf_counter()
     track_path = Path(path_str)
     try:
-        models_dir = Path(models_dir_str) if models_dir_str else None
-        analyzer = get_analyzer(backend=backend, models_dir=models_dir)
+        global _WORKER_ANALYZER
+        if _WORKER_ANALYZER is not None:
+            analyzer = _WORKER_ANALYZER
+        else:
+            models_dir = Path(models_dir_str) if models_dir_str else None
+            analyzer = get_analyzer(backend=backend, models_dir=models_dir)
+
         features = analyzer.analyze_track(
             path=track_path,
             track_id=track_id,
@@ -153,8 +170,14 @@ class SequentialExecutionAdapter(ExecutionAdapter):
 class ParallelExecutionAdapter(ExecutionAdapter):
     """Executes analysis tasks in parallel using a process pool."""
 
-    def __init__(self, worker_count: int) -> None:
-        self.executor = ProcessPoolExecutor(max_workers=worker_count)
+    def __init__(self, worker_count: int, backend: str, models_dir_str: str | None) -> None:
+        self._cancel_requested = False
+        self._futures: set[Future] = set()
+        self.executor = ProcessPoolExecutor(
+            max_workers=worker_count,
+            initializer=_init_analysis_worker,
+            initargs=(backend, models_dir_str),
+        )
 
     def process_batch(
         self,
@@ -162,6 +185,7 @@ class ParallelExecutionAdapter(ExecutionAdapter):
         cancel_check: CancelCheckCallback | None,
     ) -> Iterator[tuple[tuple, Any]]:
         futures = {self.executor.submit(_analyze_single_track_task, *args): args for args in batch}
+        self._futures = set(futures)
         try:
             for future in as_completed(futures):
                 if cancel_check and cancel_check():
@@ -176,10 +200,14 @@ class ParallelExecutionAdapter(ExecutionAdapter):
             logger.error("Batch processing error: %s", e)
 
     def cancel(self) -> None:
-        self.executor.shutdown(wait=False, cancel_futures=True)
+        self._cancel_requested = True
+        # Keep the executor intact so final shutdown can join dispatched workers.
+        for future in self._futures:
+            future.cancel()
 
     def shutdown(self) -> None:
-        self.executor.shutdown(wait=True)
+        # Keep cancellation enabled until the pool has drained its pending work.
+        self.executor.shutdown(wait=True, cancel_futures=self._cancel_requested)
 
 
 def analyze_tracks(
@@ -256,7 +284,7 @@ def analyze_tracks(
         # Create execution adapter
         adapter: ExecutionAdapter
         if worker_count > 1:
-            adapter = ParallelExecutionAdapter(worker_count)
+            adapter = ParallelExecutionAdapter(worker_count, backend, str(settings.models_dir) if settings.models_dir else None)
         else:
             adapter = SequentialExecutionAdapter()
 
@@ -319,6 +347,9 @@ def analyze_tracks(
                         else:
                             summary.failed += 1
                             logger.warning("Failed analyzing track %s: %s", args[1], err_msg)
+        except KeyboardInterrupt:
+            adapter.cancel()
+            raise
         finally:
             adapter.shutdown()
     summary.total_seconds = time.perf_counter() - start_total_time

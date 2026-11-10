@@ -1,8 +1,12 @@
 """Unit tests for audio analysis and feature extraction."""
 
+import multiprocessing
 import shutil
 import wave
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from threading import Timer
+from unittest.mock import Mock, call
 
 import numpy as np
 import pytest
@@ -10,7 +14,9 @@ from typer.testing import CliRunner
 
 from vibeplay.analysis import (
     EssentiaAnalyzer,
+    ExecutionAdapter,
     LibrosaAnalyzer,
+    ParallelExecutionAdapter,
     analyze_tracks,
     decode_audio_slice,
     downmix_to_mono,
@@ -20,6 +26,82 @@ from vibeplay.cli import app
 from vibeplay.db import get_connection, init_db, insert_track
 
 runner = CliRunner()
+
+
+@pytest.mark.parametrize("cancel_requested", [False, True])
+def test_parallel_shutdown_preserves_cancellation(monkeypatch: pytest.MonkeyPatch, cancel_requested: bool) -> None:
+    """Final cleanup must not clear a cancellation request before the pool handles it."""
+    executor = Mock()
+    monkeypatch.setattr("vibeplay.analysis.ProcessPoolExecutor", Mock(return_value=executor))
+    adapter = ParallelExecutionAdapter(worker_count=2, backend="librosa", models_dir_str=None)
+
+    future = Mock()
+    adapter._futures = {future}
+    if cancel_requested:
+        adapter.cancel()
+    adapter.shutdown()
+
+    assert executor.mock_calls == [call.shutdown(wait=True, cancel_futures=cancel_requested)]
+    assert future.cancel.call_count == int(cancel_requested)
+
+
+def _wait_for_worker_release(started, release) -> None:
+    started.set()
+    if not release.wait(10):
+        raise TimeoutError("Worker was not released")
+
+
+def test_parallel_cancel_waits_for_dispatched_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cancellation cleanup must wait for real dispatched work before returning."""
+    context = multiprocessing.get_context("spawn")
+    with context.Manager() as manager:
+        started = manager.Event()
+        release = manager.Event()
+        executor = ProcessPoolExecutor(max_workers=1, mp_context=context)
+        monkeypatch.setattr("vibeplay.analysis.ProcessPoolExecutor", Mock(return_value=executor))
+        adapter = ParallelExecutionAdapter(worker_count=1, backend="librosa", models_dir_str=None)
+        future = executor.submit(_wait_for_worker_release, started, release)
+        adapter._futures = {future}
+        timer = Timer(0.2, release.set)
+        try:
+            assert started.wait(10)
+            adapter.cancel()
+            timer.start()
+            adapter.shutdown()
+            assert future.done(), "Cleanup returned while a dispatched worker was still running"
+            assert future.result() is None
+        finally:
+            release.set()
+            if timer.ident is not None:
+                timer.join()
+            executor.shutdown(wait=True, cancel_futures=True)
+
+
+@pytest.mark.parametrize("workers", [1, 2])
+@pytest.mark.parametrize("error", [None, KeyboardInterrupt, RuntimeError])
+def test_analyze_tracks_shutdown(
+    db_with_two_tracks: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    workers: int,
+    error: type[BaseException] | None,
+) -> None:
+    """Interrupts request cancellation before cleanup; other exits retain normal cleanup."""
+    adapter = Mock(spec=ExecutionAdapter)
+    adapter.process_batch.return_value = iter(())
+    if error is not None:
+        adapter.process_batch.side_effect = error
+    adapter_name = "ParallelExecutionAdapter" if workers > 1 else "SequentialExecutionAdapter"
+    monkeypatch.setattr(f"vibeplay.analysis.{adapter_name}", Mock(return_value=adapter))
+
+    if error is None:
+        analyze_tracks(db_with_two_tracks, backend="librosa", workers=workers)
+    else:
+        with pytest.raises(error):
+            analyze_tracks(db_with_two_tracks, backend="librosa", workers=workers)
+
+    cleanup_calls = [entry for entry in adapter.mock_calls if entry[0] in ("cancel", "shutdown")]
+    expected = [call.cancel(), call.shutdown()] if error is KeyboardInterrupt else [call.shutdown()]
+    assert cleanup_calls == expected
 
 
 @pytest.fixture
